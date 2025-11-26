@@ -45,7 +45,7 @@ namespace Ships
 					hpStat.AddToCurrent(-damage);
 
 				// вызвать эффекты
-				foreach (var effect in sourceWeapon.Model.OnHitEffects)
+				foreach (var effect in sourceWeapon.Model.Effects)
 					effect.Apply(targetable, damage, sourceWeapon);
 			}
 

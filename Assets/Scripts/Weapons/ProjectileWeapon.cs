@@ -29,7 +29,7 @@
 				if (t.TryGetStat(StatType.HP, out var hp))
 					hp.AddToCurrent(-dmg);
 
-				foreach (var effect in Model.OnHitEffects)
+				foreach (var effect in Model.Effects)
 					effect.Apply(t, dmg, this);
 			}
 		}

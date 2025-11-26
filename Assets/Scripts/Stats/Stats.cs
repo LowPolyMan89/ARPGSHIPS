@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace Ships
 {
@@ -26,7 +27,12 @@ namespace Ships
 
 		public float GetCurrent(StatType name)
 		{
-			return _stats.TryGetValue(name, out var stat) ? stat.Current : 0f;
+			if (!_stats.TryGetValue(name, out var stat))
+			{
+				Debug.LogError($"Stat {name} not found in Stats!");
+				return 0f;
+			}
+			return stat.Current;
 		}
 
 		public float GetMaximum(StatType name)

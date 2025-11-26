@@ -5,7 +5,10 @@ namespace Ships
 	public class WeaponModel
 	{
 		private Stats Stats { get; }
-		public List<IOnHitEffect> OnHitEffects = new();
+		private readonly List<IOnHitEffect> _effects = new();
+
+		public void AddEffect(IOnHitEffect effect) => _effects.Add(effect);
+		public IReadOnlyList<IOnHitEffect> Effects => _effects;
 
 		public WeaponModel(Stats stats)
 		{
