@@ -4,8 +4,8 @@ namespace Ships
 {
 	public interface IStatsProvider
 	{
-		bool TryGetStat(StatsNames name, out IStat stat);
-		IStat GetStat(StatsNames name);
+		bool TryGetStat(StatType name, out IStat stat);
+		IStat GetStat(StatType name);
 		IEnumerable<IStat> GetAllStats();
 	}
 }

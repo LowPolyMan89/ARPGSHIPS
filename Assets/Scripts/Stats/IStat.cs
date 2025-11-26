@@ -2,7 +2,7 @@
 {
 	public interface IStat
 	{
-		StatsNames Name { get; }
+		StatType Name { get; }
 
 		float BaseMaximum { get; }
 		float BaseCurrent { get; }

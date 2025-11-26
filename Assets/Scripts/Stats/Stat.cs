@@ -4,7 +4,7 @@ namespace Ships
 {
 	public sealed class Stat : IStat
 	{
-		public StatsNames Name { get; }
+		public StatType Name { get; }
 		public float BaseMaximum { get; private set; }
 		public float BaseCurrent { get; private set; }
 		public float Maximum { get; private set; }
@@ -13,7 +13,7 @@ namespace Ships
 		private readonly List<StatModifier> _modifiers = new List<StatModifier>();
 		public IReadOnlyList<StatModifier> Modifiers => _modifiers;
 
-		public Stat(StatsNames name, float baseMaximum, float? baseCurrent = null)
+		public Stat(StatType name, float baseMaximum, float? baseCurrent = null)
 		{
 			Name = name;
 			BaseMaximum = baseMaximum;

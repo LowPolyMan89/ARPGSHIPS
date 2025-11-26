@@ -21,14 +21,14 @@ namespace Ships
 				_visual.Load();
 			}
 		}
-		public bool TryGetStat(StatsNames name, out IStat stat)
+		public bool TryGetStat(StatType name, out IStat stat)
 		{
 			bool result = ShipStats.TryGetStat(name, out var s);
 			stat = s;
 			return result;
 		}
 
-		public IStat GetStat(StatsNames name) => ShipStats.GetStat(name);
+		public IStat GetStat(StatType name) => ShipStats.GetStat(name);
 
 		public IEnumerable<IStat> GetAllStats() => ShipStats.All.Values;
 	}

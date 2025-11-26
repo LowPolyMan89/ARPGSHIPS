@@ -4,32 +4,32 @@ namespace Ships
 {
 	public sealed class Stats
 	{
-		private readonly Dictionary<StatsNames, Stat> _stats = new Dictionary<StatsNames, Stat>();
+		private readonly Dictionary<StatType, Stat> _stats = new Dictionary<StatType, Stat>();
 
-		public IReadOnlyDictionary<StatsNames, Stat> All => _stats;
+		public IReadOnlyDictionary<StatType, Stat> All => _stats;
 
 		public void AddStat(Stat stat)
 		{
 			_stats[stat.Name] = stat;
 		}
 
-		public bool TryGetStat(StatsNames name, out Stat stat)
+		public bool TryGetStat(StatType name, out Stat stat)
 		{
 			return _stats.TryGetValue(name, out stat);
 		}
 
-		public Stat GetStat(StatsNames name)
+		public Stat GetStat(StatType name)
 		{
 			_stats.TryGetValue(name, out var stat);
 			return stat;
 		}
 
-		public float GetCurrent(StatsNames name)
+		public float GetCurrent(StatType name)
 		{
 			return _stats.TryGetValue(name, out var stat) ? stat.Current : 0f;
 		}
 
-		public float GetMaximum(StatsNames name)
+		public float GetMaximum(StatType name)
 		{
 			return _stats.TryGetValue(name, out var stat) ? stat.Maximum : 0f;
 		}
