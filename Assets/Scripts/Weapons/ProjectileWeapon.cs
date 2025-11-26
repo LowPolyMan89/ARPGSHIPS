@@ -18,17 +18,20 @@
 			else
 			{
 				var proj = Instantiate(ProjectilePrefab, Slot.Muzzle.position, Slot.Muzzle.rotation);
-				proj.Init(target, damage, speed, Model.ArmorPierce);
+				proj.Init(target, damage, speed, Model.ArmorPierce, this);
 			}
 		}
 
 		private void DoInstantHit(Transform target, float dmg)
 		{
-			//var hp = target.GetComponent<HealthComponent>();
-			//if (hp != null)
-			//	hp.ApplyDamage(dmg, Model.ArmorPierce);
+			if (target.TryGetComponent<ITargetable>(out var t))
+			{
+				if (t.TryGetStat(StatType.HP, out var hp))
+					hp.AddToCurrent(-dmg);
 
-			// TODO: визуальный лазер-эффект
+				foreach (var effect in Model.OnHitEffects)
+					effect.Apply(t, dmg, this);
+			}
 		}
 	}
 }

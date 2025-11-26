@@ -10,13 +10,15 @@ namespace Ships
 		private float speed;
 		private float damage;
 		private float armorPierce;
+		private WeaponBase sourceWeapon;
 
-		public void Init(Transform target, float dmg, float spd, float ap)
+		public void Init(Transform target, float dmg, float spd, float ap, WeaponBase source)
 		{
 			this.target = target;
 			damage = dmg;
 			speed = spd;
 			armorPierce = ap;
+			sourceWeapon = source;
 		}
 
 		void Update()
@@ -36,11 +38,18 @@ namespace Ships
 
 		private void HitTarget()
 		{
-			//var hp = target.GetComponent<HealthComponent>();
-			//if (hp != null)
-			//	hp.ApplyDamage(damage, armorPierce);
+			if (target.TryGetComponent<ITargetable>(out var targetable))
+			{
+				// нанести урон
+				if (targetable.TryGetStat(StatType.HP, out var hpStat))
+					hpStat.AddToCurrent(-damage);
 
-			//Destroy(gameObject);
+				// вызвать эффекты
+				foreach (var effect in sourceWeapon.Model.OnHitEffects)
+					effect.Apply(targetable, damage, sourceWeapon);
+			}
+
+			Destroy(gameObject);
 		}
 	}
 

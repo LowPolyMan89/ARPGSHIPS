@@ -1,8 +1,11 @@
-﻿namespace Ships
+﻿using System.Collections.Generic;
+
+namespace Ships
 {
 	public class WeaponModel
 	{
-		public Stats Stats { get; }
+		private Stats Stats { get; }
+		public List<IOnHitEffect> OnHitEffects = new();
 
 		public WeaponModel(Stats stats)
 		{

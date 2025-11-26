@@ -3,7 +3,7 @@
 	public enum StatType
 	{
 		// Ship
-		MaxHP,
+		HP,
 		MoveSpeed,
 		TurnSpeed,
 		Shield,

@@ -8,7 +8,7 @@ namespace Ships
 		private void Awake()
 		{
 			ShipStats = new Stats();
-			ShipStats.AddStat(new Stat(StatType.MaxHP, 100));
+			ShipStats.AddStat(new Stat(StatType.HP, 100));
 			ShipStats.AddStat(new Stat(StatType.Shield, 50));
 			ShipStats.AddStat(new Stat(StatType.MoveSpeed, 10));
 		}
