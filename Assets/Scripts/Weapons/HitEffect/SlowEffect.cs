@@ -5,8 +5,8 @@ namespace Ships.HitEffect
 	public class SlowEffect : IOnHitEffect
 	{
 		private float chance;
-		private float slowPercent;
-		private float duration;
+		private float slowPercent; // 10 = 10%
+		private float duration;    // секунды
 
 		public SlowEffect(float chance, float slowPercent, float duration)
 		{
@@ -20,20 +20,23 @@ namespace Ships.HitEffect
 			if (UnityEngine.Random.value > chance)
 				return;
 
-			if (target.TryGetStat(StatType.MoveSpeed, out var speedStat))
+			if (target.TryGetStat(StatType.MoveSpeed, out var stat))
 			{
-				speedStat.AddModifier(
+				float fraction = slowPercent / 100f;
+
+				stat.AddModifier(
 					new StatModifier(
 						StatModifierType.PercentAdd,
-						StatModifierTarget.Current,
+						StatModifierTarget.Maximum,
 						StatModifierPeriodicity.Timed,
-						-slowPercent,
-						remainingTicks: Mathf.CeilToInt(duration / Time.fixedDeltaTime),
+						-fraction,
+						remainingTicks: Mathf.CeilToInt(duration), // <== 1 секунда = 1 тик
 						source: this
 					)
 				);
 			}
 		}
 	}
+
 
 }

@@ -11,6 +11,8 @@ namespace Ships
 			ShipStats.AddStat(new Stat(StatType.HP, 100));
 			ShipStats.AddStat(new Stat(StatType.Shield, 50));
 			ShipStats.AddStat(new Stat(StatType.MoveSpeed, 10));
+			
+			Init();
 		}
 		
 	}
