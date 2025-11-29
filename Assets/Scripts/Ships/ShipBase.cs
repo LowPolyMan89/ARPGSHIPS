@@ -8,17 +8,18 @@ namespace Ships
 	public abstract class ShipBase : MonoBehaviour, ITargetable
 	{
 		public ShipVisual _visual;
+		public SideType SideType;
 		public Stats ShipStats;
 		public List<StatVisual> StatVisuals = new List<StatVisual>();
 		public List<ActiveEffectVisual> ActiveEffects = new();
-
+		public WeaponController WeaponController;
 		public Transform Transform => transform;
 
 		public bool IsAlive
 		{
 			get
 			{
-				if (ShipStats.TryGetStat(StatType.HP, out var hp))
+				if (ShipStats.TryGetStat(StatType.HitPoint, out var hp))
 					return hp.Current > 0;
 				return true;
 			}
@@ -116,6 +117,8 @@ namespace Ships
 					}
 				}
 			}
+			
+			WeaponController.OnUpdate();
 		}
 
 		public bool TryGetStat(StatType name, out IStat stat)

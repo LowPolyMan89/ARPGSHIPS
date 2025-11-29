@@ -3,11 +3,13 @@
 	public enum StatType
 	{
 		// Ship
-		HP,
+		HitPoint,
 		MoveSpeed,
 		TurnSpeed,
 		Shield,
 		ShieldRegen,
+		Acceleration,
+		BrakePower,
 
 		// Weapon
 		FireRate,

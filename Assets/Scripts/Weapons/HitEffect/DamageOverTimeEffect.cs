@@ -39,7 +39,7 @@ namespace Ships.HitEffect
 				if (!target.IsAlive)
 					yield break;
 
-				if (target.TryGetStat(StatType.HP, out var hpStat))
+				if (target.TryGetStat(StatType.HitPoint, out var hpStat))
 					hpStat.AddToCurrent(-damagePerTick);
 
 				yield return new WaitForSeconds(1f);

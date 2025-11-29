@@ -14,12 +14,6 @@ public class WeaponTargeting : MonoBehaviour
     private List<ITargetable> enemies = new();
     private ITargetable currentTarget;
 
-    void Awake()
-    {
-        if (Weapon == null) Weapon = GetComponent<WeaponBase>();
-        if (Slot == null) Slot = GetComponentInParent<WeaponSlot>();
-    }
-
     public void SetEnemies(List<ITargetable> list)
     {
         enemies = list;
@@ -27,11 +21,17 @@ public class WeaponTargeting : MonoBehaviour
 
     void Update()
     {
+        if (!Slot)
+        {
+            Slot = GetComponentInParent<WeaponSlot>();
+        }
+        if(!Slot)
+            return;
+        
         SelectTargetIfNeeded();
 
         if (currentTarget == null)
             return;
-
         Vector2 aim = GetAimPoint(currentTarget);
 
         Weapon.TickWeaponPosition(aim);
@@ -69,8 +69,18 @@ public class WeaponTargeting : MonoBehaviour
         Vector2 pos = Slot.transform.position;
 
         var inRange = enemies
-            .Where(e => e.IsAlive)
-            .Where(e => Vector2.Distance(pos, e.Transform.position) <= Weapon.Model.FireRange)
+            .Where(e =>
+            {
+                if (e.IsAlive) 
+                    return true;
+                return false;
+            })
+            .Where(e =>
+            {
+                if (Vector2.Distance(pos, e.Transform.position) <= Weapon.Model.FireRange)
+                    return true;
+                return false;
+            })
             .Where(e => {
                 Vector2 dir = ((Vector2)e.Transform.position - pos).normalized;
                 return Slot.IsTargetWithinSector(dir);

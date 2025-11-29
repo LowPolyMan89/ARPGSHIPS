@@ -41,7 +41,7 @@ namespace Ships
 			if (target.TryGetComponent<ITargetable>(out var targetable))
 			{
 				// нанести урон
-				if (targetable.TryGetStat(StatType.HP, out var hpStat))
+				if (targetable.TryGetStat(StatType.HitPoint, out var hpStat))
 					hpStat.AddToCurrent(-damage);
 
 				// вызвать эффекты

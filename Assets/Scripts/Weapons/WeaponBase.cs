@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 
 namespace Ships
@@ -11,10 +12,16 @@ namespace Ships
 
 		public WeaponSlot Slot;
 		public WeaponModel Model;
+		public Transform FirePoint;
 
 		public void Init(Stats stats)
 		{
 			Model = new WeaponModel(stats);
+		}
+		public void Init(WeaponSlot slot)
+		{
+			Model = new WeaponModel();
+			Slot = slot;
 		}
 
 		public void TickWeapon(Transform target)
@@ -50,7 +57,7 @@ namespace Ships
 
 			float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 			Quaternion rot = Quaternion.Euler(0, 0, angle);
-			Slot.transform.rotation = Quaternion.Lerp(Slot.transform.rotation, rot, Time.deltaTime * 10f);
+			transform.rotation = Quaternion.Lerp(Slot.transform.rotation, rot, Time.deltaTime * 10f);
 		}
 
 		protected abstract void Shoot(Transform target);
