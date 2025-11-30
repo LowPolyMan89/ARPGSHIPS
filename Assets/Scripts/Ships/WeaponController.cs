@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Ships
@@ -8,18 +9,13 @@ namespace Ships
 	{
 		public List<WeaponSlot> Weapons = new List<WeaponSlot>();
 		//TODO must remove
-		public List<GameObject> EnemyList = new List<GameObject>();
+		
 
 		public void OnUpdate()
 		{
-			List<ITargetable> _targetables = new List<ITargetable>();
-			foreach (var eGameObject in EnemyList)
-			{
-				_targetables.Add(eGameObject.GetComponent<ITargetable>());
-			}
 			foreach (var weapon in Weapons)
 			{
-				weapon.WeaponTargeting.SetEnemies(_targetables);
+				weapon.WeaponTargeting.SetEnemies(Battle.Instance.EnemyList.Select(x => x.GetComponent<ITargetable>()).ToList());
 			}
 		}
 	}

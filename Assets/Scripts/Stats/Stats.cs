@@ -29,7 +29,7 @@ namespace Ships
 		{
 			if (!_stats.TryGetValue(name, out var stat))
 			{
-				Debug.LogError($"Stat {name} not found in Stats!");
+				Debug.LogWarning($"Stat {name} not found in Stats!");
 				return 0f;
 			}
 			return stat.Current;

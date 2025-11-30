@@ -40,13 +40,32 @@ namespace Ships
 		{
 			if (target.TryGetComponent<ITargetable>(out var targetable))
 			{
-				// нанести урон
-				if (targetable.TryGetStat(StatType.HitPoint, out var hpStat))
-					hpStat.AddToCurrent(-damage);
+				ShipBase ship = target.GetComponent<ShipBase>();
 
-				// вызвать эффекты
+				float dmg = damage;
+
+				// === ЩИТЫ ==
+				if (ship != null && ship.TryGetComponent<ShieldController>(out var shields))
+				{
+					Vector2 hitDir = (ship.transform.position - transform.position).normalized;
+					int sectorIndex = shields.FindSectorIndex(hitDir);
+
+					float left = shields.ApplyDamage(sectorIndex, dmg);
+
+					if (left < dmg)
+					{
+						shields.OnSectorHit(sectorIndex, transform.position);
+						dmg = left;
+					}
+				}
+
+				// === УРОН В КОРПУС ===
+				if (dmg > 0 && targetable.TryGetStat(StatType.HitPoint, out var hpStat))
+					hpStat.AddToCurrent(-dmg);
+
+				// === ЭФФЕКТЫ ===
 				foreach (var effect in sourceWeapon.Model.Effects)
-					effect.Apply(targetable, damage, sourceWeapon);
+					effect.Apply(targetable, dmg, sourceWeapon);
 			}
 
 			Destroy(gameObject);

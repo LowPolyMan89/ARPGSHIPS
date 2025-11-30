@@ -150,6 +150,15 @@ namespace Ships
             // 3) Перемещение
             // -------------------------------
             transform.position += (Vector3)velocity * Time.deltaTime;
+            if (Battle.Instance != null)
+            {
+                Vector2 clamped = Battle.Instance.ClampPosition(transform.position);
+                transform.position = clamped;
+    
+                // Если упёрлись в стенку — скорость в эту сторону = 0
+                if ((Vector2)transform.position != clamped)
+                    velocity = Vector2.zero;
+            }
         }
     }
 }

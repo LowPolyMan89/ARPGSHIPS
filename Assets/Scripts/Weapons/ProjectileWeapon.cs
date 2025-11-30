@@ -38,8 +38,8 @@ namespace Ships
 			}
 			else
 			{
-				//var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				//proj.Init(target, damage, speed, Model.ArmorPierce, this);
+				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
+				proj.Init(target, damage, speed, Model.ArmorPierce, this);
 			}
 		}
 

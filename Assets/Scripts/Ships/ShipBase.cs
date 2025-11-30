@@ -45,6 +45,9 @@ namespace Ships
 				_visual.Load();
 			}
 
+			if (SideType == SideType.Enemy)
+				Battle.Instance.EnemyList.Add(this);
+			
 			StartCoroutine(Tick());
 
 			StatVisuals.Clear();
@@ -81,6 +84,13 @@ namespace Ships
 
 		private void Update()
 		{
+			if (!IsAlive)
+			{
+				if (SideType == SideType.Enemy)
+					Battle.Instance.EnemyList.Remove(this);
+				Destroy(gameObject);
+			}
+				
 			// обновляем Velocity
 			var pos = transform.position;
 			_velocity = (pos - _lastPos) / Time.deltaTime;
@@ -117,7 +127,7 @@ namespace Ships
 					}
 				}
 			}
-			
+
 			WeaponController.OnUpdate();
 		}
 
