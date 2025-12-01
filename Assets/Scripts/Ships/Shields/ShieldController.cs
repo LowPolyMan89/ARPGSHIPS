@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
@@ -8,19 +9,25 @@ namespace Ships
     {
         public List<ShieldSector> Sectors = new();
         public List<ShieldSectorVisual> Visuals = new();
-
-        private ShipBase ship;
+        public ShipBase Ship;
 
         private void Awake()
         {
-            ship = GetComponent<ShipBase>();
+            Ship = GetComponent<ShipBase>();
+            StartCoroutine(Update1Sec());
         }
 
+        private IEnumerator Update1Sec()
+        {
+            while (gameObject.activeSelf)
+            {
+                yield return new WaitForSeconds(1f);
+                foreach (var s in Sectors)
+                    s.Tick();
+            }
+        }
         private void Update()
         {
-            foreach (var s in Sectors)
-                s.Tick();
-
             UpdateVisuals();
         }
 
@@ -37,41 +44,41 @@ namespace Ships
                 if (sectorVisual.Side == side)
                 {
                     var s = Sectors.Find(x => x.Side == side);
+                    sectorVisual.Init();
                     sectorVisual.SetSectorAngles(s.StartAngle, s.EndAngle);
                     sectorVisual.SetCharge(s.ShieldHP.Current / s.ShieldHP.Maximum);
                 }
             }
             
         }
+        
 
-        public int FindSectorIndex(Vector2 hitDir)
+        public void OnShieldHit(ShieldSide side, Vector2 hitPoint, Projectile proj)
         {
-            Vector2 forward = ship.transform.up;
-            float angle = Vector2.SignedAngle(forward, hitDir);
+            var sector = Sectors.FirstOrDefault(s => s.Side == side);
 
-            for (int i = 0; i < Sectors.Count; i++)
+            // если сектора нет — прямой урон
+            if (sector == null)
             {
-                if (Sectors[i].ContainsAngle(angle))
-                    return i;
+                Ship.TakeDamage(proj.Damage, hitPoint, proj.SourceWeapon);
+                return;
             }
 
-            return -1;
+            float dmg = proj.Damage;
+
+            // Уменьшаем HP щита
+            float leftover = sector.Absorb(dmg);
+
+            // визуал
+            var vis = Visuals.FirstOrDefault(v => v.Side == side);
+            if (vis != null)
+                vis.Hit(hitPoint);
+
+            // остаток урона — в тело корабля
+            if (leftover > 0)
+                Ship.TakeDamage(leftover, hitPoint, proj.SourceWeapon);
         }
-
-        public float ApplyDamage(int index, float damage)
-        {
-            if (index < 0) return damage;
-
-            float leftover = Sectors[index].Absorb(damage);
-
-            return leftover;
-        }
-
-        public void OnSectorHit(int index, Vector2 worldPos)
-        {
-            if (index >= 0 && Visuals[index] != null)
-                Visuals[index].Hit(worldPos);
-        }
+        
 
         private void UpdateVisuals()
         {

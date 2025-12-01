@@ -10,6 +10,8 @@
 		ShieldRegen,
 		Acceleration,
 		BrakePower,
+		ShieldRestoreDelay,
+		BackSpeed,
 
 		// Weapon
 		FireRate,

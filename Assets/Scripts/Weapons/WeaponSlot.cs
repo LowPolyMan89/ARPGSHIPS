@@ -10,10 +10,11 @@ namespace Ships
 		public bool IsTurret = false;
 		public WeaponBase MountedWeapon;
 		public WeaponTargeting WeaponTargeting;
-		
+		public SideType Side;
 
-		private void Start()
+		public void Init(SideType sideType)
 		{
+			Side = sideType;
 			if (transform.childCount > 0)
 			{
 				MountedWeapon = transform.GetComponentInChildren<WeaponBase>();

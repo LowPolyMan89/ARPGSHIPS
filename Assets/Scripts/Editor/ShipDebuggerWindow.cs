@@ -16,6 +16,7 @@ public class ShipDebuggerWindow : EditorWindow
     {
         GetWindow<ShipDebuggerWindow>("Ship Debugger");
     }
+
     private void EnsureStyles()
     {
         if (redBold == null)
@@ -47,8 +48,10 @@ public class ShipDebuggerWindow : EditorWindow
     private void OnGUI()
     {
         EnsureStyles();
-        if(!Application.isPlaying)
+
+        if (!Application.isPlaying)
             return;
+
         scroll = EditorGUILayout.BeginScrollView(scroll);
 
         var ships = FindObjectsByType<ShipBase>(FindObjectsSortMode.None);
@@ -62,9 +65,6 @@ public class ShipDebuggerWindow : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 
-    // -----------------------------------------------------------
-    // SHIP BLOCK
-    // -----------------------------------------------------------
     private void DrawShip(ShipBase ship)
     {
         GUILayout.BeginVertical(box);
@@ -88,9 +88,6 @@ public class ShipDebuggerWindow : EditorWindow
         GUILayout.EndVertical();
     }
 
-    // -----------------------------------------------------------
-    // SHIP STATS
-    // -----------------------------------------------------------
     private void DrawStats(ShipBase ship)
     {
         foreach (var kv in ship.ShipStats.All)
@@ -99,7 +96,6 @@ public class ShipDebuggerWindow : EditorWindow
             EditorGUILayout.LabelField($"{kv.Key}: {stat.Current}/{stat.Maximum}");
         }
 
-        // Draw modifier list compactly
         foreach (var kv in ship.ShipStats.All)
         {
             Stat stat = kv.Value;
@@ -134,9 +130,6 @@ public class ShipDebuggerWindow : EditorWindow
         };
     }
 
-    // -----------------------------------------------------------
-    // ACTIVE EFFECTS (DoT, Burn, Slow, Buffs)
-    // -----------------------------------------------------------
     private void DrawActiveEffects(ShipBase ship)
     {
         if (ship.ActiveEffects.Count == 0)
@@ -148,15 +141,12 @@ public class ShipDebuggerWindow : EditorWindow
         foreach (var eff in ship.ActiveEffects)
         {
             EditorGUILayout.LabelField(
-                $"{eff.EffectName} ({eff.Remaining:F0}/{eff.Duration:F0}s)",
+                $"{eff.EffectId} x{eff.Stacks} ({eff.Remaining:F1}/{eff.Duration:F1}s)",
                 redBold
             );
         }
     }
 
-    // -----------------------------------------------------------
-    // WEAPON SECTION
-    // -----------------------------------------------------------
     private void DrawWeapons(ShipBase ship)
     {
         if (ship.WeaponController == null)
@@ -183,7 +173,7 @@ public class ShipDebuggerWindow : EditorWindow
             if (w.Model != null)
             {
                 EditorGUILayout.LabelField(
-                    $"FireRate {w.Model.FireRate}/s | Projectile {w.Model.ProjectileSpeed} | Range {w.Model.FireRange}");
+                    $"FireRate {w.Model.FireRate}/s | Speed {w.Model.ProjectileSpeed} | Range {w.Model.FireRange}");
 
                 EditorGUILayout.LabelField(
                     $"Damage {w.Model.MinDamage}-{w.Model.MaxDamage} | Crit {w.Model.CritChance * 100}% x{w.Model.CritMultiplier}");
@@ -204,14 +194,14 @@ public class ShipDebuggerWindow : EditorWindow
 
         var wt = slot.WeaponTargeting;
 
-        // Private field "currentTarget"
         var f = wt.GetType().GetField("currentTarget",
             System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Instance);
 
         var t = f?.GetValue(wt) as ITargetable;
 
-        EditorGUILayout.LabelField("Status: " + (t != null ? "firing" : "idle"),
+        EditorGUILayout.LabelField(
+            "Status: " + (t != null ? "firing" : "idle"),
             t != null ? redBold : EditorStyles.miniLabel);
     }
 }

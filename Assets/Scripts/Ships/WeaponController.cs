@@ -8,9 +8,14 @@ namespace Ships
 	public class WeaponController
 	{
 		public List<WeaponSlot> Weapons = new List<WeaponSlot>();
-		//TODO must remove
 		
-
+		public void Init(SideType sideType)
+		{
+			foreach (var weapon in Weapons)
+			{
+				weapon.Init(sideType);
+			}
+		}
 		public void OnUpdate()
 		{
 			foreach (var weapon in Weapons)

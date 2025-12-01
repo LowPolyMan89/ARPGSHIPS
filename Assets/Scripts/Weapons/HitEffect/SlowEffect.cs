@@ -2,41 +2,53 @@
 
 namespace Ships.HitEffect
 {
-	public class SlowEffect : IOnHitEffect
+	public class SlowEffect : IStackableEffect
 	{
-		private float chance;
-		private float slowPercent; // 10 = 10%
-		private float duration;    // секунды
+		public string EffectId => "Slow";
+		public bool CanStack { get; }
+		public int MaxStacks { get; }
 
-		public SlowEffect(float chance, float slowPercent, float duration)
+		private float chance;
+		private float slowPercent;
+		private float duration;
+
+		public SlowEffect(float chance, float slowPercent, float duration, bool canStack = false, int maxStacks = 1)
 		{
 			this.chance = chance;
 			this.slowPercent = slowPercent;
 			this.duration = duration;
+			this.CanStack = canStack;
+			this.MaxStacks = maxStacks;
 		}
 
 		public void Apply(ITargetable target, float damage, WeaponBase sourceWeapon)
 		{
-			if (UnityEngine.Random.value > chance)
-				return;
+			if (Random.value > chance) return;
+			if (!(target is ShipBase ship)) return;
 
-			if (target.TryGetStat(StatType.MoveSpeed, out var stat))
-			{
-				float fraction = slowPercent / 100f;
+			// 1) Обновить стаки
+			ship.AddOrStackEffect(this, duration);
 
-				stat.AddModifier(
-					new StatModifier(
-						StatModifierType.PercentAdd,
-						StatModifierTarget.Maximum,
-						StatModifierPeriodicity.Timed,
-						-fraction,
-						remainingTicks: Mathf.CeilToInt(duration), // <== 1 секунда = 1 тик
-						source: this
-					)
-				);
-			}
+			// 2) Удалить старые модификаторы
+			var stat = ship.GetStat(StatType.MoveSpeed) as Stat;
+			stat.RemoveModifiersFromSource(this);
+
+			// 3) Наложить новый модификатор
+			var inst = ship.GetEffect(EffectId);
+
+			float totalSlow = slowPercent / 100f * inst.Stacks;
+
+			stat.AddModifier(new StatModifier(
+				StatModifierType.PercentAdd,
+				StatModifierTarget.Maximum,
+				StatModifierPeriodicity.Timed,
+				-totalSlow,
+				remainingTicks: Mathf.CeilToInt(duration),
+				source: this
+			));
 		}
 	}
+
 
 
 }

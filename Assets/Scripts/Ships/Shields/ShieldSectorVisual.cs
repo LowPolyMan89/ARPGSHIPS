@@ -17,7 +17,7 @@ public class ShieldSectorVisual : MonoBehaviour
 	float hitStrength;
 	float hitTime;
 
-	private void Awake()
+	public void Init()
 	{
 		mat = Instantiate(sprite.material);
 		sprite.material = mat;

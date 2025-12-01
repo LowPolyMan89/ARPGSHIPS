@@ -5,9 +5,8 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-using Ships;                     // твои статы
-using Ships.HitEffect;          // эффекты
-using Object = UnityEngine.Object;
+using Ships;
+using Ships.HitEffect;
 
 public class DebugStatsPanel : EditorWindow
 {
@@ -112,13 +111,14 @@ public class DebugStatsPanel : EditorWindow
             {
                 EditorGUILayout.LabelField("No modifiers.");
             }
+
             EditorGUILayout.LabelField("Active Effects", EditorStyles.boldLabel);
 
             foreach (var e in targetShip.ActiveEffects)
             {
                 EditorGUILayout.BeginVertical("box");
-                EditorGUILayout.LabelField($"Effect: {e.EffectName}");
-                EditorGUILayout.LabelField($"Remaining: {e.Remaining}/{e.Duration}");
+                EditorGUILayout.LabelField($"{e.EffectId}  x{e.Stacks}", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"Time: {e.Remaining:F1}/{e.Duration:F1}");
                 EditorGUILayout.EndVertical();
             }
 
@@ -151,24 +151,40 @@ public class DebugStatsPanel : EditorWindow
             var parameters = ctor.GetParameters();
             object[] args = new object[parameters.Length];
 
-            // Draw editable fields for constructor parameters
             for (int i = 0; i < parameters.Length; i++)
             {
                 var p = parameters[i];
 
+                // float
                 if (p.ParameterType == typeof(float))
                 {
-                    args[i] = EditorGUILayout.FloatField(p.Name, PlayerPrefs.GetFloat($"{type.Name}_{p.Name}", 1f));
-                    PlayerPrefs.SetFloat($"{type.Name}_{p.Name}", (float)args[i]);
+                    float def = PlayerPrefs.GetFloat($"{type.Name}_{p.Name}", 1f);
+                    float val = EditorGUILayout.FloatField(p.Name, def);
+                    PlayerPrefs.SetFloat($"{type.Name}_{p.Name}", val);
+                    args[i] = val;
                 }
+                // int
                 else if (p.ParameterType == typeof(int))
                 {
-                    args[i] = EditorGUILayout.IntField(p.Name, PlayerPrefs.GetInt($"{type.Name}_{p.Name}", 1));
-                    PlayerPrefs.SetInt($"{type.Name}_{p.Name}", (int)args[i]);
+                    int def = PlayerPrefs.GetInt($"{type.Name}_{p.Name}", 1);
+                    int val = EditorGUILayout.IntField(p.Name, def);
+                    PlayerPrefs.SetInt($"{type.Name}_{p.Name}", val);
+                    args[i] = val;
                 }
+                // bool (добавлено!)
+                else if (p.ParameterType == typeof(bool))
+                {
+                    bool def = PlayerPrefs.GetInt($"{type.Name}_{p.Name}", 0) == 1;
+                    bool val = EditorGUILayout.Toggle(p.Name, def);
+                    PlayerPrefs.SetInt($"{type.Name}_{p.Name}", val ? 1 : 0);
+                    args[i] = val;
+                }
+                // enum
                 else if (p.ParameterType.IsEnum)
                 {
-                    args[i] = EditorGUILayout.EnumPopup(p.Name, (Enum)Enum.ToObject(p.ParameterType, 0));
+                    Enum val = (Enum)Enum.Parse(p.ParameterType, p.DefaultValue?.ToString() ?? "0");
+                    val = EditorGUILayout.EnumPopup(p.Name, val);
+                    args[i] = val;
                 }
                 else
                 {
@@ -176,14 +192,10 @@ public class DebugStatsPanel : EditorWindow
                 }
             }
 
-            // APPLY EFFECT
             if (GUILayout.Button("Apply To Target"))
             {
                 var effect = (IOnHitEffect)ctor.Invoke(args);
-
-                var target = (ITargetable)targetShip;
-
-                effect.Apply(target, damage: 0, sourceWeapon: null);
+                effect.Apply(targetShip, damage: 0, sourceWeapon: null);
 
                 Debug.Log($"[Debug Panel] Applied {type.Name} to {targetShip.name}");
             }

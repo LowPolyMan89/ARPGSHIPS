@@ -14,7 +14,7 @@ namespace Ships
 			if (Model != null && !IsInit)
 			{
 				Stats stats = new Stats();
-				stats.AddStat(new Stat(StatType.FireRange, 25));
+				stats.AddStat(new Stat(StatType.FireRange, 5));
 				stats.AddStat(new Stat(StatType.FireRate, 1));
 				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
 				stats.AddStat(new Stat(StatType.MinDamage, 5));
@@ -39,7 +39,7 @@ namespace Ships
 			else
 			{
 				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				proj.Init(target, damage, speed, Model.ArmorPierce, this);
+				proj.Init(target, damage, speed, Model.ArmorPierce, this, Slot.Side);
 			}
 		}
 

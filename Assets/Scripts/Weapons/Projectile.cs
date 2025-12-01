@@ -10,15 +10,16 @@ namespace Ships
 		private float speed;
 		private float damage;
 		private float armorPierce;
-		private WeaponBase sourceWeapon;
+		public WeaponBase SourceWeapon;
+		public SideType Side;
 
-		public void Init(Transform target, float dmg, float spd, float ap, WeaponBase source)
+		public void Init(Transform target, float dmg, float spd, float ap, WeaponBase source, SideType side)
 		{
 			this.target = target;
 			damage = dmg;
 			speed = spd;
 			armorPierce = ap;
-			sourceWeapon = source;
+			SourceWeapon = source;
 		}
 
 		void Update()
@@ -31,44 +32,24 @@ namespace Ships
 
 			Vector2 dir = (target.position - transform.position).normalized;
 			transform.position += (Vector3)(dir * speed * Time.deltaTime);
-
-			if (Vector2.Distance(transform.position, target.position) < 0.2f)
-				HitTarget();
 		}
 
-		private void HitTarget()
+		public float Damage => damage;
+
+		public void DestroySelf()
 		{
-			if (target.TryGetComponent<ITargetable>(out var targetable))
-			{
-				ShipBase ship = target.GetComponent<ShipBase>();
-
-				float dmg = damage;
-
-				// === ЩИТЫ ==
-				if (ship != null && ship.TryGetComponent<ShieldController>(out var shields))
-				{
-					Vector2 hitDir = (ship.transform.position - transform.position).normalized;
-					int sectorIndex = shields.FindSectorIndex(hitDir);
-
-					float left = shields.ApplyDamage(sectorIndex, dmg);
-
-					if (left < dmg)
-					{
-						shields.OnSectorHit(sectorIndex, transform.position);
-						dmg = left;
-					}
-				}
-
-				// === УРОН В КОРПУС ===
-				if (dmg > 0 && targetable.TryGetStat(StatType.HitPoint, out var hpStat))
-					hpStat.AddToCurrent(-dmg);
-
-				// === ЭФФЕКТЫ ===
-				foreach (var effect in sourceWeapon.Model.Effects)
-					effect.Apply(targetable, dmg, sourceWeapon);
-			}
-
 			Destroy(gameObject);
+		}
+		private void OnTriggerEnter2D(Collider2D other)
+		{
+			// Попали в корпус
+			if (other.gameObject.TryGetComponent<ShipBase>(out var ship))
+			{
+				if(Side == ship.SideType)
+					return;
+				ship.TakeDamage(damage, transform.position, SourceWeapon);
+				Destroy(gameObject);
+			}
 		}
 	}
 
