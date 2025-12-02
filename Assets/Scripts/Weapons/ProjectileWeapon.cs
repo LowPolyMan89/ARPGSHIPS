@@ -39,7 +39,7 @@ namespace Ships
 			else
 			{
 				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				proj.Init(target, damage, speed, Model.ArmorPierce, this, Slot.Side);
+				proj.Init((Vector2)FirePoint.right, damage, speed, Model.ArmorPierce, this);
 			}
 		}
 

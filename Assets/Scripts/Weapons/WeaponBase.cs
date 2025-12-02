@@ -57,7 +57,7 @@ namespace Ships
 
 			float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 			Quaternion rot = Quaternion.Euler(0, 0, angle);
-			transform.rotation = Quaternion.Lerp(Slot.transform.rotation, rot, Time.deltaTime * 10f);
+			transform.rotation = Quaternion.Lerp(transform.rotation, rot, Time.deltaTime * 10f);
 		}
 
 		protected abstract void Shoot(Transform target);

@@ -9,10 +9,13 @@ namespace Ships
 
 		private void OnTriggerEnter2D(Collider2D other)
 		{
-			if (!other.TryGetComponent<Projectile>(out var proj) || proj.Side == Controller.Ship.SideType)
+			if (!other.TryGetComponent<Projectile>(out var proj))
 				return;
 
-			Vector2 hitPoint = other.ClosestPoint(transform.position);
+			if (!HitRules.CanHit(proj.HitMask, Controller.Ship.Team))
+				return;
+
+			Vector2 hitPoint = other.ClosestPoint((Vector2)transform.position);
 			Controller.OnShieldHit(Side, hitPoint, proj);
 			proj.DestroySelf();
 		}

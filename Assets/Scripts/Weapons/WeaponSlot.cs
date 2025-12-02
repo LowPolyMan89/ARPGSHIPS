@@ -6,15 +6,25 @@ namespace Ships
 
 	public class WeaponSlot : MonoBehaviour
 	{
-		public float AllowedAngle = 45f; 
+		public float AllowedAngle = 45f;
 		public bool IsTurret = false;
 		public WeaponBase MountedWeapon;
 		public WeaponTargeting WeaponTargeting;
 		public SideType Side;
+		public TeamMask HitMask;
 
 		public void Init(SideType sideType)
 		{
 			Side = sideType;
+
+			HitMask = sideType switch
+			{
+				SideType.Player => TeamMask.Enemy,
+				SideType.Enemy => TeamMask.Player,
+				SideType.Ally => TeamMask.Enemy | TeamMask.Player, 
+				_ => TeamMask.All
+			};
+
 			if (transform.childCount > 0)
 			{
 				MountedWeapon = transform.GetComponentInChildren<WeaponBase>();
@@ -22,18 +32,14 @@ namespace Ships
 			}
 
 			if (MountedWeapon)
-			{
 				MountedWeapon.Init(this);
-			}
-				
 		}
 
 		public bool IsTargetWithinSector(Vector2 dir)
 		{
-			Vector2 forward = transform.right; 
+			Vector2 forward = transform.right;
 			var angle = Vector2.Angle(forward, dir);
 			return angle <= AllowedAngle;
 		}
 	}
-
 }

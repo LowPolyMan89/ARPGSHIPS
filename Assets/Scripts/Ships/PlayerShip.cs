@@ -17,7 +17,6 @@ namespace Ships
 			ShipStats.AddStat(new Stat(StatType.Acceleration, 8));
 			ShipStats.AddStat(new Stat(StatType.KineticResist, 5));
 			ShipStats.AddStat(new Stat(StatType.ExplosionResist, 5));
-			
 			Init();
 		}
 		

@@ -13,7 +13,7 @@ namespace Ships
 		[Header("Runtime")]
 		public PlayerShip Player;
 		public BattleCamera CameraController;
-		public List<ShipBase> EnemyList = new List<ShipBase>();
+		public List<ShipBase> AllShips = new();
 
 		private void Awake()
 		{
@@ -44,4 +44,5 @@ namespace Ships
 		}
 		#endif
 	}
+	
 }

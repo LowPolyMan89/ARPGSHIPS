@@ -18,9 +18,14 @@ namespace Ships
 		}
 		public void OnUpdate()
 		{
-			foreach (var weapon in Weapons)
+			var ships = Battle.Instance.AllShips;
+
+			foreach (var slot in Weapons)
 			{
-				weapon.WeaponTargeting.SetEnemies(Battle.Instance.EnemyList.Select(x => x.GetComponent<ITargetable>()).ToList());
+				if (slot?.WeaponTargeting == null)
+					continue;
+
+				slot.WeaponTargeting.UpdateTargetList(ships);
 			}
 		}
 	}

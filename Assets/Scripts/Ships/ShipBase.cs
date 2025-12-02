@@ -10,6 +10,7 @@ namespace Ships
     {
         public ShipVisual _visual;
         public SideType SideType;
+        public TeamMask Team;
         public Stats ShipStats;
 
         public List<StatVisual> StatVisuals = new();
@@ -64,6 +65,15 @@ namespace Ships
 
         public void Init()
         {
+
+            Team = SideType switch
+            {
+                SideType.Player => TeamMask.Player,
+                SideType.Enemy  => TeamMask.Enemy,
+                SideType.Ally   => TeamMask.Ally,
+                _ => TeamMask.Neutral
+            };
+            
             if (_visual != null)
             {
                 _visual.Unload();
@@ -76,9 +86,7 @@ namespace Ships
             }
 
             WeaponController.Init(SideType);
-
-            if (SideType == SideType.Enemy)
-                Battle.Instance.EnemyList.Add(this);
+            Battle.Instance.AllShips.Add(this);
 
             InitShields();
             StartCoroutine(TickEffects());
@@ -186,7 +194,7 @@ namespace Ships
             if (!IsAlive)
             {
                 if (SideType == SideType.Enemy)
-                    Battle.Instance.EnemyList.Remove(this);
+                    Battle.Instance.AllShips.Remove(this);
 
                 Destroy(gameObject);
                 return;

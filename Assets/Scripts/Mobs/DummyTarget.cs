@@ -13,7 +13,6 @@ namespace Ships.Mobs
 			ShipStats.AddStat(new Stat(StatType.HitPoint, 100));
 			ShipStats.AddStat(new Stat(StatType.Shield, 50));
 			ShipStats.AddStat(new Stat(StatType.MoveSpeed, 10));
-
 			Init();
 		}
 	}
