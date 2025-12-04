@@ -10,6 +10,19 @@ namespace Ships
         public float Maximum { get; private set; }
         public float Current { get; private set; }
 
+        public float Amount
+        {
+            get
+            {
+                if (Maximum <= 0f) 
+                    return 0f;
+                var n = Current / Maximum;
+                if (float.IsNaN(n) || float.IsInfinity(n))
+                    return 0f;
+                return n;
+            }
+        }
+        
         private readonly List<StatModifier> _modifiers = new List<StatModifier>();
         public IReadOnlyList<StatModifier> Modifiers => _modifiers;
 

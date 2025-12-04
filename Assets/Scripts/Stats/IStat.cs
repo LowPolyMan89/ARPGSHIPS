@@ -9,7 +9,7 @@
 
 		float Maximum { get; }
 		float Current { get; }
-
+		float Amount { get; }
 		void AddModifier(StatModifier modifier);
 		void RemoveModifier(StatModifier modifier);
 		void RemoveModifiersFromSource(object source);
