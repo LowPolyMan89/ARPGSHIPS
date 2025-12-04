@@ -1,0 +1,59 @@
+{
+  "id": "hull_test_frigate",
+  "name": "Test Frigate",
+  "cost": 0,
+
+  "stats": {
+    "HitPoint": 500,
+    "Armor": 5,
+    "Shield": 200,
+    "ShieldRegen": 3,
+    "MoveSpeed": 6,
+    "TurnSpeed": 2,
+    "Acceleration": 4,
+    "BrakePower": 3
+  },
+  
+  "shields":[
+    {
+      "id": "Front",
+      "value": 100,
+      "restoreTime": 10,
+      "regeneration": 2
+    },
+    {
+      "id": "Left",
+      "value": 100,
+      "restoreTime": 10,
+      "regeneration": 2
+    },
+    {
+      "id": "Right",
+      "value": 100,
+      "restoreTime": 10,
+      "regeneration": 2
+    },
+    {
+      "id": "Rear",
+      "value": 100,
+      "restoreTime": 10,
+      "regeneration": 2
+    }
+  ],
+
+  "weaponSlots": [
+    {
+      "id": "front",
+      "size": "S",
+      "rotationLimitDeg": 60
+    }
+  ],
+
+  "moduleSlots": {
+    "passive": 0,
+    "active": 0
+  },
+
+  "uniqueEffects": [],
+  "leveling": []
+}

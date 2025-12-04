@@ -1,0 +1,95 @@
+﻿{
+  "id": "weapon_p_small_bolter_1",
+  "name": "Small Bolter",
+  "icon": "weapon_p_small",
+  "slot": "weapon",
+  "damageType": "kinetic",
+
+  "availableEffects": [
+    "ignoreArmor",
+    "dotFire",
+    "boostFireSpeed"
+  ],
+
+  "rarities": {
+    "common": {
+      "dropChance": 50,
+      "maxEffectCount": 0,
+      "stats": {
+        "damageMin": { "min": 5,  "max": 10 },
+        "damageMax": { "min": 7,  "max": 14 },
+        "fireRange": { "min": 5,  "max": 7 },
+        "rotationSpeed": { "min": 10, "max": 16 },
+        "projectileSpeed": { "min": 5,  "max": 7 },
+        "accuracy": { "min": 1,  "max": 2 },
+        "armorPierce": { "min": 2,  "max": 5 },
+        "fireRate": { "min": 2,  "max": 3 },
+        "ammoCount": { "min": 10, "max": 13 }
+      }
+    },
+
+    "uncommon": {
+      "dropChance": 25,
+      "maxEffectCount": 0,
+      "stats": {
+        "damageMin": { "min": 7,  "max": 13 },
+        "damageMax": { "min": 13, "max": 18 },
+        "fireRange": { "min": 5,  "max": 7 },
+        "rotationSpeed": { "min": 10, "max": 16 },
+        "projectileSpeed": { "min": 5,  "max": 7 },
+        "accuracy": { "min": 1,  "max": 2 },
+        "armorPierce": { "min": 2,  "max": 5 },
+        "fireRate": { "min": 2,  "max": 3 },
+        "ammoCount": { "min": 12, "max": 16 }
+      }
+    },
+
+    "rare": {
+      "dropChance": 15,
+      "maxEffectCount": 1,
+      "stats": {
+        "damageMin": { "min": 10, "max": 15 },
+        "damageMax": { "min": 15, "max": 22 },
+        "fireRange": { "min": 5,  "max": 7 },
+        "rotationSpeed": { "min": 10, "max": 16 },
+        "projectileSpeed": { "min": 5,  "max": 7 },
+        "accuracy": { "min": 1,  "max": 2 },
+        "armorPierce": { "min": 2,  "max": 5 },
+        "fireRate": { "min": 2,  "max": 3 },
+        "ammoCount": { "min": 12, "max": 20 }
+      }
+    },
+
+    "epic": {
+      "dropChance": 7,
+      "maxEffectCount": 2,
+      "stats": {
+        "damageMin": { "min": 12, "max": 17 },
+        "damageMax": { "min": 18, "max": 26 },
+        "fireRange": { "min": 5.5, "max": 7.5 },
+        "rotationSpeed": { "min": 11, "max": 18 },
+        "projectileSpeed": { "min": 5.5, "max": 8 },
+        "accuracy": { "min": 1.2, "max": 2.5 },
+        "armorPierce": { "min": 3, "max": 7 },
+        "fireRate": { "min": 2.2, "max": 3.5 },
+        "ammoCount": { "min": 14, "max": 22 }
+      }
+    },
+
+    "legendary": {
+      "dropChance": 3,
+      "maxEffectCount": 3,
+      "stats": {
+        "damageMin": { "min": 15, "max": 20 },
+        "damageMax": { "min": 22, "max": 32 },
+        "fireRange": { "min": 6,  "max": 8 },
+        "rotationSpeed": { "min": 12, "max": 20 },
+        "projectileSpeed": { "min": 6,  "max": 9 },
+        "accuracy": { "min": 1.5, "max": 3 },
+        "armorPierce": { "min": 4, "max": 8 },
+        "fireRate": { "min": 2.5, "max": 4 },
+        "ammoCount": { "min": 16, "max": 25 }
+      }
+    }
+  }
+}

@@ -18,6 +18,914 @@ namespace Ships
 }
 
 
+// ---------- MiniJSON.cs ----------
+/*
+ * Copyright (c) 2013 Calvin Rien
+ *
+ * Based on the JSON parser by Patrick van Bergen
+ * http://techblog.procurios.nl/k/618/news/view/14605/14863/How-do-I-write-my-own-parser-for-JSON.html
+ *
+ * Simplified it so that it doesn't throw exceptions
+ * and can be used in Unity iPhone with maximum code stripping.
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Text;
+
+namespace Ships {
+    // Example usage:
+    //
+    //  using UnityEngine;
+    //  using System.Collections;
+    //  using System.Collections.Generic;
+    //  using MiniJSON;
+    //
+    //  public class MiniJSONTest : MonoBehaviour {
+    //      void Start () {
+    //          var jsonString = "{ \"array\": [1.44,2,3], " +
+    //                          "\"object\": {\"key1\":\"value1\", \"key2\":256}, " +
+    //                          "\"string\": \"The quick brown fox \\\"jumps\\\" over the lazy dog \", " +
+    //                          "\"unicode\": \"\\u3041 Men\u00fa sesi\u00f3n\", " +
+    //                          "\"int\": 65536, " +
+    //                          "\"float\": 3.1415926, " +
+    //                          "\"bool\": true, " +
+    //                          "\"null\": null }";
+    //
+    //          var dict = Json.Deserialize(jsonString) as Dictionary<string,object>;
+    //
+    //          Debug.Log("deserialized: " + dict.GetType());
+    //          Debug.Log("dict['array'][0]: " + ((List<object>) dict["array"])[0]);
+    //          Debug.Log("dict['string']: " + (string) dict["string"]);
+    //          Debug.Log("dict['float']: " + (double) dict["float"]); // floats come out as doubles
+    //          Debug.Log("dict['int']: " + (long) dict["int"]); // ints come out as longs
+    //          Debug.Log("dict['unicode']: " + (string) dict["unicode"]);
+    //
+    //          var str = Json.Serialize(dict);
+    //
+    //          Debug.Log("serialized: " + str);
+    //      }
+    //  }
+
+    /// <summary>
+    /// This class encodes and decodes JSON strings.
+    /// Spec. details, see http://www.json.org/
+    ///
+    /// JSON uses Arrays and Objects. These correspond here to the datatypes IList and IDictionary.
+    /// All numbers are parsed to doubles.
+    /// </summary>
+    public static class Json {
+        /// <summary>
+        /// Parses the string json into a value
+        /// </summary>
+        /// <param name="json">A JSON string.</param>
+        /// <returns>An List&lt;object&gt;, a Dictionary&lt;string, object&gt;, a double, an integer,a string, null, true, or false</returns>
+        public static object Deserialize(string json) {
+            // save the string for debug information
+            if (json == null) {
+                return null;
+            }
+
+            return Parser.Parse(json);
+        }
+
+        sealed class Parser : IDisposable {
+            const string WORD_BREAK = "{}[],:\"";
+
+            public static bool IsWordBreak(char c) {
+                return Char.IsWhiteSpace(c) || WORD_BREAK.IndexOf(c) != -1;
+            }
+
+            enum TOKEN {
+                NONE,
+                CURLY_OPEN,
+                CURLY_CLOSE,
+                SQUARED_OPEN,
+                SQUARED_CLOSE,
+                COLON,
+                COMMA,
+                STRING,
+                NUMBER,
+                TRUE,
+                FALSE,
+                NULL
+            };
+
+            StringReader json;
+
+            Parser(string jsonString) {
+                json = new StringReader(jsonString);
+            }
+
+            public static object Parse(string jsonString) {
+                using (var instance = new Parser(jsonString)) {
+                    return instance.ParseValue();
+                }
+            }
+
+            public void Dispose() {
+                json.Dispose();
+                json = null;
+            }
+
+            Dictionary<string, object> ParseObject() {
+                Dictionary<string, object> table = new Dictionary<string, object>();
+
+                // ditch opening brace
+                json.Read();
+
+                // {
+                while (true) {
+                    switch (NextToken) {
+                    case TOKEN.NONE:
+                        return null;
+                    case TOKEN.COMMA:
+                        continue;
+                    case TOKEN.CURLY_CLOSE:
+                        return table;
+                    default:
+                        // name
+                        string name = ParseString();
+                        if (name == null) {
+                            return null;
+                        }
+
+                        // :
+                        if (NextToken != TOKEN.COLON) {
+                            return null;
+                        }
+                        // ditch the colon
+                        json.Read();
+
+                        // value
+                        table[name] = ParseValue();
+                        break;
+                    }
+                }
+            }
+
+            List<object> ParseArray() {
+                List<object> array = new List<object>();
+
+                // ditch opening bracket
+                json.Read();
+
+                // [
+                var parsing = true;
+                while (parsing) {
+                    TOKEN nextToken = NextToken;
+
+                    switch (nextToken) {
+                    case TOKEN.NONE:
+                        return null;
+                    case TOKEN.COMMA:
+                        continue;
+                    case TOKEN.SQUARED_CLOSE:
+                        parsing = false;
+                        break;
+                    default:
+                        object value = ParseByToken(nextToken);
+
+                        array.Add(value);
+                        break;
+                    }
+                }
+
+                return array;
+            }
+
+            object ParseValue() {
+                TOKEN nextToken = NextToken;
+                return ParseByToken(nextToken);
+            }
+
+            object ParseByToken(TOKEN token) {
+                switch (token) {
+                case TOKEN.STRING:
+                    return ParseString();
+                case TOKEN.NUMBER:
+                    return ParseNumber();
+                case TOKEN.CURLY_OPEN:
+                    return ParseObject();
+                case TOKEN.SQUARED_OPEN:
+                    return ParseArray();
+                case TOKEN.TRUE:
+                    return true;
+                case TOKEN.FALSE:
+                    return false;
+                case TOKEN.NULL:
+                    return null;
+                default:
+                    return null;
+                }
+            }
+
+            string ParseString() {
+                StringBuilder s = new StringBuilder();
+                char c;
+
+                // ditch opening quote
+                json.Read();
+
+                bool parsing = true;
+                while (parsing) {
+
+                    if (json.Peek() == -1) {
+                        parsing = false;
+                        break;
+                    }
+
+                    c = NextChar;
+                    switch (c) {
+                    case '"':
+                        parsing = false;
+                        break;
+                    case '\\':
+                        if (json.Peek() == -1) {
+                            parsing = false;
+                            break;
+                        }
+
+                        c = NextChar;
+                        switch (c) {
+                        case '"':
+                        case '\\':
+                        case '/':
+                            s.Append(c);
+                            break;
+                        case 'b':
+                            s.Append('\b');
+                            break;
+                        case 'f':
+                            s.Append('\f');
+                            break;
+                        case 'n':
+                            s.Append('\n');
+                            break;
+                        case 'r':
+                            s.Append('\r');
+                            break;
+                        case 't':
+                            s.Append('\t');
+                            break;
+                        case 'u':
+                            var hex = new char[4];
+
+                            for (int i=0; i< 4; i++) {
+                                hex[i] = NextChar;
+                            }
+
+                            s.Append((char) Convert.ToInt32(new string(hex), 16));
+                            break;
+                        }
+                        break;
+                    default:
+                        s.Append(c);
+                        break;
+                    }
+                }
+
+                return s.ToString();
+            }
+
+            object ParseNumber() {
+                string number = NextWord;
+
+                if (number.IndexOf('.') == -1) {
+                    long parsedInt;
+                    Int64.TryParse(number, out parsedInt);
+                    return parsedInt;
+                }
+
+                double parsedDouble;
+                Double.TryParse(number, out parsedDouble);
+                return parsedDouble;
+            }
+
+            void EatWhitespace() {
+                while (Char.IsWhiteSpace(PeekChar)) {
+                    json.Read();
+
+                    if (json.Peek() == -1) {
+                        break;
+                    }
+                }
+            }
+
+            char PeekChar {
+                get {
+                    return Convert.ToChar(json.Peek());
+                }
+            }
+
+            char NextChar {
+                get {
+                    return Convert.ToChar(json.Read());
+                }
+            }
+
+            string NextWord {
+                get {
+                    StringBuilder word = new StringBuilder();
+
+                    while (!IsWordBreak(PeekChar)) {
+                        word.Append(NextChar);
+
+                        if (json.Peek() == -1) {
+                            break;
+                        }
+                    }
+
+                    return word.ToString();
+                }
+            }
+
+            TOKEN NextToken {
+                get {
+                    EatWhitespace();
+
+                    if (json.Peek() == -1) {
+                        return TOKEN.NONE;
+                    }
+
+                    switch (PeekChar) {
+                    case '{':
+                        return TOKEN.CURLY_OPEN;
+                    case '}':
+                        json.Read();
+                        return TOKEN.CURLY_CLOSE;
+                    case '[':
+                        return TOKEN.SQUARED_OPEN;
+                    case ']':
+                        json.Read();
+                        return TOKEN.SQUARED_CLOSE;
+                    case ',':
+                        json.Read();
+                        return TOKEN.COMMA;
+                    case '"':
+                        return TOKEN.STRING;
+                    case ':':
+                        return TOKEN.COLON;
+                    case '0':
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                    case '7':
+                    case '8':
+                    case '9':
+                    case '-':
+                        return TOKEN.NUMBER;
+                    }
+
+                    switch (NextWord) {
+                    case "false":
+                        return TOKEN.FALSE;
+                    case "true":
+                        return TOKEN.TRUE;
+                    case "null":
+                        return TOKEN.NULL;
+                    }
+
+                    return TOKEN.NONE;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Converts a IDictionary / IList object or a simple type (string, int, etc.) into a JSON string
+        /// </summary>
+        /// <param name="json">A Dictionary&lt;string, object&gt; / List&lt;object&gt;</param>
+        /// <returns>A JSON encoded string, or null if object 'json' is not serializable</returns>
+        public static string Serialize(object obj) {
+            return Serializer.Serialize(obj);
+        }
+
+        sealed class Serializer {
+            StringBuilder builder;
+
+            Serializer() {
+                builder = new StringBuilder();
+            }
+
+            public static string Serialize(object obj) {
+                var instance = new Serializer();
+
+                instance.SerializeValue(obj);
+
+                return instance.builder.ToString();
+            }
+
+            void SerializeValue(object value) {
+                IList asList;
+                IDictionary asDict;
+                string asStr;
+
+                if (value == null) {
+                    builder.Append("null");
+                } else if ((asStr = value as string) != null) {
+                    SerializeString(asStr);
+                } else if (value is bool) {
+                    builder.Append((bool) value ? "true" : "false");
+                } else if ((asList = value as IList) != null) {
+                    SerializeArray(asList);
+                } else if ((asDict = value as IDictionary) != null) {
+                    SerializeObject(asDict);
+                } else if (value is char) {
+                    SerializeString(new string((char) value, 1));
+                } else {
+                    SerializeOther(value);
+                }
+            }
+
+            void SerializeObject(IDictionary obj) {
+                bool first = true;
+
+                builder.Append('{');
+
+                foreach (object e in obj.Keys) {
+                    if (!first) {
+                        builder.Append(',');
+                    }
+
+                    SerializeString(e.ToString());
+                    builder.Append(':');
+
+                    SerializeValue(obj[e]);
+
+                    first = false;
+                }
+
+                builder.Append('}');
+            }
+
+            void SerializeArray(IList anArray) {
+                builder.Append('[');
+
+                bool first = true;
+
+                foreach (object obj in anArray) {
+                    if (!first) {
+                        builder.Append(',');
+                    }
+
+                    SerializeValue(obj);
+
+                    first = false;
+                }
+
+                builder.Append(']');
+            }
+
+            void SerializeString(string str) {
+                builder.Append('\"');
+
+                char[] charArray = str.ToCharArray();
+                foreach (var c in charArray) {
+                    switch (c) {
+                    case '"':
+                        builder.Append("\\\"");
+                        break;
+                    case '\\':
+                        builder.Append("\\\\");
+                        break;
+                    case '\b':
+                        builder.Append("\\b");
+                        break;
+                    case '\f':
+                        builder.Append("\\f");
+                        break;
+                    case '\n':
+                        builder.Append("\\n");
+                        break;
+                    case '\r':
+                        builder.Append("\\r");
+                        break;
+                    case '\t':
+                        builder.Append("\\t");
+                        break;
+                    default:
+                        int codepoint = Convert.ToInt32(c);
+                        if ((codepoint >= 32) && (codepoint <= 126)) {
+                            builder.Append(c);
+                        } else {
+                            builder.Append("\\u");
+                            builder.Append(codepoint.ToString("x4"));
+                        }
+                        break;
+                    }
+                }
+
+                builder.Append('\"');
+            }
+
+            void SerializeOther(object value) {
+                // NOTE: decimals lose precision during serialization.
+                // They always have, I'm just letting you know.
+                // Previously floats and doubles lost precision too.
+                if (value is float) {
+                    builder.Append(((float) value).ToString("R"));
+                } else if (value is int
+                    || value is uint
+                    || value is long
+                    || value is sbyte
+                    || value is byte
+                    || value is short
+                    || value is ushort
+                    || value is ulong) {
+                    builder.Append(value);
+                } else if (value is double
+                    || value is decimal) {
+                    builder.Append(Convert.ToDouble(value).ToString("R"));
+                } else {
+                    SerializeString(value.ToString());
+                }
+            }
+        }
+    }
+}
+
+
+
+// ---------- Battle.cs ----------
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Ships
+{
+	public class Battle : MonoBehaviour
+	{
+		public static Battle Instance;
+
+		[Header("Battlefield Bounds")]
+		public Vector2 MinBounds = new Vector2(-50, -50);
+		public Vector2 MaxBounds = new Vector2(50, 50);
+		[Header("Runtime")]
+		public PlayerShip Player;
+		public BattleCamera CameraController;
+		public List<ShipBase> AllShips = new();
+
+		private void Awake()
+		{
+			if(Instance)
+				Destroy(gameObject);
+			else
+				Instance = this;
+		}
+
+		public Vector2 ClampPosition(Vector2 pos)
+		{
+			pos.x = Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x);
+			pos.y = Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y);
+			return pos;
+		}
+
+		public bool IsInside(Vector2 pos)
+		{
+			return pos.x >= MinBounds.x && pos.x <= MaxBounds.x &&
+			       pos.y >= MinBounds.y && pos.y <= MaxBounds.y;
+		}
+		#if UNITY_EDITOR
+		private void OnDrawGizmos()
+		{
+			Gizmos.color = Color.green;
+			Vector2 size = MaxBounds - MinBounds;
+			Gizmos.DrawWireCube((MinBounds + MaxBounds) / 2f, size);
+		}
+		#endif
+	}
+	
+}
+
+
+// ---------- BattleCamera.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+	public class BattleCamera : MonoBehaviour
+	{
+		[Header("Follow Settings")]
+		public float followSmooth = 0.2f;
+		public float moveOffsetStrength = 2f;
+
+		private Vector3 velocity;
+		private Camera cam;
+		private float fixedZ;
+
+		private void Awake()
+		{
+			cam = Camera.main;
+			fixedZ = transform.position.z;      // фиксируем Z
+		}
+
+		private void LateUpdate()
+		{
+			if (Battle.Instance == null || Battle.Instance.Player == null)
+				return;
+
+			FollowPlayer();
+		}
+
+		private void FollowPlayer()
+		{
+			PlayerShip player = Battle.Instance.Player;
+
+			Vector2 basePos = player.transform.position;
+			Vector2 offset = player.Velocity.normalized * moveOffsetStrength;
+			Vector2 targetPos = basePos + offset;
+
+			Vector3 smoothed = Vector3.SmoothDamp(
+				transform.position,
+				new Vector3(targetPos.x, targetPos.y, fixedZ),
+				ref velocity,
+				followSmooth
+			);
+
+			smoothed = ClampCameraToBounds(smoothed);
+			smoothed.z = fixedZ;
+
+			transform.position = smoothed;
+		}
+
+		private Vector3 ClampCameraToBounds(Vector3 pos)
+		{
+			Battle b = Battle.Instance;
+
+			float camHeight = cam.orthographicSize;
+			float camWidth = camHeight * cam.aspect;
+
+			float minX = b.MinBounds.x + camWidth;
+			float maxX = b.MaxBounds.x - camWidth;
+
+			float minY = b.MinBounds.y + camHeight;
+			float maxY = b.MaxBounds.y - camHeight;
+
+			pos.x = Mathf.Clamp(pos.x, minX, maxX);
+			pos.y = Mathf.Clamp(pos.y, minY, maxY);
+
+			return pos;
+		}
+	}
+}
+
+
+// ---------- BattleLoader.cs ----------
+namespace Ships
+{
+	using UnityEngine;
+
+	public class BattleLoader : MonoBehaviour
+	{
+		public GameObject PlayerShipPrefab;
+
+		private void Start()
+		{
+			LoadTestShip();
+		}
+
+		private void LoadTestShip()
+		{
+			var hull = HullLoader.Load("hull_test_frigate");
+			if (hull == null) return;
+
+			var go = Instantiate(PlayerShipPrefab, Vector3.zero, Quaternion.identity);
+			var ship = go.GetComponent<PlayerShip>();
+
+			//ship.InitFromTestHull(hull);
+
+			Debug.Log("Test ship loaded from JSON");
+		}
+	}
+
+}
+
+
+// ---------- HitRules.cs ----------
+namespace Ships
+{
+	public class HitRules
+	{
+		/// <summary>
+		/// Может ли объект с hitMask нанести урон объекту targetTeam?
+		/// </summary>
+		public static bool CanHit(TeamMask hitMask, TeamMask targetTeam)
+		{
+			return (hitMask & targetTeam) != 0;
+		}
+	}
+}
+
+
+// ---------- WeaponSectorVisual.cs ----------
+using Unity.VisualScripting;
+using UnityEngine;
+
+namespace Ships
+{
+	using UnityEngine;
+
+	[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+	public class WeaponSectorVisual : MonoBehaviour
+	{
+		public WeaponSlot slot;
+
+		[Header("Visual")] public Color color = new Color(1f, 1f, 1f, 1f);
+		public int segments = 48;
+
+		[Header("Arc settings")] public float innerOffset = 3f; // отступ внутренней дуги
+
+		private Mesh mesh;
+
+		private void Awake()
+		{
+			mesh = new Mesh();
+			mesh.name = "WeaponSectorMesh";
+			GetComponent<MeshFilter>().mesh = mesh;
+
+			if (!slot)
+				slot = GetComponentInParent<WeaponSlot>();
+		}
+
+		private void LateUpdate()
+		{
+			if (!slot || slot.MountedWeapon == null || slot.MountedWeapon.Model == null)
+				return;
+
+			// позиция/поворот слота
+			transform.position = slot.transform.position;
+			transform.rotation = slot.transform.rotation;
+
+			// игнорируем scale родителей
+			transform.localScale = Vector3.one;
+
+			float outerRadius = slot.MountedWeapon.Model.FireRange;
+			float innerRadius = Mathf.Max(0, outerRadius - innerOffset);
+
+			GenerateArc(innerRadius, outerRadius, slot.AllowedAngle);
+		}
+
+		private void GenerateArc(float innerR, float outerR, float angle)
+		{
+			mesh.Clear();
+
+			int steps = Mathf.Max(4, segments);
+			int vertCount = (steps + 1) * 2;
+
+			Vector3[] verts = new Vector3[vertCount];
+			Vector2[] uvs = new Vector2[vertCount];
+			int[] tris = new int[steps * 6];
+
+			float parentScale = slot.transform.lossyScale.x;
+
+			innerR /= parentScale;
+			outerR /= parentScale;
+
+			int v = 0;
+
+			for (int i = 0; i <= steps; i++)
+			{
+				float t = i / (float)steps;
+				float rad = Mathf.Lerp(-angle, angle, t) * Mathf.Deg2Rad;
+
+				Vector3 dir = new Vector3(Mathf.Cos(rad), Mathf.Sin(rad), 0);
+
+				// внутренняя дуга
+				verts[v] = dir * innerR;
+				uvs[v] = new Vector2(t, 0f);
+
+				// внешняя дуга
+				verts[v + 1] = dir * outerR;
+				uvs[v + 1] = new Vector2(t, 1f);
+
+				v += 2;
+			}
+
+			int ti = 0;
+			for (int i = 0; i < steps; i++)
+			{
+				int i0 = i * 2;
+				int i1 = i0 + 1;
+				int i2 = i0 + 2;
+				int i3 = i0 + 3;
+
+				tris[ti++] = i1;
+				tris[ti++] = i0;
+				tris[ti++] = i2;
+
+				tris[ti++] = i1;
+				tris[ti++] = i2;
+				tris[ti++] = i3;
+			}
+
+			mesh.vertices = verts;
+			mesh.uv = uvs;
+			mesh.triangles = tris;
+
+			mesh.RecalculateNormals();
+			mesh.RecalculateBounds();
+		}
+	}
+}
+
+
+// ---------- IPlayerInput.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+	public interface IPlayerInput
+	{
+		Vector2 Steering { get; }
+		float Throttle { get; }
+	}
+}
+
+
+// ---------- PlayerInputSystem.cs ----------
+using Ships;
+using UnityEngine;
+
+public class PlayerInputSystem : MonoBehaviour, IPlayerInput
+{
+	private PlayerControls controls;
+
+	private Vector2 steering;
+	private float throttleAxis;
+
+	public Vector2 Steering => steering;      // -1..1 per axis
+	public float Throttle => throttleAxis;    // -1..1 (Shift/Ctrl)
+
+	private void Awake()
+	{
+		controls = new PlayerControls();
+
+		controls.Ship.Steering.performed += ctx =>
+			steering = ctx.ReadValue<Vector2>();
+		controls.Ship.Steering.canceled += _ =>
+			steering = Vector2.zero;
+
+		controls.Ship.Throttle.performed += ctx =>
+			throttleAxis = ctx.ReadValue<float>();
+		controls.Ship.Throttle.canceled += _ =>
+			throttleAxis = 0f;
+	}
+
+	private void OnEnable() => controls.Enable();
+	private void OnDisable() => controls.Disable();
+}
+
+
+// ---------- PlayerInputUI.cs ----------
+
+namespace Ships
+{
+	using UnityEngine;
+	using UnityEngine.UI;
+
+	public class PlayerInputUI : MonoBehaviour
+	{
+		public VariableJoystick stick;
+		public Slider throttleSlider;
+
+		public Vector2 SteeringUI =>
+			stick != null ? new Vector2(stick.Horizontal, stick.Vertical) : Vector2.zero;
+
+		public float SliderValue =>
+			throttleSlider != null ? throttleSlider.value : 0f;
+
+		public void SetSlider(float value)
+		{
+			if (throttleSlider != null)
+				throttleSlider.SetValueWithoutNotify(value);
+		}
+	}
+
+}
+
+
 // ---------- CodeCollector.cs ----------
 using UnityEditor;
 using UnityEngine;
@@ -67,9 +975,8 @@ using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-using Ships;                     // твои статы
-using Ships.HitEffect;          // эффекты
-using Object = UnityEngine.Object;
+using Ships;
+using Ships.HitEffect;
 
 public class DebugStatsPanel : EditorWindow
 {
@@ -174,13 +1081,14 @@ public class DebugStatsPanel : EditorWindow
             {
                 EditorGUILayout.LabelField("No modifiers.");
             }
+
             EditorGUILayout.LabelField("Active Effects", EditorStyles.boldLabel);
 
             foreach (var e in targetShip.ActiveEffects)
             {
                 EditorGUILayout.BeginVertical("box");
-                EditorGUILayout.LabelField($"Effect: {e.EffectName}");
-                EditorGUILayout.LabelField($"Remaining: {e.Remaining}/{e.Duration}");
+                EditorGUILayout.LabelField($"{e.EffectId}  x{e.Stacks}", EditorStyles.boldLabel);
+                EditorGUILayout.LabelField($"Time: {e.Remaining:F1}/{e.Duration:F1}");
                 EditorGUILayout.EndVertical();
             }
 
@@ -213,24 +1121,40 @@ public class DebugStatsPanel : EditorWindow
             var parameters = ctor.GetParameters();
             object[] args = new object[parameters.Length];
 
-            // Draw editable fields for constructor parameters
             for (int i = 0; i < parameters.Length; i++)
             {
                 var p = parameters[i];
 
+                // float
                 if (p.ParameterType == typeof(float))
                 {
-                    args[i] = EditorGUILayout.FloatField(p.Name, PlayerPrefs.GetFloat($"{type.Name}_{p.Name}", 1f));
-                    PlayerPrefs.SetFloat($"{type.Name}_{p.Name}", (float)args[i]);
+                    float def = PlayerPrefs.GetFloat($"{type.Name}_{p.Name}", 1f);
+                    float val = EditorGUILayout.FloatField(p.Name, def);
+                    PlayerPrefs.SetFloat($"{type.Name}_{p.Name}", val);
+                    args[i] = val;
                 }
+                // int
                 else if (p.ParameterType == typeof(int))
                 {
-                    args[i] = EditorGUILayout.IntField(p.Name, PlayerPrefs.GetInt($"{type.Name}_{p.Name}", 1));
-                    PlayerPrefs.SetInt($"{type.Name}_{p.Name}", (int)args[i]);
+                    int def = PlayerPrefs.GetInt($"{type.Name}_{p.Name}", 1);
+                    int val = EditorGUILayout.IntField(p.Name, def);
+                    PlayerPrefs.SetInt($"{type.Name}_{p.Name}", val);
+                    args[i] = val;
                 }
+                // bool (добавлено!)
+                else if (p.ParameterType == typeof(bool))
+                {
+                    bool def = PlayerPrefs.GetInt($"{type.Name}_{p.Name}", 0) == 1;
+                    bool val = EditorGUILayout.Toggle(p.Name, def);
+                    PlayerPrefs.SetInt($"{type.Name}_{p.Name}", val ? 1 : 0);
+                    args[i] = val;
+                }
+                // enum
                 else if (p.ParameterType.IsEnum)
                 {
-                    args[i] = EditorGUILayout.EnumPopup(p.Name, (Enum)Enum.ToObject(p.ParameterType, 0));
+                    Enum val = (Enum)Enum.Parse(p.ParameterType, p.DefaultValue?.ToString() ?? "0");
+                    val = EditorGUILayout.EnumPopup(p.Name, val);
+                    args[i] = val;
                 }
                 else
                 {
@@ -238,14 +1162,10 @@ public class DebugStatsPanel : EditorWindow
                 }
             }
 
-            // APPLY EFFECT
             if (GUILayout.Button("Apply To Target"))
             {
                 var effect = (IOnHitEffect)ctor.Invoke(args);
-
-                var target = (ITargetable)targetShip;
-
-                effect.Apply(target, damage: 0, sourceWeapon: null);
+                effect.Apply(targetShip, damage: 0, sourceWeapon: null);
 
                 Debug.Log($"[Debug Panel] Applied {type.Name} to {targetShip.name}");
             }
@@ -278,6 +1198,7 @@ public class ShipDebuggerWindow : EditorWindow
     {
         GetWindow<ShipDebuggerWindow>("Ship Debugger");
     }
+
     private void EnsureStyles()
     {
         if (redBold == null)
@@ -309,8 +1230,10 @@ public class ShipDebuggerWindow : EditorWindow
     private void OnGUI()
     {
         EnsureStyles();
-        if(!Application.isPlaying)
+
+        if (!Application.isPlaying)
             return;
+
         scroll = EditorGUILayout.BeginScrollView(scroll);
 
         var ships = FindObjectsByType<ShipBase>(FindObjectsSortMode.None);
@@ -324,9 +1247,6 @@ public class ShipDebuggerWindow : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 
-    // -----------------------------------------------------------
-    // SHIP BLOCK
-    // -----------------------------------------------------------
     private void DrawShip(ShipBase ship)
     {
         GUILayout.BeginVertical(box);
@@ -350,9 +1270,6 @@ public class ShipDebuggerWindow : EditorWindow
         GUILayout.EndVertical();
     }
 
-    // -----------------------------------------------------------
-    // SHIP STATS
-    // -----------------------------------------------------------
     private void DrawStats(ShipBase ship)
     {
         foreach (var kv in ship.ShipStats.All)
@@ -361,7 +1278,6 @@ public class ShipDebuggerWindow : EditorWindow
             EditorGUILayout.LabelField($"{kv.Key}: {stat.Current}/{stat.Maximum}");
         }
 
-        // Draw modifier list compactly
         foreach (var kv in ship.ShipStats.All)
         {
             Stat stat = kv.Value;
@@ -396,9 +1312,6 @@ public class ShipDebuggerWindow : EditorWindow
         };
     }
 
-    // -----------------------------------------------------------
-    // ACTIVE EFFECTS (DoT, Burn, Slow, Buffs)
-    // -----------------------------------------------------------
     private void DrawActiveEffects(ShipBase ship)
     {
         if (ship.ActiveEffects.Count == 0)
@@ -410,15 +1323,12 @@ public class ShipDebuggerWindow : EditorWindow
         foreach (var eff in ship.ActiveEffects)
         {
             EditorGUILayout.LabelField(
-                $"{eff.EffectName} ({eff.Remaining:F0}/{eff.Duration:F0}s)",
+                $"{eff.EffectId} x{eff.Stacks} ({eff.Remaining:F1}/{eff.Duration:F1}s)",
                 redBold
             );
         }
     }
 
-    // -----------------------------------------------------------
-    // WEAPON SECTION
-    // -----------------------------------------------------------
     private void DrawWeapons(ShipBase ship)
     {
         if (ship.WeaponController == null)
@@ -445,7 +1355,7 @@ public class ShipDebuggerWindow : EditorWindow
             if (w.Model != null)
             {
                 EditorGUILayout.LabelField(
-                    $"FireRate {w.Model.FireRate}/s | Projectile {w.Model.ProjectileSpeed} | Range {w.Model.FireRange}");
+                    $"FireRate {w.Model.FireRate}/s | Speed {w.Model.ProjectileSpeed} | Range {w.Model.FireRange}");
 
                 EditorGUILayout.LabelField(
                     $"Damage {w.Model.MinDamage}-{w.Model.MaxDamage} | Crit {w.Model.CritChance * 100}% x{w.Model.CritMultiplier}");
@@ -466,18 +1376,113 @@ public class ShipDebuggerWindow : EditorWindow
 
         var wt = slot.WeaponTargeting;
 
-        // Private field "currentTarget"
         var f = wt.GetType().GetField("currentTarget",
             System.Reflection.BindingFlags.NonPublic |
             System.Reflection.BindingFlags.Instance);
 
         var t = f?.GetValue(wt) as ITargetable;
 
-        EditorGUILayout.LabelField("Status: " + (t != null ? "firing" : "idle"),
+        EditorGUILayout.LabelField(
+            "Status: " + (t != null ? "firing" : "idle"),
             t != null ? redBold : EditorStyles.miniLabel);
     }
 }
 
+
+
+// ---------- HullLoader.cs ----------
+using System;
+using System.IO;
+using UnityEngine;
+
+namespace Ships
+{
+	using System.IO;
+	using UnityEngine;
+	using System.Collections.Generic;
+
+	public static class HullLoader
+	{
+		private static readonly string HullsPath =
+			Path.Combine(Application.streamingAssetsPath, "Configs/Hulls");
+
+		public static HullModel Load(string id)
+		{
+			var file = Path.Combine(HullsPath, id + ".json");
+			var json = File.ReadAllText(file);
+			return JsonUtility.FromJson<HullModel>(json);
+		}
+
+	}
+}
+
+
+// ---------- HullModel.cs ----------
+using System.Collections.Generic;
+
+namespace Ships
+{
+	using System;
+	using System.Collections.Generic;
+
+	[Serializable]
+	public class HullModel
+	{
+		public string id;
+		public string name;
+		public int cost;
+
+		public StatContainer stats;
+		public List<ShieldModel> shields;
+		public List<WeaponSlotModel> weaponSlots;
+		public List<EffectModel> uniqueEffects;
+		public List<LevelModel> leveling;
+	}
+	[Serializable]
+	public class StatContainer
+	{
+		public float HitPoint;
+		public float Armor;
+		public float Shield;
+		public float ShieldRegen;
+		public float MoveSpeed;
+		public float TurnSpeed;
+		public float Acceleration;
+		public float BrakePower;
+	}
+	
+	[Serializable]
+	public class EffectModel
+	{
+		public string id;
+		public float value;
+	}
+	
+	[Serializable]
+	public class LevelModel
+	{
+		public int level;
+		public int xpRequired;
+	}
+	
+	[Serializable]
+	public class ShieldModel
+	{
+		public string id;
+		public float value;
+		public float restoreTime;
+		public float regeneration;
+	}
+
+	[Serializable]
+	public class WeaponSlotModel
+	{
+		public string id;
+		public string size;
+		public float rotationLimitDeg;
+	}
+
+}
 
 
 // ---------- DummyTarget.cs ----------
@@ -493,11 +1498,11 @@ namespace Ships.Mobs
 		private void Start()
 		{
 			ShipStats = new Stats();
-			ShipStats.AddStat(new Stat(StatType.HP, 100));
+			ShipStats.AddStat(new Stat(StatType.HitPoint, 100));
 			ShipStats.AddStat(new Stat(StatType.Shield, 50));
 			ShipStats.AddStat(new Stat(StatType.MoveSpeed, 10));
-
 			Init();
+			LoadShipFromPrefab();
 		}
 	}
 }
@@ -550,12 +1555,7 @@ namespace Ships
 		
 		private void Awake()
 		{
-			ShipStats = new Stats();
-			ShipStats.AddStat(new Stat(StatType.HP, 100));
-			ShipStats.AddStat(new Stat(StatType.Shield, 50));
-			ShipStats.AddStat(new Stat(StatType.MoveSpeed, 10));
-			ShipStats.AddStat(new Stat(StatType.KineticResist, 5));
-			ShipStats.AddStat(new Stat(StatType.ExplosionResist, 5));
+			LoadShipFromConfig("hull_test_frigate");
 			Init();
 		}
 		
@@ -563,10 +1563,180 @@ namespace Ships
 }
 
 
+// ---------- PlayerShipMovement.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+    public class PlayerShipMovement : MonoBehaviour
+    {
+        [Header("Runtime")] public Vector2 velocity;
+        public float throttleCache = 0f;
+
+        [Header("Settings")] public float throttleStep = 0.7f;
+
+        private ShipBase ship;
+
+        private PlayerInputSystem hw;
+        private PlayerInputUI ui;
+
+        private Vector2 desiredDirection;
+        private float lastSliderValue;
+
+        private void Awake()
+        {
+            ship = GetComponent<ShipBase>();
+            hw = FindObjectOfType<PlayerInputSystem>();
+            ui = FindObjectOfType<PlayerInputUI>();
+        }
+
+        private void Update()
+        {
+            ReadInput();
+            HandleRotation();
+            HandleMovement();
+        }
+
+        // ============================================================
+        // INPUT
+        // ============================================================
+        private void ReadInput()
+        {
+            // ---------------------------------------------------------
+            // 1) Steering = HW + UI
+            // ---------------------------------------------------------
+            Vector2 steeringHW = hw != null ? hw.Steering : Vector2.zero;
+            Vector2 steeringUI = ui != null ? ui.SteeringUI : Vector2.zero;
+
+            desiredDirection = (steeringHW + steeringUI).normalized;
+
+            // ---------------------------------------------------------
+            // 2) THROTTLE CACHE
+            // ---------------------------------------------------------
+
+            // + / - от клавиатуры
+            float axis = hw != null ? hw.Throttle : 0f;
+
+            if (Mathf.Abs(axis) > 0.01f)
+            {
+                throttleCache += axis * throttleStep * Time.deltaTime;
+            }
+
+            // UI слайдер — задаёт throttleCache напрямую
+            if (ui != null)
+            {
+                float sliderValue = ui.SliderValue;
+
+                if (!Mathf.Approximately(sliderValue, lastSliderValue))
+                {
+                    throttleCache = sliderValue; // пользователь двинул слайдер
+                }
+
+                ui.SetSlider(throttleCache); // отобразить состояние
+                lastSliderValue = sliderValue;
+            }
+
+            throttleCache = Mathf.Clamp01(throttleCache);
+        }
+
+        // ============================================================
+        // ROTATION
+        // ============================================================
+        private void HandleRotation()
+        {
+            if (desiredDirection.sqrMagnitude < 0.0005f)
+                return;
+
+            float turnSpeed = ship.GetStat(StatType.TurnSpeed).Current;
+
+            float targetAngle = Mathf.Atan2(desiredDirection.y, desiredDirection.x) * Mathf.Rad2Deg - 90f;
+
+            float angle = Mathf.LerpAngle(
+                transform.eulerAngles.z,
+                targetAngle,
+                turnSpeed * Time.deltaTime
+            );
+
+            transform.rotation = Quaternion.Euler(0, 0, angle);
+        }
+
+        // ============================================================
+        // MOVEMENT (вискозное движение)
+        // ============================================================
+        private void HandleMovement()
+        {
+            float maxSpeed = ship.GetStat(StatType.MoveSpeed).Current;
+            float accel = ship.GetStat(StatType.Acceleration).Current;
+            float brakePower = ship.GetStat(StatType.BrakePower).Current;
+            float turnInertia = 6f; // как быстро velocity поворачивается к носу
+
+            Vector2 forward = transform.up;
+
+            float targetSpeed = throttleCache * maxSpeed;
+            float currentSpeed = velocity.magnitude;
+
+            // -------------------------------
+            // 1) Ускорение / Торможение
+            // -------------------------------
+            if (targetSpeed > currentSpeed)
+            {
+                // разгон
+                currentSpeed = Mathf.MoveTowards(
+                    currentSpeed,
+                    targetSpeed,
+                    accel * Time.deltaTime
+                );
+            }
+            else
+            {
+                // торможение (всегда через brakePower!)
+                currentSpeed = Mathf.MoveTowards(
+                    currentSpeed,
+                    targetSpeed,
+                    brakePower * Time.deltaTime
+                );
+            }
+
+            // -------------------------------
+            // 2) Поворот velocity в сторону forward
+            // -------------------------------
+            if (velocity.sqrMagnitude > 0.001f)
+            {
+                Vector2 currentDir = velocity.normalized;
+                Vector2 newDir = Vector2.Lerp(currentDir, forward, turnInertia * Time.deltaTime).normalized;
+
+                velocity = newDir * currentSpeed;
+            }
+            else
+            {
+                velocity = forward * currentSpeed;
+            }
+
+            // -------------------------------
+            // 3) Перемещение
+            // -------------------------------
+            transform.position += (Vector3)velocity * Time.deltaTime;
+            if (Battle.Instance != null)
+            {
+                Vector2 clamped = Battle.Instance.ClampPosition(transform.position);
+                transform.position = clamped;
+    
+                // Если упёрлись в стенку — скорость в эту сторону = 0
+                if ((Vector2)transform.position != clamped)
+                    velocity = Vector2.zero;
+            }
+        }
+    }
+}
+
+
+
 // ---------- ShipBase.cs ----------
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using UnityEngine;
 
 namespace Ships
@@ -575,31 +1745,118 @@ namespace Ships
 	{
 		public ShipVisual _visual;
 		public SideType SideType;
+		public TeamMask Team;
 		public Stats ShipStats;
-		public List<StatVisual> StatVisuals = new List<StatVisual>();
-		public List<ActiveEffectVisual> ActiveEffects = new();
-		public WeaponController WeaponController;
-		public Transform Transform => transform;
-
-		public bool IsAlive
-		{
-			get
-			{
-				if (ShipStats.TryGetStat(StatType.HP, out var hp))
-					return hp.Current > 0;
-				return true;
-			}
-		}
-
 		[SerializeField] private TargetSize size = TargetSize.Medium;
+		public List<StatVisual> StatVisuals = new();
+		public WeaponController WeaponController;
+
+		public List<ShieldSector> ShieldSectors = new();
+		public HashSet<string> RunningDotEffects = new();
+		public Transform Transform => transform;
 		public TargetSize Size => size;
 
 		private Vector3 _lastPos;
 		private Vector2 _velocity;
 		public Vector2 Velocity => _velocity;
 
+		public bool IsAlive
+		{
+			get
+			{
+				if (ShipStats.TryGetStat(StatType.HitPoint, out var hp))
+					return hp.Current > 0;
+				return true;
+			}
+		}
+
+		public virtual void LoadShipFromConfig(string fileName)
+		{
+			ShipStats = new Stats();
+			var data = HullLoader.Load(fileName);
+			var fields = typeof(StatContainer).GetFields(
+				BindingFlags.Public | BindingFlags.Instance);
+
+			foreach (var f in fields)
+			{
+				var fieldName = f.Name;
+				if (!Enum.TryParse(fieldName, out StatType statType))
+					continue;
+				var value = (float)f.GetValue(data.stats);
+				ShipStats.AddStat(new Stat(statType, value));
+			}
+			
+			if (TryGetComponent<ShieldController>(out var controller))
+			{
+				foreach (var sector in ShieldSectors)
+				{
+					var modelFromSide = data.shields.Find(x =>
+					{
+						return Enum.TryParse<ShieldSide>(x.id, true, out var parsed) 
+						       && parsed == sector.Side;
+					});
+
+					sector.InitFromConfig(
+						hp: modelFromSide.value,
+						regen: modelFromSide.regeneration,
+						restoreDelay: modelFromSide.restoreTime
+					);
+
+					controller.AddSector(sector);
+				}
+				
+			}
+		}
+		
+		public void LoadShipFromPrefab()
+		{
+			if (TryGetComponent<ShieldController>(out var controller))
+			{
+				foreach (var sector in ShieldSectors)
+				{
+					sector.InitFromPrefab();
+					controller.AddSector(sector);
+				}
+			}
+		}
+		
+
+		// -------------------------------
+		//  STACKABLE EFFECT SYSTEM
+		// -------------------------------
+		public class ActiveEffectInstance
+		{
+			public string EffectId;
+			public int Stacks;
+			public float Remaining;
+			public float Duration;
+
+			public ActiveEffectInstance(string id, float duration)
+			{
+				EffectId = id;
+				Duration = duration;
+				Remaining = duration;
+				Stacks = 1;
+			}
+		}
+
+		public List<ActiveEffectInstance> ActiveEffects = new();
+
+
+		// ============================================================
+		// INIT
+		// ============================================================
+
 		public void Init()
 		{
+			Team = SideType switch
+			{
+				SideType.Player => TeamMask.Player,
+				SideType.Enemy => TeamMask.Enemy,
+				SideType.Ally => TeamMask.Ally,
+				_ => TeamMask.Neutral
+			};
+
 			if (_visual != null)
 			{
 				_visual.Unload();
@@ -611,8 +1868,10 @@ namespace Ships
 				_visual.Load();
 			}
 
-			StartCoroutine(Tick());
-
+			WeaponController.Init(SideType);
+			Battle.Instance.AllShips.Add(this);
+			StartCoroutine(TickEffects());
+			// отправляем визуализаторам данные статов
 			StatVisuals.Clear();
 			foreach (var kvp in ShipStats.All)
 			{
@@ -621,14 +1880,67 @@ namespace Ships
 
 			_lastPos = transform.position;
 		}
+		
 
-		private IEnumerator Tick()
+
+		// ============================================================
+		// DAMAGE → EFFECTS
+		// ============================================================
+
+		public void TakeDamage(float dmg, Vector2 hitPoint, WeaponBase source)
+		{
+			if (ShipStats.TryGetStat(StatType.HitPoint, out var hp))
+				hp.AddToCurrent(-dmg);
+
+			foreach (var effect in source.Model.Effects)
+				effect.Apply(this, dmg, source);
+		}
+
+
+		// ============================================================
+		// STACKABLE EFFECT API
+		// ============================================================
+
+		public ActiveEffectInstance GetEffect(string effectId)
+		{
+			return ActiveEffects.FirstOrDefault(e => e.EffectId == effectId);
+		}
+
+		public void AddOrStackEffect(IStackableEffect effect, float duration)
+		{
+			var inst = GetEffect(effect.EffectId);
+
+			if (inst == null)
+			{
+				inst = new ActiveEffectInstance(effect.EffectId, duration);
+				ActiveEffects.Add(inst);
+			}
+			else
+			{
+				inst.Remaining = duration;
+
+				if (effect.CanStack)
+					inst.Stacks = Mathf.Min(inst.Stacks + 1, effect.MaxStacks);
+				else
+					inst.Stacks = 1;
+			}
+		}
+
+
+		// ============================================================
+		// EFFECT TICK
+		// ============================================================
+
+		private IEnumerator TickEffects()
 		{
 			while (true)
 			{
 				yield return new WaitForSeconds(1f);
 
+				// 1) Тик модификаторов статов
 				ShipStats.Tick();
+
+				// 2) Тик эффектов
 				for (int i = ActiveEffects.Count - 1; i >= 0; i--)
 				{
 					var eff = ActiveEffects[i];
@@ -640,19 +1952,28 @@ namespace Ships
 			}
 		}
 
-		public void AddActiveEffect(string effectName, float duration)
-		{
-			ActiveEffects.Add(new ActiveEffectVisual(effectName, duration));
-		}
+
+		// ============================================================
+		// UPDATE (velocity, stat visuals, weapons)
+		// ============================================================
 
 		private void Update()
 		{
-			// обновляем Velocity
+			if (!IsAlive)
+			{
+				if (SideType == SideType.Enemy)
+					Battle.Instance.AllShips.Remove(this);
+
+				Destroy(gameObject);
+				return;
+			}
+
+			// обновить Velocity
 			var pos = transform.position;
 			_velocity = (pos - _lastPos) / Time.deltaTime;
 			_lastPos = pos;
 
-			// обновляем StatVisuals
+			// обновляем визуальное состояние статов
 			foreach (var kvp in ShipStats.All)
 			{
 				var statType = kvp.Key;
@@ -683,9 +2004,15 @@ namespace Ships
 					}
 				}
 			}
-			
+
+			// обновление оружия
 			WeaponController.OnUpdate();
 		}
+
+
+		// ============================================================
+		// INTERFACE
+		// ============================================================
 
 		public bool TryGetStat(StatType name, out IStat stat)
 		{
@@ -695,7 +2022,6 @@ namespace Ships
 		}
 
 		public IStat GetStat(StatType name) => ShipStats.GetStat(name);
-
 		public IEnumerable<IStat> GetAllStats() => ShipStats.All.Values;
 	}
 }
@@ -743,6 +2069,25 @@ namespace Ships
 }
 
 
+// ---------- TeamMask.cs ----------
+using System;
+
+namespace Ships
+{
+	[Flags]
+	public enum TeamMask
+	{
+		None   = 0,
+		Player = 1 << 0,
+		Enemy  = 1 << 1,
+		Ally   = 1 << 2,
+		Neutral = 1 << 3,
+
+		All = ~0
+	}
+}
+
+
 // ---------- VisualBase.cs ----------
 namespace Ships
 {
@@ -757,6 +2102,7 @@ namespace Ships
 
 // ---------- WeaponController.cs ----------
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Ships
@@ -765,19 +2111,24 @@ namespace Ships
 	public class WeaponController
 	{
 		public List<WeaponSlot> Weapons = new List<WeaponSlot>();
-		//TODO must remove
-		public List<GameObject> EnemyList = new List<GameObject>();
-
-		public void OnUpdate()
+		
+		public void Init(SideType sideType)
 		{
-			List<ITargetable> _targetables = new List<ITargetable>();
-			foreach (var eGameObject in EnemyList)
-			{
-				_targetables.Add(eGameObject.GetComponent<ITargetable>());
-			}
 			foreach (var weapon in Weapons)
 			{
-				weapon.WeaponTargeting.SetEnemies(_targetables);
+				weapon.Init(sideType);
+			}
+		}
+		public void OnUpdate()
+		{
+			var ships = Battle.Instance.AllShips;
+
+			foreach (var slot in Weapons)
+			{
+				if (slot?.WeaponTargeting == null)
+					continue;
+
+				slot.WeaponTargeting.UpdateTargetList(ships);
 			}
 		}
 	}
@@ -827,193 +2178,219 @@ using System.Collections.Generic;
 
 namespace Ships
 {
-	public sealed class Stat : IStat
-	{
-		public StatType Name { get; }
-		public float BaseMaximum { get; private set; }
-		public float BaseCurrent { get; private set; }
-		public float Maximum { get; private set; }
-		public float Current { get; private set; }
+    public sealed class Stat : IStat
+    {
+        public StatType Name { get; }
+        public float BaseMaximum { get; private set; }
+        public float BaseCurrent { get; private set; }
+        public float Maximum { get; private set; }
+        public float Current { get; private set; }
 
-		private readonly List<StatModifier> _modifiers = new List<StatModifier>();
-		public IReadOnlyList<StatModifier> Modifiers => _modifiers;
+        private readonly List<StatModifier> _modifiers = new List<StatModifier>();
+        public IReadOnlyList<StatModifier> Modifiers => _modifiers;
 
-		public Stat(StatType name, float baseMaximum, float? baseCurrent = null)
-		{
-			Name = name;
-			BaseMaximum = baseMaximum;
-			BaseCurrent = baseCurrent ?? baseMaximum;
-			Maximum = BaseMaximum;
-			Current = BaseCurrent;
-		}
+        public Stat(StatType name, float baseMaximum, float? baseCurrent = null)
+        {
+            Name = name;
+            BaseMaximum = baseMaximum;
+            BaseCurrent = baseCurrent ?? baseMaximum;
+            Maximum = BaseMaximum;
+            Current = BaseCurrent;
+        }
 
-		public void SetBaseValues(float baseMaximum, float? baseCurrent = null, bool resetCurrentToFull = false)
-		{
-			BaseMaximum = baseMaximum;
-			BaseCurrent = baseCurrent ?? BaseMaximum;
-			Recalculate(resetCurrentToFull);
-		}
+        public void SetBaseValues(float baseMaximum, float? baseCurrent = null, bool resetCurrentToFull = false)
+        {
+            BaseMaximum = baseMaximum;
+            BaseCurrent = baseCurrent ?? BaseMaximum;
+            Recalculate(resetCurrentToFull);
+        }
 
-		public void SetBaseMaximum(float baseMaximum, bool resetCurrentToFull = false)
-		{
-			BaseMaximum = baseMaximum;
-			Recalculate(resetCurrentToFull);
-		}
+        public void SetBaseMaximum(float baseMaximum, bool resetCurrentToFull = false)
+        {
+            BaseMaximum = baseMaximum;
+            Recalculate(resetCurrentToFull);
+        }
 
-		public void SetBaseCurrent(float baseCurrent)
-		{
-			BaseCurrent = baseCurrent;
-			Recalculate(false);
-		}
+        public void SetBaseCurrent(float baseCurrent)
+        {
+            BaseCurrent = baseCurrent;
+            Recalculate(false);
+        }
 
-		public void AddToCurrent(float delta)
-		{
-			Current += delta;
-			if (Current > Maximum)
-				Current = Maximum;
-			if (Current < 0)
-				Current = 0;
-		}
+        public void AddToCurrent(float delta)
+        {
+            Current += delta;
+            if (Current > Maximum)
+                Current = Maximum;
+            if (Current < 0)
+                Current = 0;
+        }
 
-		public void AddModifier(StatModifier modifier)
-		{
-			_modifiers.Add(modifier);
-			Recalculate(false);
-		}
+        public void AddModifier(StatModifier modifier)
+        {
+            _modifiers.Add(modifier);
+            Recalculate(false);
+        }
 
-		public void RemoveModifier(StatModifier modifier)
-		{
-			if (_modifiers.Remove(modifier))
-			{
-				Recalculate(false);
-			}
-		}
+        public void RemoveModifier(StatModifier modifier)
+        {
+            if (_modifiers.Remove(modifier))
+            {
+                Recalculate(false);
+            }
+        }
 
-		public void RemoveModifiersFromSource(object source)
-		{
-			if (source == null)
-				return;
+        public void RemoveModifiersFromSource(object source)
+        {
+            if (source == null)
+                return;
 
-			var changed = false;
-			for (int i = _modifiers.Count - 1; i >= 0; i--)
-			{
-				if (_modifiers[i].Source == source)
-				{
-					_modifiers.RemoveAt(i);
-					changed = true;
-				}
-			}
+            var changed = false;
+            for (int i = _modifiers.Count - 1; i >= 0; i--)
+            {
+                if (_modifiers[i].Source == source)
+                {
+                    _modifiers.RemoveAt(i);
+                    changed = true;
+                }
+            }
 
-			if (changed)
-			{
-				Recalculate(false);
-			}
-		}
+            if (changed)
+            {
+                Recalculate(false);
+            }
+        }
 
-		public void Tick()
-		{
-			var changed = false;
+        public void Tick()
+        {
+            var changed = false;
 
-			for (int i = _modifiers.Count - 1; i >= 0; i--)
-			{
-				var mod = _modifiers[i];
-				if (mod.Periodicity == StatModifierPeriodicity.Timed)
-				{
-					mod.RemainingTicks--;
-					if (mod.RemainingTicks <= 0)
-					{
-						_modifiers.RemoveAt(i);
-						changed = true;
-					}
-				}
-			}
+            for (int i = _modifiers.Count - 1; i >= 0; i--)
+            {
+                var mod = _modifiers[i];
+                if (mod.Periodicity == StatModifierPeriodicity.Timed)
+                {
+                    mod.RemainingTicks--;
+                    if (mod.RemainingTicks <= 0)
+                    {
+                        _modifiers.RemoveAt(i);
+                        changed = true;
+                    }
+                }
+            }
 
-			if (changed)
-			{
-				Recalculate(false);
-			}
-		}
+            if (changed)
+            {
+                Recalculate(false);
+            }
+        }
 
-		private void Recalculate(bool resetCurrentToFull)
-		{
-			var previousMax = Maximum > 0 ? Maximum : BaseMaximum;
-			var previousRatio = previousMax > 0 ? Current / previousMax : 1f;
-			
-			var newMaximum = ApplyModifiers(BaseMaximum, StatModifierTarget.Maximum);
-			var newCurrentBase = resetCurrentToFull ? newMaximum : BaseCurrent;
-			var newCurrent = ApplyModifiers(newCurrentBase, StatModifierTarget.Current);
-			var hasCurrentMods = HasModifiersForTarget(StatModifierTarget.Current);
-			
-			if (!hasCurrentMods && !resetCurrentToFull)
-			{
-				newCurrent = newMaximum * previousRatio;
-			}
-			if (newCurrent > newMaximum)
-				newCurrent = newMaximum;
-			if (newCurrent < 0)
-				newCurrent = 0;
+        private void Recalculate(bool resetCurrentToFull)
+        {
+            // сохраняем прошлую пропорцию
+            var previousMax = Maximum > 0 ? Maximum : BaseMaximum;
+            var previousRatio = previousMax > 0 ? Current / previousMax : 1f;
 
-			Maximum = newMaximum;
-			Current = newCurrent;
-		}
+            // новая максималка
+            var newMaximum = ApplyModifiers(BaseMaximum, StatModifierTarget.Maximum);
 
-		private bool HasModifiersForTarget(StatModifierTarget target)
-		{
-			for (int i = 0; i < _modifiers.Count; i++)
-			{
-				if (_modifiers[i].Target == target)
-					return true;
-			}
+            // базовое текущее (до модификаторов Current)
+            var newCurrentBase = resetCurrentToFull ? newMaximum : BaseCurrent;
 
-			return false;
-		}
-		
-		private float ApplyModifiers(float baseValue, StatModifierTarget target)
-		{
-			var flatAdd = 0f;
-			var percentAdd = 0f;
-			var percentMult = 1f;
-			var hasSet = false;
-			var setValue = 0f;
+            // применяем модификаторы к Current (их у MoveSpeed нет)
+            var hasCurrentMods = HasModifiersForTarget(StatModifierTarget.Current);
+            var newCurrent = ApplyModifiers(newCurrentBase, StatModifierTarget.Current);
 
-			for (int i = 0; i < _modifiers.Count; i++)
-			{
-				var mod = _modifiers[i];
-				if (mod.Target != target)
-					continue;
+            // ---- ВАЖНО: выбираем поведение в зависимости от типа стата ----
 
-				switch (mod.Type)
-				{
-					case StatModifierType.Flat:
-						flatAdd += mod.Value;
-						break;
+            bool isResource = Name == StatType.HitPoint || 
+                              Name == StatType.Shield;
 
-					case StatModifierType.PercentAdd:
-						percentAdd += mod.Value;
-						break;
+            if (!hasCurrentMods)
+            {
+                if (resetCurrentToFull)
+                {
+                    newCurrent = newMaximum;
+                }
+                else if (isResource)
+                {
+                    // HP/Shield сохраняют процент
+                    newCurrent = newMaximum * previousRatio;
+                }
+                else
+                {
+                    // ВСЕ ПАРАМЕТРЫ (MoveSpeed, Accel, FireRate, TurnSpeed и т.д.)
+                    // ВСЕГДА возвращаются на максимум после снятия модификаторов
+                    newCurrent = newMaximum;
+                }
+            }
 
-					case StatModifierType.PercentMult:
-						percentMult *= (1f + mod.Value);
-						break;
+            // clamp
+            if (newCurrent > newMaximum) newCurrent = newMaximum;
+            if (newCurrent < 0) newCurrent = 0;
 
-					case StatModifierType.Set:
-						hasSet = true;
-						setValue = mod.Value;
-						break;
-				}
-			}
+            Maximum = newMaximum;
+            Current = newCurrent;
+        }
 
-			var value = baseValue + flatAdd;
-			value *= (1f + percentAdd);
-			value *= percentMult;
+        private bool HasModifiersForTarget(StatModifierTarget target)
+        {
+            for (int i = 0; i < _modifiers.Count; i++)
+            {
+                if (_modifiers[i].Target == target)
+                    return true;
+            }
 
-			if (hasSet)
-				value = setValue;
+            return false;
+        }
 
-			return value;
-		}
-	}
+        private float ApplyModifiers(float baseValue, StatModifierTarget target)
+        {
+            var flatAdd = 0f;
+            var percentAdd = 0f;
+            var percentMult = 1f;
+            var hasSet = false;
+            var setValue = 0f;
+
+            for (int i = 0; i < _modifiers.Count; i++)
+            {
+                var mod = _modifiers[i];
+                if (mod.Target != target)
+                    continue;
+
+                switch (mod.Type)
+                {
+                    case StatModifierType.Flat:
+                        flatAdd += mod.Value;
+                        break;
+
+                    case StatModifierType.PercentAdd:
+                        percentAdd += mod.Value;
+                        break;
+
+                    case StatModifierType.PercentMult:
+                        percentMult *= (1f + mod.Value);
+                        break;
+
+                    case StatModifierType.Set:
+                        hasSet = true;
+                        setValue = mod.Value;
+                        break;
+                }
+            }
+
+            var value = baseValue + flatAdd;
+            value *= (1f + percentAdd);
+            value *= percentMult;
+
+            if (hasSet)
+                value = setValue;
+
+            return value;
+        }
+    }
 }
+
 
 
 // ---------- StatModifier.cs ----------
@@ -1159,7 +2536,7 @@ namespace Ships
 		{
 			if (!_stats.TryGetValue(name, out var stat))
 			{
-				Debug.LogError($"Stat {name} not found in Stats!");
+				Debug.LogWarning($"Stat {name} not found in Stats!");
 				return 0f;
 			}
 			return stat.Current;
@@ -1187,11 +2564,15 @@ namespace Ships
 	public enum StatType
 	{
 		// Ship
-		HP,
+		HitPoint,
 		MoveSpeed,
 		TurnSpeed,
 		Shield,
 		ShieldRegen,
+		Acceleration,
+		BrakePower,
+		ShieldRestoreDelay,
+		BackSpeed,
 
 		// Weapon
 		FireRate,
@@ -1241,6 +2622,19 @@ namespace Ships
 }
 
 
+// ---------- IStackableEffect.cs ----------
+namespace Ships
+{
+	public interface IStackableEffect : IOnHitEffect
+	{
+		string EffectId { get; }
+		bool CanStack { get; }
+		int MaxStacks { get; }
+	}
+
+}
+
+
 // ---------- Projectile.cs ----------
 using UnityEngine;
 
@@ -1254,45 +2648,42 @@ namespace Ships
 		private float speed;
 		private float damage;
 		private float armorPierce;
-		private WeaponBase sourceWeapon;
+		public WeaponBase SourceWeapon;
+		public ShipBase Owner;
+		public TeamMask HitMask;
+		[SerializeField] private Vector2 moveDir;
 
-		public void Init(Transform target, float dmg, float spd, float ap, WeaponBase source)
+		public void Init(Vector2 direction, float dmg, float spd, float ap, WeaponBase source)
 		{
-			this.target = target;
 			damage = dmg;
 			speed = spd;
 			armorPierce = ap;
-			sourceWeapon = source;
+			SourceWeapon = source;
+			moveDir = direction.normalized;
+			HitMask = SourceWeapon.Slot.HitMask;
 		}
 
 		void Update()
 		{
-			if (target == null)
-			{
-				Destroy(gameObject);
-				return;
-			}
-
-			Vector2 dir = (target.position - transform.position).normalized;
-			transform.position += (Vector3)(dir * speed * Time.deltaTime);
-
-			if (Vector2.Distance(transform.position, target.position) < 0.2f)
-				HitTarget();
+			transform.position += (Vector3)(moveDir * speed * Time.deltaTime);
 		}
 
-		private void HitTarget()
+		public float Damage => damage;
+
+		public void DestroySelf()
 		{
-			if (target.TryGetComponent<ITargetable>(out var targetable))
-			{
-				// нанести урон
-				if (targetable.TryGetStat(StatType.HP, out var hpStat))
-					hpStat.AddToCurrent(-damage);
+			Destroy(gameObject);
+		}
+		private void OnTriggerEnter2D(Collider2D other)
+		{
+			if (!other.TryGetComponent<ShipBase>(out var ship))
+				return;
 
-				// вызвать эффекты
-				foreach (var effect in sourceWeapon.Model.Effects)
-					effect.Apply(targetable, damage, sourceWeapon);
-			}
+			// Проверяем: входит ли ship.Team в наш HitMask?
+			if (!HitRules.CanHit(HitMask, ship.Team))
+				return;
 
+			ship.TakeDamage(damage, transform.position, SourceWeapon);
 			Destroy(gameObject);
 		}
 	}
@@ -1317,7 +2708,7 @@ namespace Ships
 			if (Model != null && !IsInit)
 			{
 				Stats stats = new Stats();
-				stats.AddStat(new Stat(StatType.FireRange, 25));
+				stats.AddStat(new Stat(StatType.FireRange, 5));
 				stats.AddStat(new Stat(StatType.FireRate, 1));
 				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
 				stats.AddStat(new Stat(StatType.MinDamage, 5));
@@ -1341,8 +2732,8 @@ namespace Ships
 			}
 			else
 			{
-				//var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				//proj.Init(target, damage, speed, Model.ArmorPierce, this);
+				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
+				proj.Init((Vector2)FirePoint.right, damage, speed, Model.ArmorPierce, this);
 			}
 		}
 
@@ -1350,7 +2741,7 @@ namespace Ships
 		{
 			if (target.TryGetComponent<ITargetable>(out var t))
 			{
-				if (t.TryGetStat(StatType.HP, out var hp))
+				if (t.TryGetStat(StatType.HitPoint, out var hp))
 					hp.AddToCurrent(-dmg);
 
 				foreach (var effect in Model.Effects)
@@ -1421,7 +2812,7 @@ namespace Ships
 
 			float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
 			Quaternion rot = Quaternion.Euler(0, 0, angle);
-			transform.rotation = Quaternion.Lerp(Slot.transform.rotation, rot, Time.deltaTime * 10f);
+			transform.rotation = Quaternion.Lerp(transform.rotation, rot, Time.deltaTime * 10f);
 		}
 
 		protected abstract void Shoot(Transform target);
@@ -1487,6 +2878,18 @@ namespace Ships
 }
 
 
+// ---------- WeaponSize.cs ----------
+namespace Ships
+{
+	public enum WeaponSize
+	{
+		S,
+		M,
+		L
+	}
+}
+
+
 // ---------- WeaponSlot.cs ----------
 using System;
 
@@ -1496,14 +2899,25 @@ namespace Ships
 
 	public class WeaponSlot : MonoBehaviour
 	{
-		public float AllowedAngle = 45f; 
+		public float AllowedAngle = 45f;
 		public bool IsTurret = false;
 		public WeaponBase MountedWeapon;
 		public WeaponTargeting WeaponTargeting;
-		
+		public SideType Side;
+		public TeamMask HitMask;
 
-		private void Start()
+		public void Init(SideType sideType)
 		{
+			Side = sideType;
+
+			HitMask = sideType switch
+			{
+				SideType.Player => TeamMask.Enemy,
+				SideType.Enemy => TeamMask.Player,
+				SideType.Ally => TeamMask.Enemy | TeamMask.Player, 
+				_ => TeamMask.All
+			};
+
 			if (transform.childCount > 0)
 			{
 				MountedWeapon = transform.GetComponentInChildren<WeaponBase>();
@@ -1511,177 +2925,457 @@ namespace Ships
 			}
 
 			if (MountedWeapon)
-			{
 				MountedWeapon.Init(this);
-			}
-				
 		}
 
 		public bool IsTargetWithinSector(Vector2 dir)
 		{
-			Vector2 forward = transform.right; 
+			Vector2 forward = transform.right;
 			var angle = Vector2.Angle(forward, dir);
 			return angle <= AllowedAngle;
 		}
 	}
-
 }
 
 
 // ---------- WeaponTargeting.cs ----------
-namespace Ships
-{
-	using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
-public class WeaponTargeting : MonoBehaviour
+namespace Ships
 {
-    public WeaponBase Weapon;
-    public WeaponSlot Slot;
-
-    public TargetSize PriorityType = TargetSize.Small;
-
-    private List<ITargetable> enemies = new();
-    private ITargetable currentTarget;
-
-    public void SetEnemies(List<ITargetable> list)
+    public class WeaponTargeting : MonoBehaviour
     {
-        enemies = list;
-    }
+        public WeaponBase Weapon;
+        public WeaponSlot Slot;
 
-    void Update()
-    {
-        if (!Slot)
+        public TargetSize PriorityType = TargetSize.Small;
+
+        private readonly List<ITargetable> allTargets = new();
+        private ITargetable currentTarget;
+
+        private void Start()
         {
-            Slot = GetComponentInParent<WeaponSlot>();
-        }
-        if(!Slot)
-            return;
-        
-        SelectTargetIfNeeded();
-
-        if (currentTarget == null)
-            return;
-        Vector2 aim = GetAimPoint(currentTarget);
-
-        Weapon.TickWeaponPosition(aim);
-        Weapon.TickWeapon(currentTarget.Transform);
-    }
-
-    private void SelectTargetIfNeeded()
-    {
-        if (currentTarget == null)
-        {
-            currentTarget = FindTarget();
-            return;
+            if (!Slot)
+                Slot = GetComponentInParent<WeaponSlot>();
         }
 
-        if (!currentTarget.IsAlive || !IsTargetInSector(currentTarget) || !IsTargetInRange(currentTarget))
+        // Вызывается WeaponController каждый кадр
+        public void UpdateTargetList(IEnumerable<ITargetable> targets)
         {
-            currentTarget = FindTarget();
-        }
-    }
+            allTargets.Clear();
 
-    private bool IsTargetInRange(ITargetable t)
-    {
-        float dist = Vector2.Distance(Slot.transform.position, t.Transform.position);
-        return dist <= Weapon.Model.FireRange;
-    }
-
-    private bool IsTargetInSector(ITargetable t)
-    {
-        Vector2 dir = (t.Transform.position - Slot.transform.position).normalized;
-        return Slot.IsTargetWithinSector(dir);
-    }
-
-    private ITargetable FindTarget()
-    {
-        Vector2 pos = Slot.transform.position;
-
-        var inRange = enemies
-            .Where(e =>
+            foreach (var t in targets)
             {
-                if (e.IsAlive) 
-                    return true;
-                return false;
-            })
-            .Where(e =>
+                // 1) жив ли?
+                if (!t.IsAlive) 
+                    continue;
+
+                // 2) принадлежит ли к той команде, по которой можно стрелять?
+                if (!HitRules.CanHit(Slot.HitMask, (t as ShipBase).Team))
+                    continue;
+
+                allTargets.Add(t);
+            }
+        }
+
+        private void Update()
+        {
+            if (Slot == null || Weapon == null)
+                return;
+
+            SelectTargetIfNeeded();
+
+            if (currentTarget == null)
+                return;
+
+            Vector2 aim = GetAimPoint(currentTarget);
+
+            Weapon.TickWeaponPosition(aim);
+            Weapon.TickWeapon(currentTarget.Transform);
+        }
+
+        private void SelectTargetIfNeeded()
+        {
+            if (currentTarget == null ||
+                !currentTarget.IsAlive ||
+                !IsTargetInRange(currentTarget) ||
+                !IsTargetInSector(currentTarget))
             {
-                if (Vector2.Distance(pos, e.Transform.position) <= Weapon.Model.FireRange)
-                    return true;
-                return false;
-            })
-            .Where(e => {
-                Vector2 dir = ((Vector2)e.Transform.position - pos).normalized;
-                return Slot.IsTargetWithinSector(dir);
-            })
-            .ToList();
-
-        if (inRange.Count == 0)
-            return null;
-
-        var priority = inRange
-            .Where(e => e.Size == PriorityType)
-            .OrderBy(e => Vector2.Distance(pos, e.Transform.position))
-            .FirstOrDefault();
-
-        if (priority != null)
-            return priority;
-
-        return inRange
-            .OrderBy(e => Vector2.Distance(pos, e.Transform.position))
-            .FirstOrDefault();
-    }
-
-    private Vector2 GetAimPoint(ITargetable t)
-    {
-        Vector2 pos = Slot.transform.position;
-        Vector2 targetPos = t.Transform.position;
-        Vector2 vel = t.Velocity;
-
-        float speed = Weapon.Model.ProjectileSpeed;
-
-        Vector2 dir;
-
-        if (speed > 0.01f)
-        {
-            float dist = Vector2.Distance(pos, targetPos);
-            float time = dist / speed;
-
-            Vector2 predicted = targetPos + vel * time;
-            dir = (predicted - pos).normalized;
-        }
-        else
-        {
-            dir = (targetPos - pos).normalized;
+                currentTarget = FindBestTarget();
+            }
         }
 
-        dir = ApplyAccuracy(dir);
+        private ITargetable FindBestTarget()
+        {
+            Vector2 pos = Slot.transform.position;
 
-        return pos + dir * 12f;
-    }
+            var inRange = allTargets
+                .Where(t => IsTargetInRange(t))
+                .Where(t => IsTargetInSector(t))
+                .ToList();
 
-    private Vector2 ApplyAccuracy(Vector2 dir)
-    {
-        float acc = Weapon.Model.Accuracy;
+            if (inRange.Count == 0)
+                return null;
 
-        if (Random.value <= acc)
-            return dir;
+            // Сначала по приоритетному размеру
+            var priority = inRange
+                .Where(t => t.Size == PriorityType)
+                .OrderBy(t => Vector2.Distance(pos, t.Transform.position))
+                .FirstOrDefault();
 
-        float maxAngle = 15f * (1f - acc);
-        float a = Random.Range(-maxAngle, maxAngle) * Mathf.Deg2Rad;
+            if (priority != null)
+                return priority;
 
-        float cos = Mathf.Cos(a);
-        float sin = Mathf.Sin(a);
+            // Иначе ближайшая цель
+            return inRange
+                .OrderBy(t => Vector2.Distance(pos, t.Transform.position))
+                .FirstOrDefault();
+        }
 
-        return new Vector2(
-            dir.x * cos - dir.y * sin,
-            dir.x * sin + dir.y * cos
-        );
+        private bool IsTargetInRange(ITargetable t)
+        {
+            float dist = Vector2.Distance(Slot.transform.position, t.Transform.position);
+            return dist <= Weapon.Model.FireRange;
+        }
+
+        private bool IsTargetInSector(ITargetable t)
+        {
+            Vector2 dir = (t.Transform.position - Slot.transform.position).normalized;
+            return Slot.IsTargetWithinSector(dir);
+        }
+
+        private Vector2 GetAimPoint(ITargetable t)
+        {
+            Vector2 pos = Slot.transform.position;
+            Vector2 targetPos = t.Transform.position;
+            Vector2 vel = t.Velocity;
+
+            float speed = Weapon.Model.ProjectileSpeed;
+            Vector2 dir;
+
+            if (speed > 0.01f)
+            {
+                float dist = Vector2.Distance(pos, targetPos);
+                float time = dist / speed;
+
+                Vector2 predicted = targetPos + vel * time;
+                dir = (predicted - pos).normalized;
+            }
+            else
+            {
+                dir = (targetPos - pos).normalized;
+            }
+
+            dir = ApplyAccuracy(dir);
+
+            return pos + dir * 12f;
+        }
+
+        private Vector2 ApplyAccuracy(Vector2 dir)
+        {
+            float acc = Weapon.Model.Accuracy;
+
+            if (Random.value <= acc)
+                return dir;
+
+            float maxAngle = 15f * (1f - acc);
+            float a = Random.Range(-maxAngle, maxAngle) * Mathf.Deg2Rad;
+
+            float cos = Mathf.Cos(a);
+            float sin = Mathf.Sin(a);
+
+            return new Vector2(
+                dir.x * cos - dir.y * sin,
+                dir.x * sin + dir.y * cos
+            );
+        }
     }
 }
 
+
+
+// ---------- ShieldController.cs ----------
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+namespace Ships
+{
+    public class ShieldController : MonoBehaviour
+    {
+        public List<ShieldSector> Sectors = new();
+        public List<ShieldSectorVisual> Visuals = new();
+        public ShipBase Ship;
+
+        private void Awake()
+        {
+            Ship = GetComponent<ShipBase>();
+            StartCoroutine(Update1Sec());
+        }
+
+        private IEnumerator Update1Sec()
+        {
+            while (gameObject.activeSelf)
+            {
+                yield return new WaitForSeconds(1f);
+                foreach (var s in Sectors)
+                    s.Tick();
+            }
+        }
+        private void Update()
+        {
+            UpdateVisuals();
+        }
+
+        public void AddSector(ShieldSector sector)
+        {
+            Sectors.Add(sector);
+            RegisterVisual(sector);
+        }
+
+        public void RegisterVisual(ShieldSector sector)
+        {
+            sector.Visual.Init();
+            sector.Visual.SetSectorAngles(sector.StartAngle, sector.EndAngle);
+            sector.Visual.SetCharge(sector.ShieldHP.Current / sector.ShieldHP.Maximum);
+        }
+        
+
+        public void OnShieldHit(ShieldSide side, Vector2 hitPoint, Projectile proj)
+        {
+            var sector = Sectors.FirstOrDefault(s => s.Side == side);
+
+            // если сектора нет — прямой урон
+            if (sector == null)
+            {
+                Ship.TakeDamage(proj.Damage, hitPoint, proj.SourceWeapon);
+                return;
+            }
+
+            float dmg = proj.Damage;
+
+            // Уменьшаем HP щита
+            float leftover = sector.Absorb(dmg);
+
+            // визуал
+            var vis = sector.Visual;
+            vis.Hit(hitPoint);
+
+            // остаток урона — в тело корабля
+            if (leftover > 0)
+                Ship.TakeDamage(leftover, hitPoint, proj.SourceWeapon);
+        }
+        
+
+        private void UpdateVisuals()
+        {
+            foreach (var se in Sectors)
+            {
+                var t = se.ShieldHP.Current / se.ShieldHP.Maximum;
+                se.Visual.SetCharge(t);
+            }
+        }
+    }
+}
+
+
+
+// ---------- ShieldHitbox.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+	public class ShieldHitbox : MonoBehaviour
+	{
+		public ShieldSide Side;
+		public ShieldController Controller;
+
+		private void OnTriggerEnter2D(Collider2D other)
+		{
+			if (!other.TryGetComponent<Projectile>(out var proj))
+				return;
+
+			if (!HitRules.CanHit(proj.HitMask, Controller.Ship.Team))
+				return;
+
+			Vector2 hitPoint = other.ClosestPoint((Vector2)transform.position);
+			Controller.OnShieldHit(Side, hitPoint, proj);
+			proj.DestroySelf();
+		}
+	}
+}
+
+
+// ---------- ShieldSector.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+	[System.Serializable]
+	public class ShieldSector
+	{
+		public ShieldSide Side;
+
+		public float StartAngle;
+		public float EndAngle;
+		public float MaxHP;
+		public float Regen;
+		public float RestoreDelayTime;
+		public Stat ShieldHP;
+		public Stat ShieldRegen;
+		public Stat RestoreDelay;
+		public Collider2D Collider;
+		public bool IsRestoring;
+		public float CurrentRestoreTime;
+		public float DamageResist = 0f;
+		public ShieldSectorVisual Visual;
+		public float CurrentHp;// 0.2 = 20%
+
+		public void InitFromPrefab()
+		{
+			ShieldHP = new Stat(StatType.Shield, MaxHP);
+			ShieldRegen = new Stat(StatType.ShieldRegen, Regen);
+			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, RestoreDelayTime);
+		}
+		public void InitFromConfig(float hp, float regen, float restoreDelay)
+		{
+			ShieldHP = new Stat(StatType.Shield, hp);
+			ShieldRegen = new Stat(StatType.ShieldRegen, regen);
+			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, restoreDelay);
+		}
+
+		public bool ContainsAngle(float angle)
+		{
+			if (StartAngle <= EndAngle)
+			{
+				return angle >= StartAngle && angle <= EndAngle;
+			}
+			else
+			{
+				return angle >= StartAngle || angle <= EndAngle;
+			}
+		}
+
+		public float Absorb(float damage)
+		{
+			if (ShieldHP.Current <= 0)
+			{
+				return damage;
+			}
+			damage *= (1f - DamageResist);
+			float taken = Mathf.Min(damage, ShieldHP.Current);
+			ShieldHP.AddToCurrent(-taken);
+			return damage - taken;
+		}
+
+		public void Tick()
+		{
+			CurrentHp = ShieldHP.Current;
+			Collider.enabled = ShieldHP.Current > 0;
+			if (ShieldHP.Current <= 0 && !IsRestoring)
+			{
+				CurrentRestoreTime = RestoreDelay.Current;
+				IsRestoring = true;
+			}
+			if (IsRestoring)
+			{
+				CurrentRestoreTime --;
+				if (CurrentRestoreTime <= 0)
+				{
+					IsRestoring = false;
+					CurrentRestoreTime = RestoreDelay.Current;
+					ShieldHP.AddToCurrent(ShieldRegen.Current);
+				}
+			}
+			else
+				ShieldHP.AddToCurrent(ShieldRegen.Current);
+		}
+	}
+}
+
+
+// ---------- ShieldSectorVisual.cs ----------
+using Ships;
+using UnityEngine;
+
+public class ShieldSectorVisual : MonoBehaviour
+{
+	[SerializeField] private SpriteRenderer sprite;
+	public ShieldSide Side;
+	private Material mat;
+
+	int idCharge;
+	int idStart;
+	int idEnd;
+	int idHitPoint;
+	int idHitStrength;
+	int idHitTime;
+
+	float hitStrength;
+	float hitTime;
+
+	public void Init()
+	{
+		mat = Instantiate(sprite.material);
+		sprite.material = mat;
+
+		idCharge = Shader.PropertyToID("_Charge");
+		idStart = Shader.PropertyToID("_SectorStart");
+		idEnd = Shader.PropertyToID("_SectorEnd");
+		idHitPoint = Shader.PropertyToID("_HitPoint");
+		idHitStrength = Shader.PropertyToID("_HitStrength");
+		idHitTime = Shader.PropertyToID("_HitTime");
+	}
+
+	private void Update()
+	{
+		if (hitStrength > 0)
+		{
+			hitTime += Time.deltaTime;
+			hitStrength = Mathf.MoveTowards(hitStrength, 0, Time.deltaTime * 3f);
+		}
+
+		mat.SetFloat(idHitStrength, hitStrength);
+		mat.SetFloat(idHitTime, hitTime);
+	}
+
+	public void SetSectorAngles(float start, float end)
+	{
+		mat.SetFloat(idStart, start);
+		mat.SetFloat(idEnd, end);
+	}
+
+	public void SetCharge(float t)
+	{
+		mat.SetFloat(idCharge, t);
+	}
+
+	public void Hit(Vector2 worldPos)
+	{
+		Vector2 local = transform.InverseTransformPoint(worldPos);
+		Vector2 uv = local * 0.5f + new Vector2(0.5f, 0.5f);
+
+		mat.SetVector(idHitPoint, uv);
+		hitStrength = 1f;
+		hitTime = 0;
+	}
+}
+
+
+// ---------- ShieldSide.cs ----------
+namespace Ships
+{
+	public enum ShieldSide
+	{
+		Front,
+		Left,
+		Right,
+		Rear,
+		Omni
+	}
 }
 
 
@@ -1691,51 +3385,74 @@ using UnityEngine;
 
 namespace Ships.HitEffect
 {
-	public class DamageOverTimeEffect : IOnHitEffect
-	{
-		private float chance;
-		private float damagePerTick;
-		private float duration;
+    public class DamageOverTimeEffect : IStackableEffect
+    {
+        public string EffectId => "Burn";
 
-		public DamageOverTimeEffect(float chance, float damagePerTick, float duration)
-		{
-			this.chance = chance;
-			this.damagePerTick = damagePerTick;
-			this.duration = duration;
-		}
+        public bool CanStack { get; }
+        public int MaxStacks { get; }
 
-		public void Apply(ITargetable target, float damage, WeaponBase sourceWeapon)
-		{
-			if (UnityEngine.Random.value > chance)
-				return;
+        private float chance;
+        private float damagePerTick;
+        private float duration;
 
-			// показать эффект в UI / Debug Panel
-			if (target is ShipBase ship)
-				ship.AddActiveEffect("Burn", duration);
+        public DamageOverTimeEffect(
+            float chance,
+            float damagePerTick,
+            float duration,
+            bool canStack = true,
+            int maxStacks = 5)
+        {
+            this.chance = chance;
+            this.damagePerTick = damagePerTick;
+            this.duration = duration;
+            this.CanStack = canStack;
+            this.MaxStacks = maxStacks;
+        }
 
-			// наносим урон
-			if (target is MonoBehaviour mb)
-				mb.StartCoroutine(DoDamageOverTime(target));
-		}
+        public void Apply(ITargetable target, float damage, WeaponBase sourceWeapon)
+        {
+            if (Random.value > chance)
+                return;
 
-		private IEnumerator DoDamageOverTime(ITargetable target)
-		{
-			int ticks = Mathf.CeilToInt(duration);
+            if (target is not ShipBase ship)
+                return;
 
-			for (int i = 0; i < ticks; i++)
-			{
-				if (!target.IsAlive)
-					yield break;
+            // 1) Стакаем/обновляем эффект на корабле
+            ship.AddOrStackEffect(this, duration);
 
-				if (target.TryGetStat(StatType.HP, out var hpStat))
-					hpStat.AddToCurrent(-damagePerTick);
+            // 2) Если DoT уже работает — НЕ запускать второй
+            if (ship.RunningDotEffects.Contains(EffectId))
+                return;
 
-				yield return new WaitForSeconds(1f);
-			}
-		}
-	}
+            // 3) Иначе запускаем DoT
+            ship.RunningDotEffects.Add(EffectId);
+            ship.StartCoroutine(DoDamageOverTime(ship));
+        }
 
+        private IEnumerator DoDamageOverTime(ShipBase ship)
+        {
+            while (true)
+            {
+                var eff = ship.GetEffect(EffectId);
+
+                // Эффект исчез → снимаем
+                if (eff == null)
+                    break;
+
+                // наносим фиксированный урон (НЕ зависит от стаков)
+                if (ship.TryGetStat(StatType.HitPoint, out var hpStat))
+                    hpStat.AddToCurrent(-damagePerTick);
+
+                yield return new WaitForSeconds(1f);
+            }
+
+            // эффект закончился → символически убираем DoT из активных потоков
+            ship.RunningDotEffects.Remove(EffectId);
+        }
+    }
 }
+
 
 
 // ---------- SlowEffect.cs ----------
@@ -1743,41 +3460,53 @@ using UnityEngine;
 
 namespace Ships.HitEffect
 {
-	public class SlowEffect : IOnHitEffect
+	public class SlowEffect : IStackableEffect
 	{
-		private float chance;
-		private float slowPercent; // 10 = 10%
-		private float duration;    // секунды
+		public string EffectId => "Slow";
+		public bool CanStack { get; }
+		public int MaxStacks { get; }
 
-		public SlowEffect(float chance, float slowPercent, float duration)
+		private float chance;
+		private float slowPercent;
+		private float duration;
+
+		public SlowEffect(float chance, float slowPercent, float duration, bool canStack = false, int maxStacks = 1)
 		{
 			this.chance = chance;
 			this.slowPercent = slowPercent;
 			this.duration = duration;
+			this.CanStack = canStack;
+			this.MaxStacks = maxStacks;
 		}
 
 		public void Apply(ITargetable target, float damage, WeaponBase sourceWeapon)
 		{
-			if (UnityEngine.Random.value > chance)
-				return;
+			if (Random.value > chance) return;
+			if (!(target is ShipBase ship)) return;
 
-			if (target.TryGetStat(StatType.MoveSpeed, out var stat))
-			{
-				float fraction = slowPercent / 100f;
+			// 1) Обновить стаки
+			ship.AddOrStackEffect(this, duration);
 
-				stat.AddModifier(
-					new StatModifier(
-						StatModifierType.PercentAdd,
-						StatModifierTarget.Maximum,
-						StatModifierPeriodicity.Timed,
-						-fraction,
-						remainingTicks: Mathf.CeilToInt(duration), // <== 1 секунда = 1 тик
-						source: this
-					)
-				);
-			}
+			// 2) Удалить старые модификаторы
+			var stat = ship.GetStat(StatType.MoveSpeed) as Stat;
+			stat.RemoveModifiersFromSource(this);
+
+			// 3) Наложить новый модификатор
+			var inst = ship.GetEffect(EffectId);
+
+			float totalSlow = slowPercent / 100f * inst.Stacks;
+
+			stat.AddModifier(new StatModifier(
+				StatModifierType.PercentAdd,
+				StatModifierTarget.Maximum,
+				StatModifierPeriodicity.Timed,
+				-totalSlow,
+				remainingTicks: Mathf.CeilToInt(duration),
+				source: this
+			));
 		}
 	}
+
 
 
 }

@@ -18,13 +18,21 @@ namespace Ships
 		public Collider2D Collider;
 		public bool IsRestoring;
 		public float CurrentRestoreTime;
-		public float DamageResist = 0f; // 0.2 = 20%
+		public float DamageResist = 0f;
+		public ShieldSectorVisual Visual;
+		public float CurrentHp;// 0.2 = 20%
 
-		public void Init()
+		public void InitFromPrefab()
 		{
 			ShieldHP = new Stat(StatType.Shield, MaxHP);
 			ShieldRegen = new Stat(StatType.ShieldRegen, Regen);
 			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, RestoreDelayTime);
+		}
+		public void InitFromConfig(float hp, float regen, float restoreDelay)
+		{
+			ShieldHP = new Stat(StatType.Shield, hp);
+			ShieldRegen = new Stat(StatType.ShieldRegen, regen);
+			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, restoreDelay);
 		}
 
 		public bool ContainsAngle(float angle)
@@ -53,6 +61,7 @@ namespace Ships
 
 		public void Tick()
 		{
+			CurrentHp = ShieldHP.Current;
 			Collider.enabled = ShieldHP.Current > 0;
 			if (ShieldHP.Current <= 0 && !IsRestoring)
 			{

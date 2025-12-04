@@ -34,22 +34,14 @@ namespace Ships
         public void AddSector(ShieldSector sector)
         {
             Sectors.Add(sector);
-            RegisterVisual(sector.Side);
+            RegisterVisual(sector);
         }
 
-        public void RegisterVisual(ShieldSide side)
+        public void RegisterVisual(ShieldSector sector)
         {
-            foreach (var sectorVisual in Visuals)
-            {
-                if (sectorVisual.Side == side)
-                {
-                    var s = Sectors.Find(x => x.Side == side);
-                    sectorVisual.Init();
-                    sectorVisual.SetSectorAngles(s.StartAngle, s.EndAngle);
-                    sectorVisual.SetCharge(s.ShieldHP.Current / s.ShieldHP.Maximum);
-                }
-            }
-            
+            sector.Visual.Init();
+            sector.Visual.SetSectorAngles(sector.StartAngle, sector.EndAngle);
+            sector.Visual.SetCharge(sector.ShieldHP.Current / sector.ShieldHP.Maximum);
         }
         
 
@@ -70,9 +62,8 @@ namespace Ships
             float leftover = sector.Absorb(dmg);
 
             // визуал
-            var vis = Visuals.FirstOrDefault(v => v.Side == side);
-            if (vis != null)
-                vis.Hit(hitPoint);
+            var vis = sector.Visual;
+            vis.Hit(hitPoint);
 
             // остаток урона — в тело корабля
             if (leftover > 0)
@@ -82,12 +73,10 @@ namespace Ships
 
         private void UpdateVisuals()
         {
-            for (int i = 0; i < Sectors.Count; i++)
+            foreach (var se in Sectors)
             {
-                if (Visuals[i] == null) continue;
-
-                float t = Sectors[i].ShieldHP.Current / Sectors[i].ShieldHP.Maximum;
-                Visuals[i].SetCharge(t);
+                var t = se.ShieldHP.Current / se.ShieldHP.Maximum;
+                se.Visual.SetCharge(t);
             }
         }
     }

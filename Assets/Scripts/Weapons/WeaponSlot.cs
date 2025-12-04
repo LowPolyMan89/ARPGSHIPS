@@ -12,6 +12,7 @@ namespace Ships
 		public WeaponTargeting WeaponTargeting;
 		public SideType Side;
 		public TeamMask HitMask;
+		public WeaponSize SlotSize;
 
 		public void Init(SideType sideType)
 		{
