@@ -15,17 +15,14 @@ namespace Ships
 
 		private void Start()
 		{
-			StartCoroutine(UpdateTick());
+			GameEvent.OnUiUpdate += OnUpdate;
 		}
 
-		private IEnumerator UpdateTick()
+		private void OnDestroy()
 		{
-			while (gameObject.activeInHierarchy)
-			{
-				yield return new WaitForSeconds(_updateRatio);
-				OnUpdate();
-			}
+			GameEvent.OnUiUpdate -= OnUpdate;
 		}
+
 		private void OnUpdate()
 		{
 			if (_playerShipStatsContainer)

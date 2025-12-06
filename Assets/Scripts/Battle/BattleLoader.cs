@@ -8,20 +8,41 @@
 
 		private void Start()
 		{
-			LoadTestShip();
+			LoadPlayerShipFromFit();
 		}
 
-		private void LoadTestShip()
+		private void LoadPlayerShipFromFit()
 		{
-			var hull = HullLoader.Load("hull_test_frigate");
-			if (hull == null) return;
+			var fit = MetaBattleBridge.LastFit;
+			if (fit == null) return;
 
+			var hull = HullLoader.Load(fit.SelectedShipId);
 			var go = Instantiate(PlayerShipPrefab, Vector3.zero, Quaternion.identity);
 			var ship = go.GetComponent<PlayerShip>();
 
-			//ship.InitFromTestHull(hull);
+			ship.LoadShipFromConfig(fit.SelectedShipId);
+			ship.Init();
 
-			Debug.Log("Test ship loaded from JSON");
+			InstallFit(ship, fit.Fit);
+		}
+
+		private void InstallFit(PlayerShip ship, ShipFitModel fit)
+		{
+			foreach (var slot in ship.WeaponController.Weapons)
+			{
+				if (!fit.WeaponSlots.TryGetValue(slot.name, out var itemId))
+					continue;
+
+				if (itemId != null)
+					InstallWeapon(slot, itemId);
+			}
+
+			// когда появятся ModuleSlots — аналогично
+		}
+
+		private void InstallWeapon(WeaponSlot slot, string itemId)
+		{
+			// читаем JSON оружия, инстансим WeaponBase, подменяем статы
 		}
 	}
 

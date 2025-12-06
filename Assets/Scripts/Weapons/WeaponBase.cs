@@ -7,40 +7,65 @@ namespace Ships
 
 	public abstract class WeaponBase : MonoBehaviour
 	{
-
-		protected float nextFireTime;
+		private float _nextFireTime;
 
 		public WeaponSlot Slot;
 		public WeaponModel Model;
 		public Transform FirePoint;
-
-		public void Init(Stats stats)
-		{
-			Model = new WeaponModel(stats);
-		}
-		public void Init(WeaponSlot slot)
+		private int _ammo;
+		private bool _isReloading;
+		private float _reloadFinishTime;
+		
+		public void Init(WeaponSlot slot, Stats stats)
 		{
 			Model = new WeaponModel();
+			Model.InjectStat(stats);
 			Slot = slot;
+			_ammo = GetMaxAmmo(); 
 		}
 
 		public void TickWeapon(Transform target)
 		{
-			if (Model == null || target == null)
+			if (target == null || Model == null)
 				return;
 
-			Vector2 dir = (target.position - Slot.transform.position);
-
-			RotateToTarget(dir);
-
-			if (Time.time >= nextFireTime)
+			if (_isReloading)
 			{
-				nextFireTime = Time.time + 1f / Model.FireRate;
-				Shoot(target);
+				if (Time.time >= _reloadFinishTime)
+				{
+					_isReloading = false;
+					_ammo = GetMaxAmmo();
+				}
+				return;
 			}
-		}
 
-		// NEW: Tick with aim point (using lead + accuracy)
+			if (_ammo <= 0)
+			{
+				StartReload();
+				return;
+			}
+
+			if (Time.time < _nextFireTime)
+				return;
+
+			Shoot(target);
+
+			_ammo--;
+			_nextFireTime = Time.time + 1f / Model.Stats.GetStat(StatType.FireRate).Current;
+
+			if (_ammo <= 0)
+				StartReload();
+		}
+		private int GetMaxAmmo()
+		{
+			return Mathf.RoundToInt(Model.Stats.GetStat(StatType.AmmoCount).Maximum);
+		}
+		private void StartReload()
+		{
+			_isReloading = true;
+			_reloadFinishTime = Time.time + Model.Stats.GetStat(StatType.ReloadTime).Maximum;
+		}
+		
 		public void TickWeaponPosition(Vector2 aimPoint)
 		{
 			if (Model == null)
@@ -64,10 +89,10 @@ namespace Ships
 
 		protected float RollDamage()
 		{
-			float dmg = Random.Range(Model.MinDamage, Model.MaxDamage);
+			float dmg = Random.Range(Model.Stats.GetStat(StatType.MinDamage).Current, Model.Stats.GetStat(StatType.MaxDamage).Current);
 
-			if (Random.value < Model.CritChance)
-				dmg *= Model.CritMultiplier;
+			if (Random.value < Model.Stats.GetStat(StatType.CritChance).Current)
+				dmg *= Model.Stats.GetStat(StatType.CritMultiplier).Current;
 
 			return dmg;
 		}

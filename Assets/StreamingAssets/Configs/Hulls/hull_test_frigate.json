@@ -8,51 +8,47 @@
     "Armor": 5,
     "Shield": 200,
     "ShieldRegen": 3,
-    "MoveSpeed": 6,
-    "TurnSpeed": 2,
+    "MoveSpeed": 2,
+    "TurnSpeed": 80,
     "Acceleration": 4,
-    "BrakePower": 3
+    "BrakePower": 5
   },
   
   "shields":[
     {
       "id": "Front",
-      "value": 100,
+      "value": 25,
       "restoreTime": 10,
       "regeneration": 2
     },
     {
       "id": "Left",
-      "value": 100,
+      "value": 25,
       "restoreTime": 10,
       "regeneration": 2
     },
     {
       "id": "Right",
-      "value": 100,
+      "value": 25,
       "restoreTime": 10,
       "regeneration": 2
     },
     {
       "id": "Rear",
-      "value": 100,
+      "value": 25,
       "restoreTime": 10,
       "regeneration": 2
     }
   ],
 
   "weaponSlots": [
-    {
-      "id": "front",
-      "size": "S",
-      "rotationLimitDeg": 60
-    }
+    "S",
+    "S",
+    "M"
   ],
-
-  "moduleSlots": {
-    "passive": 0,
-    "active": 0
-  },
+  "activeSlots": 1,
+  "passiveSlots": 3,
+  "hullSlots": 1,
 
   "uniqueEffects": [],
   "leveling": []

@@ -15,8 +15,21 @@ namespace Ships
 			if (!HitRules.CanHit(proj.HitMask, Controller.Ship.Team))
 				return;
 
-			Vector2 hitPoint = other.ClosestPoint((Vector2)transform.position);
-			Controller.OnShieldHit(Side, hitPoint, proj);
+			Vector2 hitPoint = proj.transform.position;
+			
+			Stat s;
+			proj.SourceWeapon.Model.Stats.TryGetStat(StatType.ArmorPierce, out s);
+			var calc = DamageCalculator.CalculateHit(
+				projectileDamage: proj.Damage,
+				armorPierce:  s?.Current ?? 0,
+				hitPoint:     hitPoint,
+				sourceWeapon: proj.SourceWeapon,
+				target:       Controller.Ship,
+				wasShieldHit: true
+			);
+
+			GameEvent.TakeDamage(calc);
+			Controller.OnShieldHit(Side, calc); 
 			proj.DestroySelf();
 		}
 	}

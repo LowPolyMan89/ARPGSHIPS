@@ -11,7 +11,7 @@ namespace Ships
 	{
 		public ShipVisual _visual;
 		public SideType SideType;
-		public TeamMask Team;
+		[SerializeField] private TeamMask _team;
 		public Stats ShipStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
@@ -25,6 +25,8 @@ namespace Ships
 		private Vector3 _lastPos;
 		private Vector2 _velocity;
 		public Vector2 Velocity => _velocity;
+
+		public TeamMask Team => _team;
 
 		public bool IsAlive
 		{
@@ -115,7 +117,7 @@ namespace Ships
 
 		public void Init()
 		{
-			Team = SideType switch
+			_team = SideType switch
 			{
 				SideType.Player => TeamMask.Player,
 				SideType.Enemy => TeamMask.Enemy,
@@ -153,13 +155,19 @@ namespace Ships
 		// DAMAGE → EFFECTS
 		// ============================================================
 
-		public void TakeDamage(float dmg, Vector2 hitPoint, WeaponBase source)
+		public void TakeDamage(CalculatedDamage calc)
 		{
-			if (ShipStats.TryGetStat(StatType.HitPoint, out var hp))
-				hp.AddToCurrent(-dmg);
+			if (calc.FinalDamage > 0)
+			{
+				if (TryGetStat(StatType.HitPoint, out var hp))
+					hp.AddToCurrent(-calc.FinalDamage);
+			}
 
-			foreach (var effect in source.Model.Effects)
-				effect.Apply(this, dmg, source);
+			if (calc.SourceWeapon?.Model?.Effects != null)
+			{
+				foreach (var effect in calc.SourceWeapon.Model.Effects)
+					effect.Apply(this, calc.FinalDamage, calc.SourceWeapon);
+			}
 		}
 
 

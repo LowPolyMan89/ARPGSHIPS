@@ -13,6 +13,7 @@ namespace Ships
 
         private readonly List<ITargetable> allTargets = new();
         private ITargetable currentTarget;
+        private const float MaxSpreadAngle = 25f;
 
         private void Start()
         {
@@ -96,7 +97,7 @@ namespace Ships
         private bool IsTargetInRange(ITargetable t)
         {
             float dist = Vector2.Distance(Slot.transform.position, t.Transform.position);
-            return dist <= Weapon.Model.FireRange;
+            return dist <= Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
         }
 
         private bool IsTargetInSector(ITargetable t)
@@ -111,7 +112,7 @@ namespace Ships
             Vector2 targetPos = t.Transform.position;
             Vector2 vel = t.Velocity;
 
-            float speed = Weapon.Model.ProjectileSpeed;
+            float speed = Weapon.Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
             Vector2 dir;
 
             if (speed > 0.01f)
@@ -129,21 +130,21 @@ namespace Ships
 
             dir = ApplyAccuracy(dir);
 
-            return pos + dir * 12f;
+            return pos + dir * 100f;
         }
 
         private Vector2 ApplyAccuracy(Vector2 dir)
         {
-            float acc = Weapon.Model.Accuracy;
+            float acc = Weapon.Model.Stats.GetStat(StatType.Accuracy).Current; // 0..1
+            float spread = (1f - acc) * MaxSpreadAngle;
 
-            if (Random.value <= acc)
+            if (spread <= 0.01f)
                 return dir;
 
-            float maxAngle = 15f * (1f - acc);
-            float a = Random.Range(-maxAngle, maxAngle) * Mathf.Deg2Rad;
+            float angle = UnityEngine.Random.Range(-spread, spread) * Mathf.Deg2Rad;
 
-            float cos = Mathf.Cos(a);
-            float sin = Mathf.Sin(a);
+            float cos = Mathf.Cos(angle);
+            float sin = Mathf.Sin(angle);
 
             return new Vector2(
                 dir.x * cos - dir.y * sin,

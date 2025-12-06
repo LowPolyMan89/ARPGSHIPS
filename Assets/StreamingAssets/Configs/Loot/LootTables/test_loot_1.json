@@ -1,0 +1,21 @@
+﻿{
+  "Id": "test_loot_1",
+
+  "Drops": [
+    {
+      "Chance": 50,
+      "ItemId": "weapon_p_small_bolter_1",
+      "Weights": [55, 25, 10, 3, 1]
+    },
+    {
+      "Chance": 25,
+      "ItemId": "weapon_p_small_bolter_2",
+      "Weights": [60, 25, 10, 3, 1]
+    },
+    {
+      "Chance": 15,
+      "ItemId": "weapon_p_small_bolter_3",
+      "Weights": [65, 25, 10, 3, 1]
+    }
+  ]
+}

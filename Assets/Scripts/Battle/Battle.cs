@@ -14,6 +14,7 @@ namespace Ships
 		public PlayerShip Player;
 		public BattleCamera CameraController;
 		public List<ShipBase> AllShips = new();
+		public Transform PlayerSpawnPosition;
 
 		private void Awake()
 		{

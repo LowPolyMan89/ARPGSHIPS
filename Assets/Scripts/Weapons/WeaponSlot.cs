@@ -33,7 +33,22 @@ namespace Ships
 			}
 
 			if (MountedWeapon)
-				MountedWeapon.Init(this);
+			{
+				Stats stats = new Stats();
+				stats.AddStat(new Stat(StatType.FireRange, 5));
+				stats.AddStat(new Stat(StatType.FireRate, 3f));
+				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
+				stats.AddStat(new Stat(StatType.MinDamage, 5));
+				stats.AddStat(new Stat(StatType.MaxDamage, 10));
+				stats.AddStat(new Stat(StatType.Accuracy, 0.05f));
+				stats.AddStat(new Stat(StatType.CritChance, 0.1f));
+				stats.AddStat(new Stat(StatType.CritMultiplier, 1.2f));
+				stats.AddStat(new Stat(StatType.AmmoCount, 10));
+				stats.AddStat(new Stat(StatType.ReloadTime, 5f));
+				stats.AddStat(new Stat(StatType.ArmorPierce, 0f));
+				MountedWeapon.Init(this, stats);
+			}
+				
 		}
 
 		public bool IsTargetWithinSector(Vector2 dir)

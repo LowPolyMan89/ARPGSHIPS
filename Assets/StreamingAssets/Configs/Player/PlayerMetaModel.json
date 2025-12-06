@@ -1,0 +1,48 @@
+﻿{
+  "CurrentShipModel": {
+    "ShipId": "ship_corvette_1",
+    "SelectedShipWeapons": [
+      { "Id": "weapon_laser_small_1", "SlotIndex": 0 },
+      { "Id": "weapon_railgun_small_2", "SlotIndex": 1 }
+    ],
+    "SelectedHullModules": [
+      { "Id": "hull_armor_plate_1", "SlotIndex": 0 }
+    ],
+    "SelectedWeaponModules": [
+      { "Id": "weapon_module_heat_sink_1", "SlotIndex": 0 }
+    ],
+    "SelectedActiveModules": [
+      { "Id": "module_afterburner_1", "SlotIndex": 0 }
+    ]
+  },
+
+  "PlayerShipModels": [
+    {
+      "ShipId": "ship_corvette_1",
+      "SelectedShipWeapons": [],
+      "SelectedHullModules": [],
+      "SelectedWeaponModules": [],
+      "SelectedActiveModules": []
+    },
+    {
+      "ShipId": "ship_destroyer_1",
+      "SelectedShipWeapons": [
+        { "Id": "weapon_plasma_medium_1", "SlotIndex": 0 }
+      ],
+      "SelectedHullModules": [],
+      "SelectedWeaponModules": [],
+      "SelectedActiveModules": []
+    }
+  ],
+
+  "InventoryModel": {
+    "InventoryUniqueItems": [
+      { "Id": "unique_engine_overdrive_1" },
+      { "Id": "unique_shield_matrix_2" }
+    ],
+    "InventoryStackItems": [
+      { "Id": "resource_iron", "Value": 150 },
+      { "Id": "resource_plasma", "Value": 40 }
+    ]
+  }
+}

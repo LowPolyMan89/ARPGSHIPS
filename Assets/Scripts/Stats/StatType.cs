@@ -12,6 +12,7 @@
 		BrakePower,
 		ShieldRestoreDelay,
 		BackSpeed,
+		Armor,
 
 		// Weapon
 		FireRate,
@@ -23,6 +24,8 @@
 		ArmorPierce,
 		FireRange,
 		Accuracy,
+		AmmoCount,
+		ReloadTime,
 
 		// Resistances
 		KineticResist,

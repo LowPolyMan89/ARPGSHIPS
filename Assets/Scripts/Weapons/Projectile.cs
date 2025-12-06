@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Ships
 {
@@ -38,14 +39,22 @@ namespace Ships
 		}
 		private void OnTriggerEnter2D(Collider2D other)
 		{
-			if (!other.TryGetComponent<ShipBase>(out var ship))
+			if (!other.TryGetComponent<ITargetable>(out var targetable))
 				return;
-
-			// Проверяем: входит ли ship.Team в наш HitMask?
-			if (!HitRules.CanHit(HitMask, ship.Team))
+			if (!HitRules.CanHit(HitMask, targetable.Team))
 				return;
-
-			ship.TakeDamage(damage, transform.position, SourceWeapon);
+		
+			var calc = DamageCalculator.CalculateHit(
+				projectileDamage: damage,
+				armorPierce: armorPierce,
+				hitPoint: transform.position,
+				sourceWeapon: SourceWeapon,
+				target: targetable,
+				wasShieldHit: false
+			);
+			
+			GameEvent.TakeDamage(calc);
+			targetable.TakeDamage(calc);
 			Destroy(gameObject);
 		}
 	}

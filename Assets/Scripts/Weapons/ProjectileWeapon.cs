@@ -8,29 +8,11 @@ namespace Ships
 	{
 		public Projectile ProjectilePrefab;
 		private bool IsInit;
-		private void Update()
-		{
-			//TODO
-			if (Model != null && !IsInit)
-			{
-				Stats stats = new Stats();
-				stats.AddStat(new Stat(StatType.FireRange, 5));
-				stats.AddStat(new Stat(StatType.FireRate, 1));
-				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
-				stats.AddStat(new Stat(StatType.MinDamage, 5));
-				stats.AddStat(new Stat(StatType.MaxDamage, 10));
-				stats.AddStat(new Stat(StatType.Accuracy, 1));
-				stats.AddStat(new Stat(StatType.CritChance, 0.05f));
-				stats.AddStat(new Stat(StatType.CritMultiplier, 1.2f));
-				Model.InjectStat(stats);
-				IsInit = true;
-			}
-		}
 
 		protected override void Shoot(Transform target)
 		{
 			float damage = RollDamage();
-			float speed = Model.ProjectileSpeed;
+			float speed = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
 
 			if (speed <= 0.01f)
 			{
@@ -39,7 +21,7 @@ namespace Ships
 			else
 			{
 				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				proj.Init((Vector2)FirePoint.right, damage, speed, Model.ArmorPierce, this);
+				proj.Init((Vector2)FirePoint.right, damage, speed, Model.Stats.GetStat(StatType.ArmorPierce).Current, this);
 			}
 		}
 

@@ -4,24 +4,29 @@ namespace Ships
 {
     public class PlayerShipMovement : MonoBehaviour
     {
-        [Header("Runtime")] public Vector2 velocity;
-        public float throttleCache = 0f;
+        [Header("Runtime")]
+        public Vector2 velocity;
 
-        [Header("Settings")] public float throttleStep = 0.7f;
+        private Vector2 _desiredDirection;
 
-        private ShipBase ship;
+        private ShipBase _ship;
+        private PlayerInputSystem _hw;
+        private PlayerInputUI _ui;
 
-        private PlayerInputSystem hw;
-        private PlayerInputUI ui;
-
-        private Vector2 desiredDirection;
-        private float lastSliderValue;
+        // ---------------------------
+        // Tuneable behaviour
+        // ---------------------------
+        [Header("Turning Behaviour")]
+        [SerializeField] private float gentleTurnAngle = 15f;   // малый угол — корректировка без потери скорости
+        [SerializeField] private float mediumTurnAngle = 45f;   // средний угол — немного тормозим
+        //[SerializeField] private float rotationSpeed = 180f;    // скорость поворота корпуса (deg/sec)
+        [SerializeField] private float velocityAlignRate = 8f;  // как быстро velocity догоняет forward
 
         private void Awake()
         {
-            ship = GetComponent<ShipBase>();
-            hw = FindObjectOfType<PlayerInputSystem>();
-            ui = FindObjectOfType<PlayerInputUI>();
+            _ship = GetComponent<ShipBase>();
+            _hw = FindObjectOfType<PlayerInputSystem>();
+            _ui = FindObjectOfType<PlayerInputUI>();
         }
 
         private void Update()
@@ -36,85 +41,89 @@ namespace Ships
         // ============================================================
         private void ReadInput()
         {
-            // ---------------------------------------------------------
-            // 1) Steering = HW + UI
-            // ---------------------------------------------------------
-            Vector2 steeringHW = hw != null ? hw.Steering : Vector2.zero;
-            Vector2 steeringUI = ui != null ? ui.SteeringUI : Vector2.zero;
+            var hwDir = _hw != null ? _hw.Steering : Vector2.zero;
+            var uiDir = _ui != null ? _ui.SteeringUI : Vector2.zero;
 
-            desiredDirection = (steeringHW + steeringUI).normalized;
+            var sum = hwDir + uiDir;
 
-            // ---------------------------------------------------------
-            // 2) THROTTLE CACHE
-            // ---------------------------------------------------------
-
-            // + / - от клавиатуры
-            float axis = hw != null ? hw.Throttle : 0f;
-
-            if (Mathf.Abs(axis) > 0.01f)
-            {
-                throttleCache += axis * throttleStep * Time.deltaTime;
-            }
-
-            // UI слайдер — задаёт throttleCache напрямую
-            if (ui != null)
-            {
-                float sliderValue = ui.SliderValue;
-
-                if (!Mathf.Approximately(sliderValue, lastSliderValue))
-                {
-                    throttleCache = sliderValue; // пользователь двинул слайдер
-                }
-
-                ui.SetSlider(throttleCache); // отобразить состояние
-                lastSliderValue = sliderValue;
-            }
-
-            throttleCache = Mathf.Clamp01(throttleCache);
+            if (sum.sqrMagnitude > 0.001f)
+                _desiredDirection = sum.normalized;
+            else
+                _desiredDirection = Vector2.zero;
         }
 
         // ============================================================
-        // ROTATION
+        // ROTATION (Forward главный)
         // ============================================================
         private void HandleRotation()
         {
-            if (desiredDirection.sqrMagnitude < 0.0005f)
+            if (_desiredDirection.sqrMagnitude < 0.001f)
                 return;
 
-            float turnSpeed = ship.GetStat(StatType.TurnSpeed).Current;
+            var targetAngle = Mathf.Atan2(_desiredDirection.y, _desiredDirection.x) * Mathf.Rad2Deg - 90f;
+            var currentAngle = transform.eulerAngles.z;
 
-            float targetAngle = Mathf.Atan2(desiredDirection.y, desiredDirection.x) * Mathf.Rad2Deg - 90f;
-
-            float angle = Mathf.LerpAngle(
-                transform.eulerAngles.z,
-                targetAngle,
-                turnSpeed * Time.deltaTime
+            transform.rotation = Quaternion.RotateTowards(
+                Quaternion.Euler(0, 0, currentAngle),
+                Quaternion.Euler(0, 0, targetAngle),
+                _ship.GetStat(StatType.TurnSpeed).Current * Time.deltaTime
             );
-
-            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
 
         // ============================================================
-        // MOVEMENT (вискозное движение)
+        // MOVEMENT
         // ============================================================
         private void HandleMovement()
         {
-            float maxSpeed = ship.GetStat(StatType.MoveSpeed).Current;
-            float accel = ship.GetStat(StatType.Acceleration).Current;
-            float brakePower = ship.GetStat(StatType.BrakePower).Current;
-            float turnInertia = 6f; // как быстро velocity поворачивается к носу
+            var maxSpeed   = _ship.GetStat(StatType.MoveSpeed).Current;
+            var accel      = _ship.GetStat(StatType.Acceleration).Current;
+            var brakePower = _ship.GetStat(StatType.BrakePower).Current;
 
-            Vector2 forward = transform.up;
-
-            float targetSpeed = throttleCache * maxSpeed;
-            float currentSpeed = velocity.magnitude;
+            var currentSpeed = velocity.magnitude;
+            var forward = transform.up;
+            var hasInput = _desiredDirection.sqrMagnitude > 0.001f;
 
             // -------------------------------
-            // 1) Ускорение / Торможение
+            // Determine angle change
+            // -------------------------------
+            float angle = hasInput
+                ? Vector2.Angle(forward, _desiredDirection)
+                : 0f;
+
+            float targetSpeed;
+
+            // ============================================================
+            // CASE 1 — малый угол → не тормозим, только корректируем
+            // ============================================================
+            if (hasInput && angle < gentleTurnAngle)
+            {
+                targetSpeed = maxSpeed;
+            }
+            // ============================================================
+            // CASE 2 — средний угол → немного тормозим
+            // ============================================================
+            else if (hasInput && angle < mediumTurnAngle)
+            {
+                targetSpeed = Mathf.Lerp(currentSpeed, maxSpeed, 0.5f);
+            }
+            // ============================================================
+            // CASE 3 — резкий манёвр → серьёзное торможение
+            // ============================================================
+            else if (hasInput)
+            {
+                targetSpeed = 0f; // почти остановка перед разворотом
+            }
+            else
+            {
+                // игрок отпустил управление → тормоз
+                targetSpeed = 0f;
+            }
+
+            // -------------------------------
+            // Accelerate / brake toward targetSpeed
             // -------------------------------
             if (targetSpeed > currentSpeed)
             {
-                // разгон
                 currentSpeed = Mathf.MoveTowards(
                     currentSpeed,
                     targetSpeed,
@@ -123,7 +132,6 @@ namespace Ships
             }
             else
             {
-                // торможение (всегда через brakePower!)
                 currentSpeed = Mathf.MoveTowards(
                     currentSpeed,
                     targetSpeed,
@@ -132,12 +140,15 @@ namespace Ships
             }
 
             // -------------------------------
-            // 2) Поворот velocity в сторону forward
+            // Velocity follows forward
             // -------------------------------
             if (velocity.sqrMagnitude > 0.001f)
             {
-                Vector2 currentDir = velocity.normalized;
-                Vector2 newDir = Vector2.Lerp(currentDir, forward, turnInertia * Time.deltaTime).normalized;
+                var newDir = Vector2.Lerp(
+                    velocity.normalized,
+                    forward,
+                    velocityAlignRate * Time.deltaTime
+                ).normalized;
 
                 velocity = newDir * currentSpeed;
             }
@@ -147,15 +158,15 @@ namespace Ships
             }
 
             // -------------------------------
-            // 3) Перемещение
+            // Apply movement
             // -------------------------------
             transform.position += (Vector3)velocity * Time.deltaTime;
+
             if (Battle.Instance != null)
             {
-                Vector2 clamped = Battle.Instance.ClampPosition(transform.position);
+                var clamped = Battle.Instance.ClampPosition(transform.position);
                 transform.position = clamped;
-    
-                // Если упёрлись в стенку — скорость в эту сторону = 0
+
                 if ((Vector2)transform.position != clamped)
                     velocity = Vector2.zero;
             }

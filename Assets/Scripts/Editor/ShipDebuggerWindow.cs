@@ -173,12 +173,17 @@ public class ShipDebuggerWindow : EditorWindow
             if (w.Model != null)
             {
                 EditorGUILayout.LabelField(
-                    $"FireRate {w.Model.FireRate}/s | Speed {w.Model.ProjectileSpeed} | Range {w.Model.FireRange}");
+                    $"FireRate {w.Model.Stats.GetStat(StatType.FireRate).Current}/s " +
+                    $"| Speed {w.Model.Stats.GetStat(StatType.ProjectileSpeed).Current} " +
+                    $"| Range {w.Model.Stats.GetStat(StatType.FireRange).Current}");
 
                 EditorGUILayout.LabelField(
-                    $"Damage {w.Model.MinDamage}-{w.Model.MaxDamage} | Crit {w.Model.CritChance * 100}% x{w.Model.CritMultiplier}");
+                    $"Damage {w.Model.Stats.GetStat(StatType.MinDamage).Current}" +
+                    $"-{w.Model.Stats.GetStat(StatType.MaxDamage).Current}" +
+                    $" | Crit {w.Model.Stats.GetStat(StatType.CritChance).Current * 100}% " +
+                    $"x{w.Model.Stats.GetStat(StatType.CritMultiplier).Current}");
 
-                EditorGUILayout.LabelField($"Accuracy {w.Model.Accuracy}");
+                EditorGUILayout.LabelField($"Accuracy {w.Model.Stats.GetStat(StatType.Accuracy).Current}");
             }
 
             DrawWeaponTargeting(slot);

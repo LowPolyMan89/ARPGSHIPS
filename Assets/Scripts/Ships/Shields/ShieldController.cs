@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Ships
 {
@@ -45,29 +46,28 @@ namespace Ships
         }
         
 
-        public void OnShieldHit(ShieldSide side, Vector2 hitPoint, Projectile proj)
+        public void OnShieldHit(ShieldSide side, CalculatedDamage calculatedDamage)
         {
             var sector = Sectors.FirstOrDefault(s => s.Side == side);
 
             // если сектора нет — прямой урон
+            /*
             if (sector == null)
             {
                 Ship.TakeDamage(proj.Damage, hitPoint, proj.SourceWeapon);
                 return;
             }
+            */
 
-            float dmg = proj.Damage;
+            float dmg = calculatedDamage.FinalDamage;
 
             // Уменьшаем HP щита
             float leftover = sector.Absorb(dmg);
 
             // визуал
             var vis = sector.Visual;
-            vis.Hit(hitPoint);
-
-            // остаток урона — в тело корабля
-            if (leftover > 0)
-                Ship.TakeDamage(leftover, hitPoint, proj.SourceWeapon);
+            vis.Hit(calculatedDamage.HitPoint);
+            GameEvent.UiUpdate();
         }
         
 

@@ -39,7 +39,7 @@ namespace Ships
 			// игнорируем scale родителей
 			transform.localScale = Vector3.one;
 
-			float outerRadius = slot.MountedWeapon.Model.FireRange;
+			float outerRadius = slot.MountedWeapon.Model.Stats.GetStat(StatType.FireRange).Current;
 			float innerRadius = Mathf.Max(0, outerRadius - innerOffset);
 
 			GenerateArc(innerRadius, outerRadius, slot.AllowedAngle);

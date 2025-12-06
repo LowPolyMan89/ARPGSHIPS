@@ -63,23 +63,36 @@ namespace Ships
 		{
 			CurrentHp = ShieldHP.Current;
 			Collider.enabled = ShieldHP.Current > 0;
+
+			// Если щит упал — запускаем задержку
 			if (ShieldHP.Current <= 0 && !IsRestoring)
 			{
 				CurrentRestoreTime = RestoreDelay.Current;
 				IsRestoring = true;
 			}
+
+			// Обрабатываем задержку
 			if (IsRestoring)
 			{
-				CurrentRestoreTime --;
+				CurrentRestoreTime -= 1f;
+
 				if (CurrentRestoreTime <= 0)
 				{
 					IsRestoring = false;
-					CurrentRestoreTime = RestoreDelay.Current;
-					ShieldHP.AddToCurrent(ShieldRegen.Current);
+					ShieldHP.AddToCurrent(ShieldHP.Maximum * 0.1f);
 				}
+				GameEvent.UiUpdate();
+				return;
 			}
-			else
+
+			// Нормальная регенерация раз в секунду
+			if (ShieldHP.Current < ShieldHP.Maximum)
+			{
 				ShieldHP.AddToCurrent(ShieldRegen.Current);
+			}
+			GameEvent.UiUpdate();
 		}
+
+
 	}
 }
