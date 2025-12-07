@@ -6,18 +6,14 @@ namespace Ships
 	public class InventoryView
 	{
 		private MetaState _state;
-
+		public PlayerInventoryModel GetInventory() => _state.InventoryModel;
 		// в какой слот сейчас ставим предмет
 		private string _currentSlotId;
 		private bool _currentIsWeapon;
 
-		public event Action<List<InventoryItem>> OnInventoryUpdated;
-		public event Action<InventoryItem> OnItemSelected;
-
 		public void Init(MetaState state)
 		{
 			_state = state;
-			OnInventoryUpdated?.Invoke(_state.Inventory);
 		}
 
 		/// <summary>
@@ -30,12 +26,12 @@ namespace Ships
 			_currentIsWeapon = isWeaponSlot;
 
 			// тут можно сделать фильтрацию по типу/размеру, а пока просто обновим список
-			OnInventoryUpdated?.Invoke(_state.Inventory);
+			GameEvent.InventoryUpdated(_state.InventoryModel);
 		}
 
 		public void SelectItem(InventoryItem item)
 		{
-			OnItemSelected?.Invoke(item);
+			GameEvent.ItemSelected(item);
 		}
 
 		/// <summary>
@@ -46,16 +42,20 @@ namespace Ships
 			if (string.IsNullOrEmpty(_currentSlotId))
 				return;
 
-			var entry = _state.Inventory.Find(i => i.Id == item.Id);
-			if (entry != null)
-				entry.Count--;
+			int slotIndex = int.Parse(_currentSlotId);
 
-			if (_currentIsWeapon)
-				_state.Fit.SetWeapon(_currentSlotId, item.Id);
-			else
-				_state.Fit.SetModule(_currentSlotId, item.Id);
+			MetaController.Instance.ShipFitView.EquipItemToSlot(
+				_state.Fit.ShipId,
+				slotIndex,
+				item.ItemId,
+				_currentIsWeapon
+			);
 
-			OnInventoryUpdated?.Invoke(_state.Inventory);
+			GameEvent.InventoryUpdated(_state.InventoryModel);
+		}
+
+		public void Open()
+		{
 		}
 	}
 }

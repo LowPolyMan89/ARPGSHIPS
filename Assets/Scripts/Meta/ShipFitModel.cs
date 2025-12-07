@@ -6,18 +6,37 @@ namespace Ships
 	[Serializable]
 	public class ShipFitModel
 	{
-		public Dictionary<string, string> WeaponSlots = new();
-		public Dictionary<string, string> ModuleSlots = new();
-
-		public void SetWeapon(string slotId, string itemId)
+		public string ShipId;
+		public List<SelectedShipWeapon> SelectedShipWeapons = new ();
+		public List<SelectedHullModule> SelectedHullModules = new ();
+		public List<SelectedWeaponModule> SelectedWeaponModules = new ();
+		public List<SelectedActiveModule> SelectedActiveModules = new ();
+		
+		[System.Serializable]
+		public class SelectedShipWeapon
 		{
-			WeaponSlots[slotId] = itemId;
+			public string Id;
+			public int SlotIndex;
 		}
-
-		public void SetModule(string slotId, string itemId)
+		[System.Serializable]
+		public class SelectedHullModule
 		{
-			ModuleSlots[slotId] = itemId;
+			public string Id;
+			public int SlotIndex;
 		}
+		[System.Serializable]
+		public class SelectedWeaponModule
+		{
+			public string Id;
+			public int SlotIndex;
+		}
+		[System.Serializable]
+		public class SelectedActiveModule
+		{
+			public string Id;
+			public int SlotIndex;
+		}
+		
 	}
 
 }

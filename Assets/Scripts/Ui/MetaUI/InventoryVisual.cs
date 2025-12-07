@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Ships
@@ -15,19 +16,28 @@ namespace Ships
 			_view = view;
 
 			// Подписываемся
-			_view.OnInventoryUpdated += UpdateVisual;
-			_view.OnItemSelected += OnItemSelected;
+			GameEvent.OnInventoryUpdated += UpdateVisual;
+			GameEvent.OnItemSelected += OnItemSelected;
+			UpdateVisual(_view.GetInventory());
 		}
 
-		private void UpdateVisual(List<InventoryItem> items)
+		private void OnDestroy()
 		{
+			GameEvent.OnInventoryUpdated -= UpdateVisual;
+			GameEvent.OnItemSelected -= OnItemSelected;
+		}
+
+		private void UpdateVisual(PlayerInventoryModel inventory)
+		{
+			Debug.Log("Update inventory, items: " + inventory.InventoryUniqueItems.Count);
 			foreach (Transform child in ListRoot)
 				Destroy(child.gameObject);
 
-			foreach (var item in items)
+			foreach (var item in inventory.InventoryUniqueItems)
 			{
+				Debug.Log($"Load item: {item.ItemId}");
 				var visual = Instantiate(ItemPrefab, ListRoot);
-				visual.Init(item, OnItemClicked);
+				visual.Init(item, _view);
 			}
 		}
 

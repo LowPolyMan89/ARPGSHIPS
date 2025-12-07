@@ -1,32 +1,45 @@
-﻿using UnityEngine;
+﻿using System;
+using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Ships
 {
-	public class InventoryItemVisual : MonoBehaviour
+	public class InventoryItemVisual : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{
 		private InventoryItem _item;
-		private System.Action<InventoryItem> _onClick;
+		private InventoryView _inventoryView;
 
 		[Header("UI")]
 		public Image Icon;
 		public Text CountLabel;
 		public Button Button;
 
-		public void Init(InventoryItem item, System.Action<InventoryItem> onClick)
+		public void Init(InventoryItem item, InventoryView inventoryView)
 		{
+			_inventoryView = inventoryView;
 			_item = item;
-			_onClick = onClick;
-
-			CountLabel.text = item.Count.ToString();
-
 			Button.onClick.RemoveAllListeners();
-			Button.onClick.AddListener(() => _onClick(_item));
+			Button.onClick.AddListener(ButtonClick);
 		}
 
-		public void UpdateCount()
+		public void ButtonClick()
 		{
-			CountLabel.text = _item.Count.ToString();
+			MetaController.Instance.MetaVisual.ButtonItemClick(_item);
+		}
+		private void OnDestroy()
+		{
+			Button.onClick.RemoveAllListeners();
+		}
+
+		public void OnPointerEnter(PointerEventData eventData)
+		{
+			MetaController.Instance.MetaVisual.ShowItemInfoWindow(_item, eventData);
+		}
+
+		public void OnPointerExit(PointerEventData eventData)
+		{
+			MetaController.Instance.MetaVisual.HideItemInfoWindow();
 		}
 	}
 }

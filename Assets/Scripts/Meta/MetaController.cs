@@ -1,4 +1,6 @@
-﻿namespace Ships
+﻿using Ships.Ships;
+
+namespace Ships
 {
 	using UnityEngine;
 
@@ -7,12 +9,13 @@
 		public static MetaController Instance;
 
 		public MetaState State { get; private set; }
-		public PlayerMetaModel PlayerMetaModel { get; private set; }
 
 		[SerializeField] private MetaVisual _metaVisual;
 
 		private ShipFitView _shipFitView;
 		private InventoryView _inventoryView;
+		public ShipFitView ShipFitView => _shipFitView;
+		public MetaVisual MetaVisual => _metaVisual;
 
 		private void Awake()
 		{
@@ -20,8 +23,6 @@
 				Instance = this;
 			else
 				Destroy(gameObject);
-
-			PlayerMetaModel = new PlayerMetaModel();
 			State = MetaSaveSystem.Load();
 
 			_inventoryView = new InventoryView();
@@ -29,9 +30,25 @@
 
 			_inventoryView.Init(State);
 			_shipFitView.Init(State, _inventoryView);
+			
+			if (State.InventoryModel.InventoryUniqueItems.Count == 0)
+			{
+				GiveStarterItems();
+				MetaSaveSystem.Save(State);
+			}
 
 			_metaVisual.ShipFitVisual.Init(_shipFitView);
 			_metaVisual.InventoryVisual.Init(_inventoryView);
+		}
+		private void GiveStarterItems()
+		{
+			var w = ItemGenerator.GenerateWeapon("weapon_p_small_bolter_1.json", "Common");
+
+			State.InventoryModel.InventoryUniqueItems.Add(new InventoryItem
+			{
+				ItemId = w.ItemId,
+				TemplateId = w.TemplateId
+			});
 		}
 	}
 }

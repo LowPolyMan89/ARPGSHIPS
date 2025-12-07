@@ -27,4 +27,11 @@ namespace Ships
 			}
 		}
 	}
+	public static class InventoryUtils
+	{
+		public static InventoryItem FindByItemId(PlayerInventoryModel inv, string itemId)
+		{
+			return inv.InventoryUniqueItems.Find(i => i.ItemId == itemId);
+		}
+	}
 }

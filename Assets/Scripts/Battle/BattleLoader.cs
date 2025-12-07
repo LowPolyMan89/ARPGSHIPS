@@ -30,11 +30,11 @@
 		{
 			foreach (var slot in ship.WeaponController.Weapons)
 			{
-				if (!fit.WeaponSlots.TryGetValue(slot.name, out var itemId))
-					continue;
+				//if (!fit.WeaponSlots.TryGetValue(slot.name, out var itemId))
+				//	continue;
 
-				if (itemId != null)
-					InstallWeapon(slot, itemId);
+				//if (itemId != null)
+				//	InstallWeapon(slot, itemId);
 			}
 
 			// когда появятся ModuleSlots — аналогично

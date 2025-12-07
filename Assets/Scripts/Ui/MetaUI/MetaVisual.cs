@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Ships
 {
@@ -6,5 +7,25 @@ namespace Ships
 	{
 		public ShipFitVisual ShipFitVisual;
 		public InventoryVisual InventoryVisual;
+		[SerializeField] private ItemSelectionVisual _itemSelectionVisual;
+
+		public void OpenInventory()
+		{
+			
+		}
+
+		public void ButtonItemClick(InventoryItem item)
+		{
+			
+		}
+
+		public void ShowItemInfoWindow(InventoryItem item, PointerEventData pointerEventData)
+		{
+			_itemSelectionVisual.Show(item, pointerEventData);
+		}
+		public void HideItemInfoWindow()
+		{
+			_itemSelectionVisual.Hide();
+		}
 	}
 }

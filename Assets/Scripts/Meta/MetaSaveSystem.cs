@@ -1,11 +1,12 @@
 ﻿using System.IO;
+using Ships.Ships;
 using UnityEngine;
 
 namespace Ships
 {
 	public static class MetaSaveSystem
 	{
-		private static readonly string _path = 
+		private static readonly string _path =
 			Path.Combine(Application.persistentDataPath, "meta.json");
 
 		public static void Save(MetaState state)
@@ -20,7 +21,38 @@ namespace Ships
 				return new MetaState();
 
 			var json = File.ReadAllText(_path);
-			return JsonUtility.FromJson<MetaState>(json);
+			var meta = JsonUtility.FromJson<MetaState>(json);
+
+			// подтягиваем сгенерённые предметы с диска, но без дублей
+			LoadGeneratedItems(meta);
+
+			return meta;
+		}
+
+		private static void LoadGeneratedItems(MetaState state)
+		{
+			var folder = ItemGenerator.OutputPath;
+			if (!Directory.Exists(folder))
+				return;
+
+			var inventory = state.InventoryModel.InventoryUniqueItems;
+
+			foreach (var file in Directory.GetFiles(folder, "*.json"))
+			{
+				var json = File.ReadAllText(file);
+				var gen = JsonUtility.FromJson<GeneratedWeaponItem>(json);
+
+				// если такой ItemId уже есть в профиле — пропускаем
+				var exists = inventory.Exists(i => i.ItemId == gen.ItemId);
+				if (exists)
+					continue;
+
+				inventory.Add(new InventoryItem
+				{
+					ItemId = gen.ItemId,
+					TemplateId = gen.TemplateId
+				});
+			}
 		}
 	}
 }

@@ -18,557 +18,6 @@ namespace Ships
 }
 
 
-// ---------- MiniJSON.cs ----------
-/*
- * Copyright (c) 2013 Calvin Rien
- *
- * Based on the JSON parser by Patrick van Bergen
- * http://techblog.procurios.nl/k/618/news/view/14605/14863/How-do-I-write-my-own-parser-for-JSON.html
- *
- * Simplified it so that it doesn't throw exceptions
- * and can be used in Unity iPhone with maximum code stripping.
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- */
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace Ships {
-    // Example usage:
-    //
-    //  using UnityEngine;
-    //  using System.Collections;
-    //  using System.Collections.Generic;
-    //  using MiniJSON;
-    //
-    //  public class MiniJSONTest : MonoBehaviour {
-    //      void Start () {
-    //          var jsonString = "{ \"array\": [1.44,2,3], " +
-    //                          "\"object\": {\"key1\":\"value1\", \"key2\":256}, " +
-    //                          "\"string\": \"The quick brown fox \\\"jumps\\\" over the lazy dog \", " +
-    //                          "\"unicode\": \"\\u3041 Men\u00fa sesi\u00f3n\", " +
-    //                          "\"int\": 65536, " +
-    //                          "\"float\": 3.1415926, " +
-    //                          "\"bool\": true, " +
-    //                          "\"null\": null }";
-    //
-    //          var dict = Json.Deserialize(jsonString) as Dictionary<string,object>;
-    //
-    //          Debug.Log("deserialized: " + dict.GetType());
-    //          Debug.Log("dict['array'][0]: " + ((List<object>) dict["array"])[0]);
-    //          Debug.Log("dict['string']: " + (string) dict["string"]);
-    //          Debug.Log("dict['float']: " + (double) dict["float"]); // floats come out as doubles
-    //          Debug.Log("dict['int']: " + (long) dict["int"]); // ints come out as longs
-    //          Debug.Log("dict['unicode']: " + (string) dict["unicode"]);
-    //
-    //          var str = Json.Serialize(dict);
-    //
-    //          Debug.Log("serialized: " + str);
-    //      }
-    //  }
-
-    /// <summary>
-    /// This class encodes and decodes JSON strings.
-    /// Spec. details, see http://www.json.org/
-    ///
-    /// JSON uses Arrays and Objects. These correspond here to the datatypes IList and IDictionary.
-    /// All numbers are parsed to doubles.
-    /// </summary>
-    public static class Json {
-        /// <summary>
-        /// Parses the string json into a value
-        /// </summary>
-        /// <param name="json">A JSON string.</param>
-        /// <returns>An List&lt;object&gt;, a Dictionary&lt;string, object&gt;, a double, an integer,a string, null, true, or false</returns>
-        public static object Deserialize(string json) {
-            // save the string for debug information
-            if (json == null) {
-                return null;
-            }
-
-            return Parser.Parse(json);
-        }
-
-        sealed class Parser : IDisposable {
-            const string WORD_BREAK = "{}[],:\"";
-
-            public static bool IsWordBreak(char c) {
-                return Char.IsWhiteSpace(c) || WORD_BREAK.IndexOf(c) != -1;
-            }
-
-            enum TOKEN {
-                NONE,
-                CURLY_OPEN,
-                CURLY_CLOSE,
-                SQUARED_OPEN,
-                SQUARED_CLOSE,
-                COLON,
-                COMMA,
-                STRING,
-                NUMBER,
-                TRUE,
-                FALSE,
-                NULL
-            };
-
-            StringReader json;
-
-            Parser(string jsonString) {
-                json = new StringReader(jsonString);
-            }
-
-            public static object Parse(string jsonString) {
-                using (var instance = new Parser(jsonString)) {
-                    return instance.ParseValue();
-                }
-            }
-
-            public void Dispose() {
-                json.Dispose();
-                json = null;
-            }
-
-            Dictionary<string, object> ParseObject() {
-                Dictionary<string, object> table = new Dictionary<string, object>();
-
-                // ditch opening brace
-                json.Read();
-
-                // {
-                while (true) {
-                    switch (NextToken) {
-                    case TOKEN.NONE:
-                        return null;
-                    case TOKEN.COMMA:
-                        continue;
-                    case TOKEN.CURLY_CLOSE:
-                        return table;
-                    default:
-                        // name
-                        string name = ParseString();
-                        if (name == null) {
-                            return null;
-                        }
-
-                        // :
-                        if (NextToken != TOKEN.COLON) {
-                            return null;
-                        }
-                        // ditch the colon
-                        json.Read();
-
-                        // value
-                        table[name] = ParseValue();
-                        break;
-                    }
-                }
-            }
-
-            List<object> ParseArray() {
-                List<object> array = new List<object>();
-
-                // ditch opening bracket
-                json.Read();
-
-                // [
-                var parsing = true;
-                while (parsing) {
-                    TOKEN nextToken = NextToken;
-
-                    switch (nextToken) {
-                    case TOKEN.NONE:
-                        return null;
-                    case TOKEN.COMMA:
-                        continue;
-                    case TOKEN.SQUARED_CLOSE:
-                        parsing = false;
-                        break;
-                    default:
-                        object value = ParseByToken(nextToken);
-
-                        array.Add(value);
-                        break;
-                    }
-                }
-
-                return array;
-            }
-
-            object ParseValue() {
-                TOKEN nextToken = NextToken;
-                return ParseByToken(nextToken);
-            }
-
-            object ParseByToken(TOKEN token) {
-                switch (token) {
-                case TOKEN.STRING:
-                    return ParseString();
-                case TOKEN.NUMBER:
-                    return ParseNumber();
-                case TOKEN.CURLY_OPEN:
-                    return ParseObject();
-                case TOKEN.SQUARED_OPEN:
-                    return ParseArray();
-                case TOKEN.TRUE:
-                    return true;
-                case TOKEN.FALSE:
-                    return false;
-                case TOKEN.NULL:
-                    return null;
-                default:
-                    return null;
-                }
-            }
-
-            string ParseString() {
-                StringBuilder s = new StringBuilder();
-                char c;
-
-                // ditch opening quote
-                json.Read();
-
-                bool parsing = true;
-                while (parsing) {
-
-                    if (json.Peek() == -1) {
-                        parsing = false;
-                        break;
-                    }
-
-                    c = NextChar;
-                    switch (c) {
-                    case '"':
-                        parsing = false;
-                        break;
-                    case '\\':
-                        if (json.Peek() == -1) {
-                            parsing = false;
-                            break;
-                        }
-
-                        c = NextChar;
-                        switch (c) {
-                        case '"':
-                        case '\\':
-                        case '/':
-                            s.Append(c);
-                            break;
-                        case 'b':
-                            s.Append('\b');
-                            break;
-                        case 'f':
-                            s.Append('\f');
-                            break;
-                        case 'n':
-                            s.Append('\n');
-                            break;
-                        case 'r':
-                            s.Append('\r');
-                            break;
-                        case 't':
-                            s.Append('\t');
-                            break;
-                        case 'u':
-                            var hex = new char[4];
-
-                            for (int i=0; i< 4; i++) {
-                                hex[i] = NextChar;
-                            }
-
-                            s.Append((char) Convert.ToInt32(new string(hex), 16));
-                            break;
-                        }
-                        break;
-                    default:
-                        s.Append(c);
-                        break;
-                    }
-                }
-
-                return s.ToString();
-            }
-
-            object ParseNumber() {
-                string number = NextWord;
-
-                if (number.IndexOf('.') == -1) {
-                    long parsedInt;
-                    Int64.TryParse(number, out parsedInt);
-                    return parsedInt;
-                }
-
-                double parsedDouble;
-                Double.TryParse(number, out parsedDouble);
-                return parsedDouble;
-            }
-
-            void EatWhitespace() {
-                while (Char.IsWhiteSpace(PeekChar)) {
-                    json.Read();
-
-                    if (json.Peek() == -1) {
-                        break;
-                    }
-                }
-            }
-
-            char PeekChar {
-                get {
-                    return Convert.ToChar(json.Peek());
-                }
-            }
-
-            char NextChar {
-                get {
-                    return Convert.ToChar(json.Read());
-                }
-            }
-
-            string NextWord {
-                get {
-                    StringBuilder word = new StringBuilder();
-
-                    while (!IsWordBreak(PeekChar)) {
-                        word.Append(NextChar);
-
-                        if (json.Peek() == -1) {
-                            break;
-                        }
-                    }
-
-                    return word.ToString();
-                }
-            }
-
-            TOKEN NextToken {
-                get {
-                    EatWhitespace();
-
-                    if (json.Peek() == -1) {
-                        return TOKEN.NONE;
-                    }
-
-                    switch (PeekChar) {
-                    case '{':
-                        return TOKEN.CURLY_OPEN;
-                    case '}':
-                        json.Read();
-                        return TOKEN.CURLY_CLOSE;
-                    case '[':
-                        return TOKEN.SQUARED_OPEN;
-                    case ']':
-                        json.Read();
-                        return TOKEN.SQUARED_CLOSE;
-                    case ',':
-                        json.Read();
-                        return TOKEN.COMMA;
-                    case '"':
-                        return TOKEN.STRING;
-                    case ':':
-                        return TOKEN.COLON;
-                    case '0':
-                    case '1':
-                    case '2':
-                    case '3':
-                    case '4':
-                    case '5':
-                    case '6':
-                    case '7':
-                    case '8':
-                    case '9':
-                    case '-':
-                        return TOKEN.NUMBER;
-                    }
-
-                    switch (NextWord) {
-                    case "false":
-                        return TOKEN.FALSE;
-                    case "true":
-                        return TOKEN.TRUE;
-                    case "null":
-                        return TOKEN.NULL;
-                    }
-
-                    return TOKEN.NONE;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Converts a IDictionary / IList object or a simple type (string, int, etc.) into a JSON string
-        /// </summary>
-        /// <param name="json">A Dictionary&lt;string, object&gt; / List&lt;object&gt;</param>
-        /// <returns>A JSON encoded string, or null if object 'json' is not serializable</returns>
-        public static string Serialize(object obj) {
-            return Serializer.Serialize(obj);
-        }
-
-        sealed class Serializer {
-            StringBuilder builder;
-
-            Serializer() {
-                builder = new StringBuilder();
-            }
-
-            public static string Serialize(object obj) {
-                var instance = new Serializer();
-
-                instance.SerializeValue(obj);
-
-                return instance.builder.ToString();
-            }
-
-            void SerializeValue(object value) {
-                IList asList;
-                IDictionary asDict;
-                string asStr;
-
-                if (value == null) {
-                    builder.Append("null");
-                } else if ((asStr = value as string) != null) {
-                    SerializeString(asStr);
-                } else if (value is bool) {
-                    builder.Append((bool) value ? "true" : "false");
-                } else if ((asList = value as IList) != null) {
-                    SerializeArray(asList);
-                } else if ((asDict = value as IDictionary) != null) {
-                    SerializeObject(asDict);
-                } else if (value is char) {
-                    SerializeString(new string((char) value, 1));
-                } else {
-                    SerializeOther(value);
-                }
-            }
-
-            void SerializeObject(IDictionary obj) {
-                bool first = true;
-
-                builder.Append('{');
-
-                foreach (object e in obj.Keys) {
-                    if (!first) {
-                        builder.Append(',');
-                    }
-
-                    SerializeString(e.ToString());
-                    builder.Append(':');
-
-                    SerializeValue(obj[e]);
-
-                    first = false;
-                }
-
-                builder.Append('}');
-            }
-
-            void SerializeArray(IList anArray) {
-                builder.Append('[');
-
-                bool first = true;
-
-                foreach (object obj in anArray) {
-                    if (!first) {
-                        builder.Append(',');
-                    }
-
-                    SerializeValue(obj);
-
-                    first = false;
-                }
-
-                builder.Append(']');
-            }
-
-            void SerializeString(string str) {
-                builder.Append('\"');
-
-                char[] charArray = str.ToCharArray();
-                foreach (var c in charArray) {
-                    switch (c) {
-                    case '"':
-                        builder.Append("\\\"");
-                        break;
-                    case '\\':
-                        builder.Append("\\\\");
-                        break;
-                    case '\b':
-                        builder.Append("\\b");
-                        break;
-                    case '\f':
-                        builder.Append("\\f");
-                        break;
-                    case '\n':
-                        builder.Append("\\n");
-                        break;
-                    case '\r':
-                        builder.Append("\\r");
-                        break;
-                    case '\t':
-                        builder.Append("\\t");
-                        break;
-                    default:
-                        int codepoint = Convert.ToInt32(c);
-                        if ((codepoint >= 32) && (codepoint <= 126)) {
-                            builder.Append(c);
-                        } else {
-                            builder.Append("\\u");
-                            builder.Append(codepoint.ToString("x4"));
-                        }
-                        break;
-                    }
-                }
-
-                builder.Append('\"');
-            }
-
-            void SerializeOther(object value) {
-                // NOTE: decimals lose precision during serialization.
-                // They always have, I'm just letting you know.
-                // Previously floats and doubles lost precision too.
-                if (value is float) {
-                    builder.Append(((float) value).ToString("R"));
-                } else if (value is int
-                    || value is uint
-                    || value is long
-                    || value is sbyte
-                    || value is byte
-                    || value is short
-                    || value is ushort
-                    || value is ulong) {
-                    builder.Append(value);
-                } else if (value is double
-                    || value is decimal) {
-                    builder.Append(Convert.ToDouble(value).ToString("R"));
-                } else {
-                    SerializeString(value.ToString());
-                }
-            }
-        }
-    }
-}
-
-
-
 // ---------- Battle.cs ----------
 using System.Collections.Generic;
 using UnityEngine;
@@ -586,6 +35,7 @@ namespace Ships
 		public PlayerShip Player;
 		public BattleCamera CameraController;
 		public List<ShipBase> AllShips = new();
+		public Transform PlayerSpawnPosition;
 
 		private void Awake()
 		{
@@ -703,20 +153,41 @@ namespace Ships
 
 		private void Start()
 		{
-			LoadTestShip();
+			LoadPlayerShipFromFit();
 		}
 
-		private void LoadTestShip()
+		private void LoadPlayerShipFromFit()
 		{
-			var hull = HullLoader.Load("hull_test_frigate");
-			if (hull == null) return;
+			var fit = MetaBattleBridge.LastFit;
+			if (fit == null) return;
 
+			var hull = HullLoader.Load(fit.SelectedShipId);
 			var go = Instantiate(PlayerShipPrefab, Vector3.zero, Quaternion.identity);
 			var ship = go.GetComponent<PlayerShip>();
 
-			//ship.InitFromTestHull(hull);
+			ship.LoadShipFromConfig(fit.SelectedShipId);
+			ship.Init();
 
-			Debug.Log("Test ship loaded from JSON");
+			InstallFit(ship, fit.Fit);
+		}
+
+		private void InstallFit(PlayerShip ship, ShipFitModel fit)
+		{
+			foreach (var slot in ship.WeaponController.Weapons)
+			{
+				//if (!fit.WeaponSlots.TryGetValue(slot.name, out var itemId))
+				//	continue;
+
+				//if (itemId != null)
+				//	InstallWeapon(slot, itemId);
+			}
+
+			// когда появятся ModuleSlots — аналогично
+		}
+
+		private void InstallWeapon(WeaponSlot slot, string itemId)
+		{
+			// читаем JSON оружия, инстансим WeaponBase, подменяем статы
 		}
 	}
 
@@ -781,7 +252,7 @@ namespace Ships
 			// игнорируем scale родителей
 			transform.localScale = Vector3.one;
 
-			float outerRadius = slot.MountedWeapon.Model.FireRange;
+			float outerRadius = slot.MountedWeapon.Model.Stats.GetStat(StatType.FireRange).Current;
 			float innerRadius = Mathf.Max(0, outerRadius - innerOffset);
 
 			GenerateArc(innerRadius, outerRadius, slot.AllowedAngle);
@@ -923,6 +394,471 @@ namespace Ships
 		}
 	}
 
+}
+
+
+// ---------- DamageCalculator.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+	public static class DamageCalculator
+	{
+		public static CalculatedDamage CalculateHit(
+			float projectileDamage,
+			float armorPierce,
+			Vector2 hitPoint,
+			WeaponBase sourceWeapon,
+			ITargetable target,
+			bool wasShieldHit
+		)
+		{
+			var result = new CalculatedDamage
+			{
+				RawDamage = projectileDamage,
+				WasShieldHit = wasShieldHit,
+				SourceWeapon = sourceWeapon,
+				HitPoint = hitPoint
+			};
+
+			// ============================================================
+			// 1) КРИТ ШАНС
+			// ============================================================
+			var critChance = sourceWeapon.Model.Stats.GetStat(StatType.CritChance)?.Current ?? 0f;
+			var critMult = sourceWeapon.Model.Stats.GetStat(StatType.CritMultiplier)?.Current ?? 1f;
+
+			var isCrit = Random.value < critChance;
+			var critDamage = isCrit ? (sourceWeapon.Model.Stats.GetMaximum(StatType.MaxDamage ) * 0.9f) * critMult : projectileDamage;
+
+			result.IsCrit = isCrit;
+			result.CritChance = critChance;
+			result.CritBonus = isCrit ? critMult : 1f;
+			var damage = critDamage;
+
+			// ============================================================
+			// 2) Если попали в щит — броню не учитываем
+			// ============================================================
+
+			if (wasShieldHit)
+			{
+				result.AfterShield = damage;
+				result.FinalDamage = damage; // щит сам поглотит сколько может
+				LogDamage(result);
+				return result;
+			}
+
+			// ============================================================
+			// 3) Броня (по корпусу)
+			// ============================================================
+			var armor = 0f;
+			if (target.TryGetStat(StatType.Armor, out var armorStat))
+				armor = armorStat.Current;
+
+			var effectiveArmor = Mathf.Max(armor - armorPierce, 0);
+			var dmgAfterArmor = damage * (100f / (100f + effectiveArmor));
+
+			result.AfterArmor = dmgAfterArmor;
+			result.FinalDamage = dmgAfterArmor;
+
+			LogDamage(result);
+			return result;
+		}
+
+
+		private static void LogDamage(CalculatedDamage cd)
+		{
+			Debug.Log(
+				$"[DamageCalc] Raw={cd.RawDamage} | " +
+				$"ShieldHit={cd.WasShieldHit} | " +
+				$"AfterShield={cd.AfterShield} | " +
+				$"AfterArmor={cd.AfterArmor} | " +
+				$"FinalDamage={cd.FinalDamage} |" +
+				$"CritChance={cd.CritChance} is Crit: {cd.IsCrit}"
+			);
+		}
+	}
+
+	public class CalculatedDamage
+	{
+		public float RawDamage;
+		public float AfterShield;
+		public float AfterArmor;
+		public float FinalDamage;
+		public bool IsCrit;
+		public float CritChance;
+		public float CritBonus;
+		public Vector2 HitPoint;
+		public WeaponBase SourceWeapon;
+
+		public bool WasShieldHit;
+		public bool WasDirectHull;
+		public ShieldSide? HitShieldSide;
+	}
+}
+
+
+// ---------- GameEvent.cs ----------
+using System;
+
+namespace Ships
+{
+	public static class GameEvent
+	{
+		public static Action<CalculatedDamage> OnTakeDamage;
+		public static Action OnUiUpdate;
+		public static event Action<PlayerInventoryModel> OnInventoryUpdated;
+		public static event Action<InventoryItem> OnItemSelected;
+		public static void TakeDamage(CalculatedDamage calculatedDamage)
+		{
+			UiUpdate();
+			OnTakeDamage?.Invoke(calculatedDamage);
+		}
+		public static void UiUpdate()
+		{
+			OnUiUpdate?.Invoke();
+		}
+		public static void InventoryUpdated(PlayerInventoryModel playerInventoryModel)
+		{
+			OnInventoryUpdated?.Invoke(playerInventoryModel);
+		}
+		public static void ItemSelected(InventoryItem item)
+		{
+			OnItemSelected?.Invoke(item);
+		}
+	}
+}
+
+
+// ---------- ItemGenerator.cs ----------
+using System;
+using System.IO;
+using System.Collections.Generic;
+using UnityEngine;
+using Random = UnityEngine.Random;
+
+namespace Ships
+{
+	using System;
+using System.IO;
+using System.Linq;
+using System.Collections.Generic;
+using UnityEngine;
+using Random = UnityEngine.Random;
+
+namespace Ships
+{
+    public static class ItemGenerator
+    {
+        public static string WeaponConfigsPath =>
+            Path.Combine(Application.streamingAssetsPath, "Configs/Weapons");
+        public static string ModulesConfigsPath =>
+	        Path.Combine(Application.streamingAssetsPath, "Configs/Modules");
+
+        public static string OutputPath =>
+            Path.Combine(Application.persistentDataPath, "Inventory");
+
+        // =============================
+        // Загрузка всех шаблонов
+        // =============================
+        public static List<string> LoadWeaponFiles()
+        {
+            if (!Directory.Exists(WeaponConfigsPath))
+                return new List<string>();
+
+            return Directory.GetFiles(WeaponConfigsPath, "*.json")
+                .Select(Path.GetFileName)
+                .ToList();
+        }
+        public static List<string> LoadModuleFiles()
+        {
+	        if (!Directory.Exists(ModulesConfigsPath))
+		        return new List<string>();
+
+	        return Directory.GetFiles(ModulesConfigsPath, "*.json")
+		        .Select(Path.GetFileName)
+		        .ToList();
+        }
+        // =============================
+        // Генерация через LootTable
+        // =============================
+        public static GeneratedWeaponItem GenerateWeaponFromLoot(string lootTableId)
+        {
+	        if (!string.IsNullOrEmpty(lootTableId))
+	        {
+		        var table = LootLoader.Load(lootTableId);
+		        if (table != null)
+		        {
+			        var roll = LootTableSystem.Roll(table);
+			        return GenerateWeapon(roll.itemId + ".json", roll.rarity);
+		        }
+	        }
+	        return GenerateWeaponFromAllTemplates();
+        }
+        public static GeneratedWeaponItem GenerateModuleFromLoot(string lootTableId = null)
+        {
+
+	        return GenerateModuleFromAllTemplates();
+        }
+
+        public static GeneratedWeaponItem GenerateModule(string templateFile, string forcedRarity)
+        {
+	        return new GeneratedWeaponItem();
+        }
+
+        // =============================
+        // Глобальный пул всех оружий
+        // =============================
+        private static GeneratedWeaponItem GenerateModuleFromAllTemplates()
+        {
+	        return new GeneratedWeaponItem();
+        }
+        private static GeneratedWeaponItem GenerateWeaponFromAllTemplates()
+        {
+	        var files = LoadWeaponFiles();
+	        if (files.Count == 0) return null;
+
+	        List<(string template, string rarity, int weight)> pool = new();
+
+	        foreach (var file in files)
+	        {
+		        var json = File.ReadAllText(Path.Combine(WeaponConfigsPath, file));
+		        var template = JsonUtility.FromJson<WeaponTemplate>(json);
+
+		        foreach (var r in template.Rarities)
+			        pool.Add((template.Id, r.Rarity, r.DropChance));
+	        }
+
+	        var pick = PickGlobal(pool);
+	        return GenerateWeapon(pick.template + ".json", pick.rarity);
+        }
+
+        private static (string template, string rarity) PickGlobal(
+            List<(string template, string rarity, int weight)> entries)
+        {
+            int total = entries.Sum(e => e.weight);
+            int roll = Random.Range(0, total);
+            int accum = 0;
+
+            foreach (var e in entries)
+            {
+                accum += e.weight;
+                if (roll < accum)
+                    return (e.template, e.rarity);
+            }
+
+            return (entries[0].template, entries[0].rarity);
+        }
+
+        // =============================
+        // Основной метод генерации
+        // =============================
+        public static GeneratedWeaponItem GenerateWeapon(string templateFile, string forcedRarity)
+        {
+            var fullPath = Path.Combine(WeaponConfigsPath, templateFile);
+            var json = File.ReadAllText(fullPath);
+
+            var template = JsonUtility.FromJson<WeaponTemplate>(json);
+
+            string rarity = forcedRarity == "Random"
+                ? PickRandomRarity(template)
+                : forcedRarity;
+
+            var rarityData = FindRarity(template, rarity);
+
+            var item = new GeneratedWeaponItem
+            {
+                ItemId = Services.UniqueIdGenerator.GenerateItemId(),
+                TemplateId = template.Id,
+                Name = template.Name,
+                Rarity = rarity,
+
+                Slot = template.Slot,
+                DamageType = template.DamageType,
+                Size = template.Size,
+                Icon = template.Icon
+            };
+
+            List<StatValue> stats = new();
+            foreach (var s in rarityData.Stats.Entries)
+            {
+                float v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
+                stats.Add(new StatValue { Name = s.Name, Value = v });
+            }
+            item.Stats = stats.ToArray();
+
+            item.Effects = GenerateEffects(template, rarityData);
+
+            SaveItem(item);
+            return item;
+        }
+
+        // =============================
+        // Внутренние хелперы
+        // =============================
+        private static WeaponTemplate.RarityEntry FindRarity(WeaponTemplate t, string rarity)
+        {
+            return t.Rarities.FirstOrDefault(
+                r => r.Rarity.Equals(rarity, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static string PickRandomRarity(WeaponTemplate tpl)
+        {
+            int total = tpl.Rarities.Sum(r => r.DropChance);
+            int roll = Random.Range(0, total);
+            int accum = 0;
+
+            foreach (var r in tpl.Rarities)
+            {
+                accum += r.DropChance;
+                if (roll < accum)
+                    return r.Rarity;
+            }
+
+            return tpl.Rarities[0].Rarity;
+        }
+
+        private static List<string> GenerateEffects(WeaponTemplate tpl, WeaponTemplate.RarityEntry rarity)
+        {
+            var result = new List<string>();
+            int max = rarity.MaxEffectCount;
+
+            if (max <= 0 || tpl.AvailableEffects == null)
+                return result;
+
+            int count = Random.Range(0, max + 1);
+            HashSet<int> used = new();
+
+            while (result.Count < count)
+            {
+                int i = Random.Range(0, tpl.AvailableEffects.Length);
+                if (used.Add(i))
+                    result.Add(tpl.AvailableEffects[i]);
+            }
+
+            return result;
+        }
+
+        private static void SaveItem(GeneratedWeaponItem item)
+        {
+            if (!Directory.Exists(OutputPath))
+                Directory.CreateDirectory(OutputPath);
+
+            var json = JsonUtility.ToJson(item, true);
+            var path = Path.Combine(OutputPath, item.ItemId + ".json");
+
+            File.WriteAllText(path, json);
+            Debug.Log("Saved item → " + path);
+        }
+    }
+}
+
+
+	[Serializable]
+	public sealed class WeaponTemplate
+	{
+		public string Id;
+		public string Name;
+		public string Icon;
+		public string Slot;
+		public string DamageType;
+		public string Size;
+
+		public string[] AvailableEffects;
+
+		public RarityEntry[] Rarities;
+
+		[Serializable]
+		public sealed class RarityEntry
+		{
+			public string Rarity;
+			public int DropChance;
+			public int MaxEffectCount;
+			public StatList Stats;
+		}
+
+		[Serializable]
+		public sealed class StatList
+		{
+			public StatRangeEntry[] Entries;
+		}
+
+		[Serializable]
+		public sealed class StatRangeEntry
+		{
+			public string Name;
+			public float Min;
+			public float Max;
+		}
+	}
+
+	[Serializable]
+	public class GeneratedWeaponItem : IGeneratedItem
+	{
+		public string ItemId;
+		public string TemplateId;
+		public string Name;
+		public string Rarity;
+
+		public string Slot;
+		public string DamageType;
+		public string Size;
+		public string Icon;
+
+		public StatValue[] Stats;
+		public List<string> Effects;
+		string IGeneratedItem.ItemId => ItemId;
+		string IGeneratedItem.TemplateId => TemplateId;
+		string IGeneratedItem.Name => Name;
+		string IGeneratedItem.Rarity => Rarity;
+	}
+
+
+	[Serializable]
+	public sealed class StatValue
+	{
+		public string Name;
+		public float Value;
+	}
+}
+
+
+// ---------- Services.cs ----------
+using System;
+
+namespace Ships
+{
+	public static class Services
+	{
+		public static class UniqueIdGenerator
+		{
+			private static readonly char[] Chars =
+				"abcdefghijklmnopqrstuvwxyz0123456789".ToCharArray();
+
+			private static readonly System.Random Rnd = new System.Random();
+
+			private static string RandomString(int length)
+			{
+				var buffer = new char[length];
+				for (int i = 0; i < length; i++)
+					buffer[i] = Chars[Rnd.Next(Chars.Length)];
+				return new string(buffer);
+			}
+			
+			public static string GenerateItemId()
+			{
+				long timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+				string r = RandomString(4);
+				return $"item_{timestamp}_{r}";
+			}
+		}
+	}
+	public static class InventoryUtils
+	{
+		public static InventoryItem FindByItemId(PlayerInventoryModel inv, string itemId)
+		{
+			return inv.InventoryUniqueItems.Find(i => i.ItemId == itemId);
+		}
+	}
 }
 
 
@@ -1179,6 +1115,548 @@ public class DebugStatsPanel : EditorWindow
 
 
 
+// ---------- ItemGeneratorEditor.cs ----------
+using UnityEditor;
+using UnityEngine;
+
+namespace Ships.Editor
+{
+	public class ItemGeneratorEditor
+	{
+		[MenuItem("Tools/Generate Item ID")]
+		public static void Generate()
+		{
+			var id = Services.UniqueIdGenerator.GenerateItemId();
+
+			// копируем в буфер обмена
+			EditorGUIUtility.systemCopyBuffer = id;
+
+			// показываем всплывающее окно
+			EditorUtility.DisplayDialog(
+				"Item ID Generated",
+				$"ID: {id}\n\nСкопировано в буфер обмена.",
+				"OK"
+			);
+
+			Debug.Log($"[ItemID] Generated: {id}");
+		}
+	}
+}
+
+
+// ---------- ItemGeneratorWindow.cs ----------
+using UnityEditor;
+using UnityEngine;
+using System.Collections.Generic;
+using System.IO;
+using Ships;
+using Ships.Ships;
+
+public class ItemGeneratorWindow : EditorWindow
+{
+    private enum ItemType
+    {
+        Weapon,
+        Module
+    }
+
+    private ItemType _selectedType = ItemType.Weapon;
+
+    private List<string> _weaponTemplates = new();
+    private List<string> _moduleTemplates = new();
+
+    private int _selectedWeaponTemplate = 0;
+    private int _selectedModuleTemplate = 0;
+
+    private string[] _rarities = { "Random", "Common", "Uncommon", "Rare", "Epic", "Legendary" };
+    private int _selectedRarity = 0;
+
+    private List<string> _lootTables = new();
+    private int _selectedLootTable = 0;
+
+    private int _count = 1;
+
+    // ===================== MENU =====================
+    [MenuItem("Tools/Item Generator/Item Generator")]
+    public static void Open()
+    {
+        var w = GetWindow<ItemGeneratorWindow>();
+        w.titleContent = new GUIContent("Item Generator");
+        w.Show();
+    }
+
+    // ===================== INIT =====================
+    private void OnEnable()
+    {
+        _weaponTemplates = ItemGenerator.LoadWeaponFiles();
+        _moduleTemplates = ItemGenerator.LoadModuleFiles();
+        _lootTables = LoadLootTables();
+    }
+
+    // ===================== GUI =====================
+    private void OnGUI()
+    {
+        GUILayout.Label("Item Generator", EditorStyles.boldLabel);
+
+        DrawItemTypeSelection();
+        GUILayout.Space(10);
+
+        DrawLootTableSelection();
+        GUILayout.Space(10);
+
+        DrawTemplateSelection();
+        GUILayout.Space(10);
+
+        DrawRaritySelection();
+        GUILayout.Space(10);
+
+        DrawCount();
+        GUILayout.Space(15);
+
+        DrawGenerateButton();
+        DrawOpenFolderButton();
+    }
+
+    // ============================================================
+    // UI BLOCKS
+    // ============================================================
+
+    private void DrawItemTypeSelection()
+    {
+        GUILayout.Label("Item Type:", EditorStyles.boldLabel);
+        _selectedType = (ItemType)EditorGUILayout.EnumPopup("Type", _selectedType);
+    }
+
+    private void DrawLootTableSelection()
+    {
+        GUILayout.Label("Loot Table (optional):", EditorStyles.boldLabel);
+
+        if (_lootTables.Count == 0)
+        {
+            GUILayout.Label("No LootTables found");
+            return;
+        }
+
+        _selectedLootTable = EditorGUILayout.Popup("Loot Table", _selectedLootTable, _lootTables.ToArray());
+    }
+
+    private void DrawTemplateSelection()
+    {
+        GUILayout.Label("Template:", EditorStyles.boldLabel);
+
+        if (_selectedType == ItemType.Weapon)
+        {
+            if (_weaponTemplates.Count == 0)
+            {
+                GUILayout.Label("No weapon config files found.");
+                return;
+            }
+
+            _selectedWeaponTemplate = EditorGUILayout.Popup("Weapon Template", _selectedWeaponTemplate, _weaponTemplates.ToArray());
+        }
+        else if (_selectedType == ItemType.Module)
+        {
+            if (_moduleTemplates.Count == 0)
+            {
+                GUILayout.Label("No module config files found.");
+                return;
+            }
+
+            _selectedModuleTemplate = EditorGUILayout.Popup("Module Template", _selectedModuleTemplate, _moduleTemplates.ToArray());
+        }
+    }
+
+    private void DrawRaritySelection()
+    {
+        GUILayout.Label("Rarity:", EditorStyles.boldLabel);
+        _selectedRarity = EditorGUILayout.Popup("Rarity", _selectedRarity, _rarities);
+    }
+
+    private void DrawCount()
+    {
+        _count = EditorGUILayout.IntField("Count", Mathf.Max(1, _count));
+    }
+
+    private void DrawGenerateButton()
+    {
+        if (GUILayout.Button("Generate", GUILayout.Height(35)))
+        {
+            string selectedLootTable = _lootTables.Count > 0
+                ? _lootTables[_selectedLootTable]
+                : null;
+
+            for (int i = 0; i < _count; i++)
+            {
+                switch (_selectedType)
+                {
+                    case ItemType.Weapon:
+                        GenerateWeapon(selectedLootTable);
+                        break;
+
+                    case ItemType.Module:
+                        GenerateModule(selectedLootTable);
+                        break;
+                }
+            }
+        }
+    }
+
+    private void DrawOpenFolderButton()
+    {
+        if (GUILayout.Button("Open Inventory Folder"))
+            EditorUtility.RevealInFinder(ItemGenerator.OutputPath);
+    }
+
+    // ============================================================
+    // GENERATION CALLS
+    // ============================================================
+
+    private void GenerateWeapon(string lootTable)
+    {
+        if (lootTable != null && lootTable != "None")
+        {
+            ItemGenerator.GenerateWeaponFromLoot(lootTable);
+            return;
+        }
+
+        // Генерация без LootTable
+        ItemGenerator.GenerateWeapon(
+            _weaponTemplates[_selectedWeaponTemplate],
+            _rarities[_selectedRarity]
+        );
+    }
+
+    private void GenerateModule(string lootTable)
+    {
+        if (lootTable != null && lootTable != "None")
+        {
+            ItemGenerator.GenerateModuleFromLoot(lootTable);
+            return;
+        }
+
+        ItemGenerator.GenerateModule(
+            _moduleTemplates[_selectedModuleTemplate],
+            _rarities[_selectedRarity]
+        );
+    }
+
+    // ============================================================
+    // LOAD LOOT TABLES
+    // ============================================================
+
+    private List<string> LoadLootTables()
+    {
+        var result = new List<string>();
+
+        string path = Path.Combine(Application.streamingAssetsPath, "Configs/Loot/LootTables");
+
+        if (!Directory.Exists(path))
+            return result;
+
+        var files = Directory.GetFiles(path, "*.json");
+        foreach (var f in files)
+            result.Add(Path.GetFileNameWithoutExtension(f));
+
+        result.Insert(0, "None"); // выбор "без таблицы"
+
+        return result;
+    }
+}
+
+
+
+// ---------- LootTableTesterWindow.cs ----------
+using UnityEngine;
+using UnityEditor;
+using System.Collections.Generic;
+using System.IO;
+using Ships;
+
+public class LootTableTesterWindow : EditorWindow
+{
+    private enum GraphType
+    {
+        Bars,
+        Histogram
+    }
+
+    private readonly string[] RARITIES =
+        { "Common", "Uncommon", "Rare", "Epic", "Legendary" };
+
+    private List<string> _lootTables = new();
+    private int _selectedTable = 0;
+
+    private int _simulationCount = 10000;
+
+    private Dictionary<string, int> _itemCounts = new();
+    private Dictionary<string, int> _rarityCounts = new();
+
+    private bool _hasResults = false;
+
+    private GraphType _graphType = GraphType.Bars;
+
+    // --------------------------------------------------
+    [MenuItem("Tools/Loot/Loot Table Tester")]
+    public static void Open()
+    {
+        var w = GetWindow<LootTableTesterWindow>();
+        w.titleContent = new GUIContent("Loot Tester");
+        w.Show();
+    }
+
+    // --------------------------------------------------
+    private void OnEnable()
+    {
+        LoadLootTables();
+    }
+
+    private void LoadLootTables()
+    {
+        _lootTables.Clear();
+
+        string lootPath = Path.Combine(
+            Application.streamingAssetsPath,
+            "Configs/Loot/LootTables"
+        );
+
+        if (!Directory.Exists(lootPath))
+            return;
+
+        foreach (var file in Directory.GetFiles(lootPath, "*.json"))
+            _lootTables.Add(Path.GetFileNameWithoutExtension(file));
+    }
+
+    // --------------------------------------------------
+    private void OnGUI()
+    {
+        GUILayout.Label("Loot Table Tester", EditorStyles.boldLabel);
+
+        if (_lootTables.Count == 0)
+        {
+            GUILayout.Label("No LootTables found.");
+            return;
+        }
+
+        _selectedTable = EditorGUILayout.Popup("LootTable", _selectedTable, _lootTables.ToArray());
+        _simulationCount = EditorGUILayout.IntField("Simulations", _simulationCount);
+
+        _graphType = (GraphType)EditorGUILayout.EnumPopup("Graph Type", _graphType);
+
+        if (GUILayout.Button("Simulate", GUILayout.Height(30)))
+        {
+            RunSimulation();
+        }
+
+        if (_hasResults)
+        {
+            GUILayout.Space(15);
+            DrawResults();
+        }
+    }
+
+    // --------------------------------------------------
+    private void RunSimulation()
+    {
+        string tableId = _lootTables[_selectedTable];
+        var table = LootLoader.Load(tableId);
+
+        _itemCounts.Clear();
+        _rarityCounts.Clear();
+        _hasResults = false;
+
+        if (table == null)
+        {
+            Debug.LogError("Error: loot table not found!");
+            return;
+        }
+
+        for (int i = 0; i < _simulationCount; i++)
+        {
+            var result = LootTableSystem.Roll(table);
+
+            // count items
+            if (!_itemCounts.ContainsKey(result.itemId))
+                _itemCounts[result.itemId] = 0;
+            _itemCounts[result.itemId]++;
+
+            // count rarities
+            if (!_rarityCounts.ContainsKey(result.rarity))
+                _rarityCounts[result.rarity] = 0;
+            _rarityCounts[result.rarity]++;
+        }
+
+        _hasResults = true;
+    }
+
+    // --------------------------------------------------
+    private void DrawResults()
+    {
+        GUILayout.Label("Results", EditorStyles.boldLabel);
+
+        GUILayout.Label("Rarity Distribution:");
+
+        if (_graphType == GraphType.Bars)
+            DrawRarityBars();
+        else
+            DrawRarityHistogram();
+
+        GUILayout.Space(20);
+
+        GUILayout.Label("Item Distribution:");
+
+        if (_graphType == GraphType.Bars)
+            DrawItemBars();
+        else
+            DrawItemHistogram();
+    }
+
+    // --------------------------------------------------
+    // COLORS
+    private Color GetColorForRarity(string rarity)
+    {
+        return rarity switch
+        {
+            "Common" => Color.white,
+            "Uncommon" => new Color(0.5f, 1f, 0.5f),
+            "Rare" => new Color(0.3f, 0.6f, 1f),
+            "Epic" => new Color(0.7f, 0.2f, 1f),
+            "Legendary" => new Color(1f, 0.7f, 0f),
+            _ => Color.gray
+        };
+    }
+
+    // --------------------------------------------------
+    // BARS (horizontal)
+    private void DrawRarityBars()
+    {
+        foreach (var rarity in RARITIES)
+        {
+            if (!_rarityCounts.ContainsKey(rarity))
+                continue;
+
+            float pct = (float)_rarityCounts[rarity] / _simulationCount;
+
+            EditorGUILayout.BeginHorizontal();
+
+            GUILayout.Label(rarity, GUILayout.Width(80));
+
+            DrawHorizontalBar(pct, GetColorForRarity(rarity));
+
+            GUILayout.Label($"{pct * 100:F2}% ({_rarityCounts[rarity]})",
+                GUILayout.Width(120));
+
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+
+    private void DrawItemBars()
+    {
+        foreach (var pair in _itemCounts)
+        {
+            float pct = (float)pair.Value / _simulationCount;
+
+            EditorGUILayout.BeginHorizontal();
+
+            GUILayout.Label(pair.Key, GUILayout.Width(220));
+
+            DrawHorizontalBar(pct, Color.green);
+
+            GUILayout.Label($"{pct * 100:F2}% ({pair.Value})",
+                GUILayout.Width(120));
+
+            EditorGUILayout.EndHorizontal();
+        }
+    }
+
+    private void DrawHorizontalBar(float pct, Color color)
+    {
+        Rect r = GUILayoutUtility.GetRect(300, 18);
+
+        EditorGUI.DrawRect(new Rect(r.x, r.y, 300 * pct, r.height), color);
+        EditorGUI.DrawRect(new Rect(r.x + 300 * pct, r.y, 300 - 300 * pct, r.height),
+            new Color(0, 0, 0, 0.2f));
+    }
+
+    // --------------------------------------------------
+    // HISTOGRAM (vertical)
+    private void DrawRarityHistogram()
+    {
+        Rect rect = GUILayoutUtility.GetRect(300, 180);
+        DrawHistogramBackground(rect);
+
+        float barWidth = rect.width / RARITIES.Length;
+
+        for (int i = 0; i < RARITIES.Length; i++)
+        {
+            string rarity = RARITIES[i];
+
+            if (!_rarityCounts.ContainsKey(rarity))
+                continue;
+
+            float pct = (float)_rarityCounts[rarity] / _simulationCount;
+
+            DrawHistogramBar(rect, i, barWidth, pct, GetColorForRarity(rarity), rarity);
+        }
+    }
+
+    private void DrawItemHistogram()
+    {
+        Rect rect = GUILayoutUtility.GetRect(300, 180);
+        DrawHistogramBackground(rect);
+
+        float barWidth = rect.width / _itemCounts.Count;
+
+        int i = 0;
+        foreach (var kvp in _itemCounts)
+        {
+            float pct = (float)kvp.Value / _simulationCount;
+
+            DrawHistogramBar(rect, i, barWidth, pct, Color.green, kvp.Key);
+            i++;
+        }
+    }
+
+    // --------------------------------------------------
+    // Histogram Helpers
+    private void DrawHistogramBackground(Rect rect)
+    {
+        // фиксированный фон — ограничивает всё
+        GUI.BeginClip(rect);
+        EditorGUI.DrawRect(new Rect(0, 0, rect.width, rect.height),
+            new Color(0.15f, 0.15f, 0.15f));
+        GUI.EndClip();
+    }
+
+    private void DrawHistogramBar(Rect rect, int index, float barWidth, float pct,
+        Color color, string label)
+    {
+        // ограничиваем область
+        GUI.BeginClip(rect);
+
+        // рисуем бар строго внутри 0..rect.height
+        float height = rect.height * pct;
+        float x = index * barWidth;
+        float y = rect.height - height;
+
+        EditorGUI.DrawRect(
+            new Rect(x, y, barWidth - 4, height),
+            color
+        );
+
+        // подпись идет вне clip — иначе обрежется
+        GUI.EndClip();
+
+        // рисуем подпись уже в нормальных координатах
+        GUI.Label(
+            new Rect(rect.x + index * barWidth, rect.yMax + 2, barWidth, 18),
+            label,
+            EditorStyles.centeredGreyMiniLabel
+        );
+    }
+}
+
+
+
 // ---------- ShipDebuggerWindow.cs ----------
 using UnityEngine;
 using UnityEditor;
@@ -1355,12 +1833,17 @@ public class ShipDebuggerWindow : EditorWindow
             if (w.Model != null)
             {
                 EditorGUILayout.LabelField(
-                    $"FireRate {w.Model.FireRate}/s | Speed {w.Model.ProjectileSpeed} | Range {w.Model.FireRange}");
+                    $"FireRate {w.Model.Stats.GetStat(StatType.FireRate).Current}/s " +
+                    $"| Speed {w.Model.Stats.GetStat(StatType.ProjectileSpeed).Current} " +
+                    $"| Range {w.Model.Stats.GetStat(StatType.FireRange).Current}");
 
                 EditorGUILayout.LabelField(
-                    $"Damage {w.Model.MinDamage}-{w.Model.MaxDamage} | Crit {w.Model.CritChance * 100}% x{w.Model.CritMultiplier}");
+                    $"Damage {w.Model.Stats.GetStat(StatType.MinDamage).Current}" +
+                    $"-{w.Model.Stats.GetStat(StatType.MaxDamage).Current}" +
+                    $" | Crit {w.Model.Stats.GetStat(StatType.CritChance).Current * 100}% " +
+                    $"x{w.Model.Stats.GetStat(StatType.CritMultiplier).Current}");
 
-                EditorGUILayout.LabelField($"Accuracy {w.Model.Accuracy}");
+                EditorGUILayout.LabelField($"Accuracy {w.Model.Stats.GetStat(StatType.Accuracy).Current}");
             }
 
             DrawWeaponTargeting(slot);
@@ -1388,6 +1871,292 @@ public class ShipDebuggerWindow : EditorWindow
     }
 }
 
+
+
+// ---------- UniversalBarEditor.cs ----------
+using UnityEngine;
+using UnityEditor;
+
+public class UniversalBarEditor : ShaderGUI
+{
+    private MaterialProperty SafeFind(string name, MaterialProperty[] props)
+    {
+        try
+        {
+            return FindProperty(name, props);
+        }
+        catch
+        {
+            Debug.LogError("[UniversalBarEditor] Missing property: " + name);
+            return null;
+        }
+    }
+
+    public override void OnGUI(MaterialEditor editor, MaterialProperty[] props)
+    {
+        // ---- Safely fetch properties ----
+        var MainTex    = SafeFind("_MainTex", props);
+        var OverlayTex = SafeFind("_OverlayTex", props);
+        var GradientTex= SafeFind("_GradientTex", props);
+
+        var Fill       = SafeFind("_Fill", props);
+        var InvertFill = SafeFind("_InvertFill", props);
+        var FillMode   = SafeFind("_FillMode", props);
+        var CutAxis    = SafeFind("_CutAxis", props);
+
+        var UVMinX = SafeFind("_UVMinX", props);
+        var UVMaxX = SafeFind("_UVMaxX", props);
+        var UVMinY = SafeFind("_UVMinY", props);
+        var UVMaxY = SafeFind("_UVMaxY", props);
+        var CenterX = SafeFind("_CenterX", props);
+        var CenterY = SafeFind("_CenterY", props);
+
+        var GradientDir = SafeFind("_GradientDir", props);
+
+        var PulseEnabled   = SafeFind("_PulseEnabled", props);
+        var PulseSpeed     = SafeFind("_PulseSpeed", props);
+        var PulseAmplitude = SafeFind("_PulseAmplitude", props);
+        var PulseThreshold = SafeFind("_PulseThreshold", props);
+
+        var Tint = SafeFind("_Tint", props);
+
+        EditorGUI.BeginChangeCheck();
+
+        // ============================================
+        // BASE TEXTURES
+        // ============================================
+
+        EditorGUILayout.LabelField("Base Textures", EditorStyles.boldLabel);
+
+        if (MainTex != null)    editor.TextureProperty(MainTex, "Base");
+        if (OverlayTex != null) editor.TextureProperty(OverlayTex, "Overlay");
+        if (GradientTex != null)editor.TextureProperty(GradientTex, "Gradient");
+
+        EditorGUILayout.Space(6);
+
+        // ============================================
+        // FILL SETTINGS
+        // ============================================
+
+        EditorGUILayout.BeginVertical("box");
+        EditorGUILayout.LabelField("Fill Settings", EditorStyles.boldLabel);
+
+        if (Fill != null)       editor.ShaderProperty(Fill, "Fill Amount");
+        if (InvertFill != null) editor.ShaderProperty(InvertFill, "Invert Fill");
+        if (CutAxis != null)    editor.ShaderProperty(CutAxis, "Cut Axis");
+
+        if (FillMode != null)
+        {
+            string[] options = { "Both Sides", "From Min", "From Max" };
+            int f = Mathf.RoundToInt(FillMode.floatValue);
+            f = EditorGUILayout.Popup("Fill Mode", f, options);
+            FillMode.floatValue = f;
+        }
+
+        EditorGUILayout.EndVertical();
+
+        EditorGUILayout.Space(6);
+
+        // ============================================
+        // UV AREA
+        // ============================================
+
+        EditorGUILayout.BeginVertical("box");
+        EditorGUILayout.LabelField("UV Area", EditorStyles.boldLabel);
+
+        if (UVMinX != null) editor.ShaderProperty(UVMinX, "UV Min X");
+        if (UVMaxX != null) editor.ShaderProperty(UVMaxX, "UV Max X");
+        if (UVMinY != null) editor.ShaderProperty(UVMinY, "UV Min Y");
+        if (UVMaxY != null) editor.ShaderProperty(UVMaxY, "UV Max Y");
+
+        if (CenterX != null) editor.ShaderProperty(CenterX, "Center X");
+        if (CenterY != null) editor.ShaderProperty(CenterY, "Center Y");
+
+        EditorGUILayout.EndVertical();
+        EditorGUILayout.Space(6);
+
+        // ============================================
+        // GRADIENT
+        // ============================================
+
+        EditorGUILayout.BeginVertical("box");
+        EditorGUILayout.LabelField("Gradient", EditorStyles.boldLabel);
+        if (GradientDir != null) editor.ShaderProperty(GradientDir, "Gradient Direction");
+        EditorGUILayout.EndVertical();
+
+        EditorGUILayout.Space(6);
+
+        // ============================================
+        // PULSE
+        // ============================================
+
+        EditorGUILayout.BeginVertical("box");
+        EditorGUILayout.LabelField("Pulse", EditorStyles.boldLabel);
+
+        if (PulseEnabled != null) editor.ShaderProperty(PulseEnabled, "Enabled");
+
+        if (PulseEnabled != null && PulseEnabled.floatValue > 0.5f)
+        {
+            if (PulseSpeed != null)     editor.ShaderProperty(PulseSpeed, "Speed");
+            if (PulseAmplitude != null) editor.ShaderProperty(PulseAmplitude, "Amplitude");
+            if (PulseThreshold != null) editor.ShaderProperty(PulseThreshold, "Threshold");
+        }
+
+        EditorGUILayout.EndVertical();
+        EditorGUILayout.Space(6);
+
+        // ============================================
+        // TINT
+        // ============================================
+
+        EditorGUILayout.BeginVertical("box");
+        EditorGUILayout.LabelField("Color Tint", EditorStyles.boldLabel);
+        if (Tint != null) editor.ShaderProperty(Tint, "Tint");
+        EditorGUILayout.EndVertical();
+
+        if (EditorGUI.EndChangeCheck())
+            foreach (Material m in editor.targets)
+                EditorUtility.SetDirty(m);
+    }
+}
+
+
+
+// ---------- IGeneratedItem.cs ----------
+namespace Ships
+{
+	public interface IGeneratedItem
+	{
+		string ItemId { get; }
+		string TemplateId { get; }
+		string Name { get; }
+		string Rarity { get; }
+	}
+}
+
+
+// ---------- LootLoader.cs ----------
+using System.IO;
+using UnityEngine;
+
+namespace Ships
+{
+	public static class LootLoader
+	{
+		private static readonly string LootPath =
+			Path.Combine(Application.streamingAssetsPath, "Configs/Loot/LootTables");
+
+		public static LootTable Load(string id)
+		{
+			var file = Path.Combine(LootPath, id + ".json");
+
+			if (!File.Exists(file))
+			{
+				Debug.LogError("LootTable not found: " + file);
+				return null;
+			}
+
+			var json = File.ReadAllText(file);
+			return JsonUtility.FromJson<LootTable>(json);
+		}
+	}
+}
+
+
+// ---------- LootTable.cs ----------
+using System;
+
+namespace Ships
+{
+	[Serializable]
+	public class LootTable
+	{
+		public string Id;
+		public LootEntry[] Drops;
+	}
+
+	[Serializable]
+	public class LootEntry
+	{
+		public int Chance;       // шанс выпадения предмета
+		public string ItemId;    // шаблон предмета
+		public int[] Weights;    // веса редкостей
+	}
+}
+
+
+// ---------- LootTableSystem.cs ----------
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+namespace Ships
+{
+	public static class LootTableSystem
+	{
+		public static (string itemId, string rarity) Roll(LootTable table)
+		{
+			// 1. Выбираем предмет
+			LootEntry entry = RollItem(table);
+
+			// 2. Выбираем его редкость
+			string rarity = RollRarity(entry.Weights);
+
+			return (entry.ItemId, rarity);
+		}
+
+		private static LootEntry RollItem(LootTable table)
+		{
+			int total = 0;
+			foreach (var e in table.Drops)
+				total += e.Chance;
+
+			int roll = Random.Range(0, total);
+			int accum = 0;
+
+			foreach (var e in table.Drops)
+			{
+				accum += e.Chance;
+				if (roll < accum)
+					return e;
+			}
+
+			return table.Drops[0];
+		}
+
+		private static string RollRarity(int[] weights)
+		{
+			int total = 0;
+			foreach (var w in weights)
+				total += w;
+
+			int roll = Random.Range(0, total);
+			int accum = 0;
+
+			for (int i = 0; i < weights.Length; i++)
+			{
+				accum += weights[i];
+				if (roll < accum)
+					return RarityIndexToName(i);
+			}
+
+			return "Common";
+		}
+
+		private static string RarityIndexToName(int idx)
+		{
+			return idx switch
+			{
+				0 => "Common",
+				1 => "Uncommon",
+				2 => "Rare",
+				3 => "Epic",
+				4 => "Legendary",
+				_ => "Common"
+			};
+		}
+	}
+}
 
 
 // ---------- HullLoader.cs ----------
@@ -1485,6 +2254,377 @@ namespace Ships
 }
 
 
+// ---------- InventoryItem.cs ----------
+using System;
+
+namespace Ships
+{
+	[Serializable]
+	public class InventoryItem
+	{
+		public string ItemId;          // уникальный ID предмета
+		public string TemplateId;      // weapon_p_small_bolter_1.json
+		public string EquippedOnFitId; // фит, на котором установлен
+		public int EquippedSlotIndex = -1;
+
+		public bool IsEquipped => !string.IsNullOrEmpty(EquippedOnFitId);
+	}
+}
+
+
+// ---------- InventoryView.cs ----------
+using System;
+using System.Collections.Generic;
+
+namespace Ships
+{
+	public class InventoryView
+	{
+		private MetaState _state;
+		public PlayerInventoryModel GetInventory() => _state.InventoryModel;
+		// в какой слот сейчас ставим предмет
+		private string _currentSlotId;
+		private bool _currentIsWeapon;
+
+		public void Init(MetaState state)
+		{
+			_state = state;
+		}
+
+		/// <summary>
+		/// ShipFitView сообщает, что пользователь кликнул слот
+		/// и теперь выбрать предмет нужно "в этот слот".
+		/// </summary>
+		public void BeginInstallToSlot(string slotId, bool isWeaponSlot)
+		{
+			_currentSlotId = slotId;
+			_currentIsWeapon = isWeaponSlot;
+
+			// тут можно сделать фильтрацию по типу/размеру, а пока просто обновим список
+			GameEvent.InventoryUpdated(_state.InventoryModel);
+		}
+
+		public void SelectItem(InventoryItem item)
+		{
+			GameEvent.ItemSelected(item);
+		}
+
+		/// <summary>
+		/// Вызывается из InventoryVisual, когда игрок кликает по предмету.
+		/// </summary>
+		public void InstallFromInventory(InventoryItem item)
+		{
+			if (string.IsNullOrEmpty(_currentSlotId))
+				return;
+
+			int slotIndex = int.Parse(_currentSlotId);
+
+			MetaController.Instance.ShipFitView.EquipItemToSlot(
+				_state.Fit.ShipId,
+				slotIndex,
+				item.ItemId,
+				_currentIsWeapon
+			);
+
+			GameEvent.InventoryUpdated(_state.InventoryModel);
+		}
+
+		public void Open()
+		{
+		}
+	}
+}
+
+
+// ---------- MetaBattleBridge.cs ----------
+namespace Ships
+{
+	public static class MetaBattleBridge
+	{
+		public static MetaState LastFit;
+
+		public static void LoadFit(MetaState state)
+		{
+			LastFit = state;
+		}
+	}
+
+}
+
+
+// ---------- MetaController.cs ----------
+using Ships.Ships;
+
+namespace Ships
+{
+	using UnityEngine;
+
+	public class MetaController : MonoBehaviour
+	{
+		public static MetaController Instance;
+
+		public MetaState State { get; private set; }
+
+		[SerializeField] private MetaVisual _metaVisual;
+
+		private ShipFitView _shipFitView;
+		private InventoryView _inventoryView;
+		public ShipFitView ShipFitView => _shipFitView;
+
+		private void Awake()
+		{
+			if (!Instance)
+				Instance = this;
+			else
+				Destroy(gameObject);
+			State = MetaSaveSystem.Load();
+
+			_inventoryView = new InventoryView();
+			_shipFitView = new ShipFitView();
+
+			_inventoryView.Init(State);
+			_shipFitView.Init(State, _inventoryView);
+			
+			if (State.InventoryModel.InventoryUniqueItems.Count == 0)
+			{
+				GiveStarterItems();
+				MetaSaveSystem.Save(State);
+			}
+
+			_metaVisual.ShipFitVisual.Init(_shipFitView);
+			_metaVisual.InventoryVisual.Init(_inventoryView);
+		}
+		private void GiveStarterItems()
+		{
+			var w = ItemGenerator.GenerateWeapon("weapon_p_small_bolter_1.json", "Common");
+
+			State.InventoryModel.InventoryUniqueItems.Add(new InventoryItem
+			{
+				ItemId = w.ItemId,
+				TemplateId = w.TemplateId
+			});
+		}
+	}
+}
+
+
+// ---------- MetaSaveSystem.cs ----------
+using System.IO;
+using Ships.Ships;
+using UnityEngine;
+
+namespace Ships
+{
+	public static class MetaSaveSystem
+	{
+		private static readonly string _path = 
+			Path.Combine(Application.persistentDataPath, "meta.json");
+
+		public static void Save(MetaState state)
+		{
+			var json = JsonUtility.ToJson(state, true);
+			File.WriteAllText(_path, json);
+		}
+
+		public static MetaState Load()
+		{
+			if (!File.Exists(_path))
+				return new MetaState();
+
+			var json = File.ReadAllText(_path);
+			var meta = JsonUtility.FromJson<MetaState>(json);
+			LoadGeneratedItems(meta);
+			return meta;
+		}
+		private static void LoadGeneratedItems(MetaState state)
+		{
+			string folder = ItemGenerator.OutputPath;
+			if (!Directory.Exists(folder))
+				return;
+
+			foreach (var file in Directory.GetFiles(folder, "*.json"))
+			{
+				var json = File.ReadAllText(file);
+				var gen = JsonUtility.FromJson<GeneratedWeaponItem>(json);
+
+				state.InventoryModel.InventoryUniqueItems.Add(new InventoryItem
+				{
+					ItemId = gen.ItemId,
+					TemplateId = gen.TemplateId
+				});
+			}
+		}
+	}
+}
+
+
+// ---------- MetaState.cs ----------
+using System;
+using System.Collections.Generic;
+
+namespace Ships
+{
+	[Serializable]
+	public class MetaState
+	{
+		public string SelectedShipId;
+		public ShipFitModel Fit = new ShipFitModel();
+		public List<ShipFitModel> PlayerShipFits = new ();
+		public PlayerInventoryModel InventoryModel = new PlayerInventoryModel();
+	}
+
+	[System.Serializable]
+	public sealed class PlayerInventoryModel
+	{
+		public List<InventoryItem> InventoryUniqueItems = new ();
+		public List<InventoryItem> InventoryStackItems = new ();
+	}
+}
+
+
+// ---------- ShipFitModel.cs ----------
+using System;
+using System.Collections.Generic;
+
+namespace Ships
+{
+	[Serializable]
+	public class ShipFitModel
+	{
+		public string ShipId;
+		public List<SelectedShipWeapon> SelectedShipWeapons = new ();
+		public List<SelectedHullModule> SelectedHullModules = new ();
+		public List<SelectedWeaponModule> SelectedWeaponModules = new ();
+		public List<SelectedActiveModule> SelectedActiveModules = new ();
+		
+		[System.Serializable]
+		public class SelectedShipWeapon
+		{
+			public string Id;
+			public int SlotIndex;
+		}
+		[System.Serializable]
+		public class SelectedHullModule
+		{
+			public string Id;
+			public int SlotIndex;
+		}
+		[System.Serializable]
+		public class SelectedWeaponModule
+		{
+			public string Id;
+			public int SlotIndex;
+		}
+		[System.Serializable]
+		public class SelectedActiveModule
+		{
+			public string Id;
+			public int SlotIndex;
+		}
+		
+	}
+
+}
+
+
+// ---------- ShipFitView.cs ----------
+using System;
+
+namespace Ships
+{
+	public class ShipFitView
+	{
+		private MetaState _state;
+		private InventoryView _inventory;
+
+		// слот поменялся (для визуалов)
+		public event Action<string, bool> OnSlotChanged; // slotId, isWeapon
+
+		public void Init(MetaState state, InventoryView inventory)
+		{
+			_state = state;
+			_inventory = inventory;
+		}
+
+		/// <summary>
+		/// Вызывается визуалом слота при клике.
+		/// </summary>
+		public void OnSlotClicked(string slotId, bool isWeaponSlot)
+		{
+			// вместо старого InventoryView.ShowInstallMenu(...)
+			// просто говорим InventoryView: "мы собираемся ставить в этот слот"
+			_inventory.BeginInstallToSlot(slotId, isWeaponSlot);
+		}
+		public void UnequipItem(InventoryItem item)
+		{
+			if (item == null || !item.IsEquipped)
+				return;
+
+			var fit = _state.Fit;
+
+			// убрать из фита
+			fit.SelectedShipWeapons.RemoveAll(x => x.Id == item.ItemId);
+			fit.SelectedHullModules.RemoveAll(x => x.Id == item.ItemId);
+			fit.SelectedWeaponModules.RemoveAll(x => x.Id == item.ItemId);
+			fit.SelectedActiveModules.RemoveAll(x => x.Id == item.ItemId);
+
+			// снять флаг
+			item.EquippedOnFitId = null;
+			item.EquippedSlotIndex = -1;
+		}
+		public void EquipItemToSlot(string fitId, int slotIndex, string itemId, bool isWeapon)
+		{
+			var inv = _state.InventoryModel;
+
+			// 1. получаем предмет
+			var item = InventoryUtils.FindByItemId(inv, itemId);
+
+			// 2. если предмет на другом фите → снимаем
+			if (item.IsEquipped && item.EquippedOnFitId != fitId)
+			{
+				UnequipItem(item);
+			}
+
+			// 3. если в слоте уже что-то есть → снять
+			if (isWeapon)
+			{
+				var existing = _state.Fit.SelectedShipWeapons.Find(x => x.SlotIndex == slotIndex);
+				if (existing != null)
+					UnequipItem(InventoryUtils.FindByItemId(inv, existing.Id));
+
+				_state.Fit.SelectedShipWeapons.RemoveAll(x => x.SlotIndex == slotIndex);
+				_state.Fit.SelectedShipWeapons.Add(new ShipFitModel.SelectedShipWeapon
+				{
+					Id = item.ItemId,
+					SlotIndex = slotIndex
+				});
+			}
+
+			// 4. помечаем предмет
+			item.EquippedOnFitId = fitId;
+			item.EquippedSlotIndex = slotIndex;
+
+			// 5. UI
+			OnSlotChanged?.Invoke(slotIndex.ToString(), isWeapon);
+			MetaSaveSystem.Save(_state);
+		}
+
+		/// <summary>
+		/// Логика установки предмета в слот (если хочешь держать это во View).
+		/// </summary>
+		public void InstallItem(string slotId, string itemId, bool isWeapon)
+		{
+			//if (isWeapon)
+				//_state.Fit.SetWeapon(slotId, itemId);
+			//else
+				//_state.Fit.SetModule(slotId, itemId);
+
+			OnSlotChanged?.Invoke(slotId, isWeapon);
+		}
+	}
+}
+
+
 // ---------- DummyTarget.cs ----------
 using System;
 using System.Collections;
@@ -1540,6 +2680,8 @@ namespace Ships
 		bool IsAlive { get; }
 		TargetSize Size { get; }
 		Vector2 Velocity { get; }
+		TeamMask Team { get; }
+		void TakeDamage(CalculatedDamage calculatedDamage);
 	}
 
 }
@@ -1570,24 +2712,29 @@ namespace Ships
 {
     public class PlayerShipMovement : MonoBehaviour
     {
-        [Header("Runtime")] public Vector2 velocity;
-        public float throttleCache = 0f;
+        [Header("Runtime")]
+        public Vector2 velocity;
 
-        [Header("Settings")] public float throttleStep = 0.7f;
+        private Vector2 _desiredDirection;
 
-        private ShipBase ship;
+        private ShipBase _ship;
+        private PlayerInputSystem _hw;
+        private PlayerInputUI _ui;
 
-        private PlayerInputSystem hw;
-        private PlayerInputUI ui;
-
-        private Vector2 desiredDirection;
-        private float lastSliderValue;
+        // ---------------------------
+        // Tuneable behaviour
+        // ---------------------------
+        [Header("Turning Behaviour")]
+        [SerializeField] private float gentleTurnAngle = 15f;   // малый угол — корректировка без потери скорости
+        [SerializeField] private float mediumTurnAngle = 45f;   // средний угол — немного тормозим
+        //[SerializeField] private float rotationSpeed = 180f;    // скорость поворота корпуса (deg/sec)
+        [SerializeField] private float velocityAlignRate = 8f;  // как быстро velocity догоняет forward
 
         private void Awake()
         {
-            ship = GetComponent<ShipBase>();
-            hw = FindObjectOfType<PlayerInputSystem>();
-            ui = FindObjectOfType<PlayerInputUI>();
+            _ship = GetComponent<ShipBase>();
+            _hw = FindObjectOfType<PlayerInputSystem>();
+            _ui = FindObjectOfType<PlayerInputUI>();
         }
 
         private void Update()
@@ -1602,85 +2749,89 @@ namespace Ships
         // ============================================================
         private void ReadInput()
         {
-            // ---------------------------------------------------------
-            // 1) Steering = HW + UI
-            // ---------------------------------------------------------
-            Vector2 steeringHW = hw != null ? hw.Steering : Vector2.zero;
-            Vector2 steeringUI = ui != null ? ui.SteeringUI : Vector2.zero;
+            var hwDir = _hw != null ? _hw.Steering : Vector2.zero;
+            var uiDir = _ui != null ? _ui.SteeringUI : Vector2.zero;
 
-            desiredDirection = (steeringHW + steeringUI).normalized;
+            var sum = hwDir + uiDir;
 
-            // ---------------------------------------------------------
-            // 2) THROTTLE CACHE
-            // ---------------------------------------------------------
-
-            // + / - от клавиатуры
-            float axis = hw != null ? hw.Throttle : 0f;
-
-            if (Mathf.Abs(axis) > 0.01f)
-            {
-                throttleCache += axis * throttleStep * Time.deltaTime;
-            }
-
-            // UI слайдер — задаёт throttleCache напрямую
-            if (ui != null)
-            {
-                float sliderValue = ui.SliderValue;
-
-                if (!Mathf.Approximately(sliderValue, lastSliderValue))
-                {
-                    throttleCache = sliderValue; // пользователь двинул слайдер
-                }
-
-                ui.SetSlider(throttleCache); // отобразить состояние
-                lastSliderValue = sliderValue;
-            }
-
-            throttleCache = Mathf.Clamp01(throttleCache);
+            if (sum.sqrMagnitude > 0.001f)
+                _desiredDirection = sum.normalized;
+            else
+                _desiredDirection = Vector2.zero;
         }
 
         // ============================================================
-        // ROTATION
+        // ROTATION (Forward главный)
         // ============================================================
         private void HandleRotation()
         {
-            if (desiredDirection.sqrMagnitude < 0.0005f)
+            if (_desiredDirection.sqrMagnitude < 0.001f)
                 return;
 
-            float turnSpeed = ship.GetStat(StatType.TurnSpeed).Current;
+            var targetAngle = Mathf.Atan2(_desiredDirection.y, _desiredDirection.x) * Mathf.Rad2Deg - 90f;
+            var currentAngle = transform.eulerAngles.z;
 
-            float targetAngle = Mathf.Atan2(desiredDirection.y, desiredDirection.x) * Mathf.Rad2Deg - 90f;
-
-            float angle = Mathf.LerpAngle(
-                transform.eulerAngles.z,
-                targetAngle,
-                turnSpeed * Time.deltaTime
+            transform.rotation = Quaternion.RotateTowards(
+                Quaternion.Euler(0, 0, currentAngle),
+                Quaternion.Euler(0, 0, targetAngle),
+                _ship.GetStat(StatType.TurnSpeed).Current * Time.deltaTime
             );
-
-            transform.rotation = Quaternion.Euler(0, 0, angle);
         }
 
         // ============================================================
-        // MOVEMENT (вискозное движение)
+        // MOVEMENT
         // ============================================================
         private void HandleMovement()
         {
-            float maxSpeed = ship.GetStat(StatType.MoveSpeed).Current;
-            float accel = ship.GetStat(StatType.Acceleration).Current;
-            float brakePower = ship.GetStat(StatType.BrakePower).Current;
-            float turnInertia = 6f; // как быстро velocity поворачивается к носу
+            var maxSpeed   = _ship.GetStat(StatType.MoveSpeed).Current;
+            var accel      = _ship.GetStat(StatType.Acceleration).Current;
+            var brakePower = _ship.GetStat(StatType.BrakePower).Current;
 
-            Vector2 forward = transform.up;
-
-            float targetSpeed = throttleCache * maxSpeed;
-            float currentSpeed = velocity.magnitude;
+            var currentSpeed = velocity.magnitude;
+            var forward = transform.up;
+            var hasInput = _desiredDirection.sqrMagnitude > 0.001f;
 
             // -------------------------------
-            // 1) Ускорение / Торможение
+            // Determine angle change
+            // -------------------------------
+            float angle = hasInput
+                ? Vector2.Angle(forward, _desiredDirection)
+                : 0f;
+
+            float targetSpeed;
+
+            // ============================================================
+            // CASE 1 — малый угол → не тормозим, только корректируем
+            // ============================================================
+            if (hasInput && angle < gentleTurnAngle)
+            {
+                targetSpeed = maxSpeed;
+            }
+            // ============================================================
+            // CASE 2 — средний угол → немного тормозим
+            // ============================================================
+            else if (hasInput && angle < mediumTurnAngle)
+            {
+                targetSpeed = Mathf.Lerp(currentSpeed, maxSpeed, 0.5f);
+            }
+            // ============================================================
+            // CASE 3 — резкий манёвр → серьёзное торможение
+            // ============================================================
+            else if (hasInput)
+            {
+                targetSpeed = 0f; // почти остановка перед разворотом
+            }
+            else
+            {
+                // игрок отпустил управление → тормоз
+                targetSpeed = 0f;
+            }
+
+            // -------------------------------
+            // Accelerate / brake toward targetSpeed
             // -------------------------------
             if (targetSpeed > currentSpeed)
             {
-                // разгон
                 currentSpeed = Mathf.MoveTowards(
                     currentSpeed,
                     targetSpeed,
@@ -1689,7 +2840,6 @@ namespace Ships
             }
             else
             {
-                // торможение (всегда через brakePower!)
                 currentSpeed = Mathf.MoveTowards(
                     currentSpeed,
                     targetSpeed,
@@ -1698,12 +2848,15 @@ namespace Ships
             }
 
             // -------------------------------
-            // 2) Поворот velocity в сторону forward
+            // Velocity follows forward
             // -------------------------------
             if (velocity.sqrMagnitude > 0.001f)
             {
-                Vector2 currentDir = velocity.normalized;
-                Vector2 newDir = Vector2.Lerp(currentDir, forward, turnInertia * Time.deltaTime).normalized;
+                var newDir = Vector2.Lerp(
+                    velocity.normalized,
+                    forward,
+                    velocityAlignRate * Time.deltaTime
+                ).normalized;
 
                 velocity = newDir * currentSpeed;
             }
@@ -1713,15 +2866,15 @@ namespace Ships
             }
 
             // -------------------------------
-            // 3) Перемещение
+            // Apply movement
             // -------------------------------
             transform.position += (Vector3)velocity * Time.deltaTime;
+
             if (Battle.Instance != null)
             {
-                Vector2 clamped = Battle.Instance.ClampPosition(transform.position);
+                var clamped = Battle.Instance.ClampPosition(transform.position);
                 transform.position = clamped;
-    
-                // Если упёрлись в стенку — скорость в эту сторону = 0
+
                 if ((Vector2)transform.position != clamped)
                     velocity = Vector2.zero;
             }
@@ -1745,7 +2898,7 @@ namespace Ships
 	{
 		public ShipVisual _visual;
 		public SideType SideType;
-		public TeamMask Team;
+		[SerializeField] private TeamMask _team;
 		public Stats ShipStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
@@ -1759,6 +2912,8 @@ namespace Ships
 		private Vector3 _lastPos;
 		private Vector2 _velocity;
 		public Vector2 Velocity => _velocity;
+
+		public TeamMask Team => _team;
 
 		public bool IsAlive
 		{
@@ -1849,7 +3004,7 @@ namespace Ships
 
 		public void Init()
 		{
-			Team = SideType switch
+			_team = SideType switch
 			{
 				SideType.Player => TeamMask.Player,
 				SideType.Enemy => TeamMask.Enemy,
@@ -1887,13 +3042,19 @@ namespace Ships
 		// DAMAGE → EFFECTS
 		// ============================================================
 
-		public void TakeDamage(float dmg, Vector2 hitPoint, WeaponBase source)
+		public void TakeDamage(CalculatedDamage calc)
 		{
-			if (ShipStats.TryGetStat(StatType.HitPoint, out var hp))
-				hp.AddToCurrent(-dmg);
+			if (calc.FinalDamage > 0)
+			{
+				if (TryGetStat(StatType.HitPoint, out var hp))
+					hp.AddToCurrent(-calc.FinalDamage);
+			}
 
-			foreach (var effect in source.Model.Effects)
-				effect.Apply(this, dmg, source);
+			if (calc.SourceWeapon?.Model?.Effects != null)
+			{
+				foreach (var effect in calc.SourceWeapon.Model.Effects)
+					effect.Apply(this, calc.FinalDamage, calc.SourceWeapon);
+			}
 		}
 
 
@@ -2147,7 +3308,7 @@ namespace Ships
 
 		float Maximum { get; }
 		float Current { get; }
-
+		float Amount { get; }
 		void AddModifier(StatModifier modifier);
 		void RemoveModifier(StatModifier modifier);
 		void RemoveModifiersFromSource(object source);
@@ -2186,6 +3347,19 @@ namespace Ships
         public float Maximum { get; private set; }
         public float Current { get; private set; }
 
+        public float Amount
+        {
+            get
+            {
+                if (Maximum <= 0f) 
+                    return 0f;
+                var n = Current / Maximum;
+                if (float.IsNaN(n) || float.IsInfinity(n))
+                    return 0f;
+                return n;
+            }
+        }
+        
         private readonly List<StatModifier> _modifiers = new List<StatModifier>();
         public IReadOnlyList<StatModifier> Modifiers => _modifiers;
 
@@ -2573,6 +3747,7 @@ namespace Ships
 		BrakePower,
 		ShieldRestoreDelay,
 		BackSpeed,
+		Armor,
 
 		// Weapon
 		FireRate,
@@ -2584,6 +3759,8 @@ namespace Ships
 		ArmorPierce,
 		FireRange,
 		Accuracy,
+		AmmoCount,
+		ReloadTime,
 
 		// Resistances
 		KineticResist,
@@ -2637,6 +3814,7 @@ namespace Ships
 
 // ---------- Projectile.cs ----------
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Ships
 {
@@ -2676,14 +3854,22 @@ namespace Ships
 		}
 		private void OnTriggerEnter2D(Collider2D other)
 		{
-			if (!other.TryGetComponent<ShipBase>(out var ship))
+			if (!other.TryGetComponent<ITargetable>(out var targetable))
 				return;
-
-			// Проверяем: входит ли ship.Team в наш HitMask?
-			if (!HitRules.CanHit(HitMask, ship.Team))
+			if (!HitRules.CanHit(HitMask, targetable.Team))
 				return;
-
-			ship.TakeDamage(damage, transform.position, SourceWeapon);
+		
+			var calc = DamageCalculator.CalculateHit(
+				projectileDamage: damage,
+				armorPierce: armorPierce,
+				hitPoint: transform.position,
+				sourceWeapon: SourceWeapon,
+				target: targetable,
+				wasShieldHit: false
+			);
+			
+			GameEvent.TakeDamage(calc);
+			targetable.TakeDamage(calc);
 			Destroy(gameObject);
 		}
 	}
@@ -2702,29 +3888,11 @@ namespace Ships
 	{
 		public Projectile ProjectilePrefab;
 		private bool IsInit;
-		private void Update()
-		{
-			//TODO
-			if (Model != null && !IsInit)
-			{
-				Stats stats = new Stats();
-				stats.AddStat(new Stat(StatType.FireRange, 5));
-				stats.AddStat(new Stat(StatType.FireRate, 1));
-				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
-				stats.AddStat(new Stat(StatType.MinDamage, 5));
-				stats.AddStat(new Stat(StatType.MaxDamage, 10));
-				stats.AddStat(new Stat(StatType.Accuracy, 1));
-				stats.AddStat(new Stat(StatType.CritChance, 0.05f));
-				stats.AddStat(new Stat(StatType.CritMultiplier, 1.2f));
-				Model.InjectStat(stats);
-				IsInit = true;
-			}
-		}
 
 		protected override void Shoot(Transform target)
 		{
 			float damage = RollDamage();
-			float speed = Model.ProjectileSpeed;
+			float speed = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
 
 			if (speed <= 0.01f)
 			{
@@ -2733,7 +3901,7 @@ namespace Ships
 			else
 			{
 				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				proj.Init((Vector2)FirePoint.right, damage, speed, Model.ArmorPierce, this);
+				proj.Init((Vector2)FirePoint.right, damage, speed, Model.Stats.GetStat(StatType.ArmorPierce).Current, this);
 			}
 		}
 
@@ -2762,40 +3930,65 @@ namespace Ships
 
 	public abstract class WeaponBase : MonoBehaviour
 	{
-
-		protected float nextFireTime;
+		private float _nextFireTime;
 
 		public WeaponSlot Slot;
 		public WeaponModel Model;
 		public Transform FirePoint;
-
-		public void Init(Stats stats)
-		{
-			Model = new WeaponModel(stats);
-		}
-		public void Init(WeaponSlot slot)
+		private int _ammo;
+		private bool _isReloading;
+		private float _reloadFinishTime;
+		
+		public void Init(WeaponSlot slot, Stats stats)
 		{
 			Model = new WeaponModel();
+			Model.InjectStat(stats);
 			Slot = slot;
+			_ammo = GetMaxAmmo(); 
 		}
 
 		public void TickWeapon(Transform target)
 		{
-			if (Model == null || target == null)
+			if (target == null || Model == null)
 				return;
 
-			Vector2 dir = (target.position - Slot.transform.position);
-
-			RotateToTarget(dir);
-
-			if (Time.time >= nextFireTime)
+			if (_isReloading)
 			{
-				nextFireTime = Time.time + 1f / Model.FireRate;
-				Shoot(target);
+				if (Time.time >= _reloadFinishTime)
+				{
+					_isReloading = false;
+					_ammo = GetMaxAmmo();
+				}
+				return;
 			}
-		}
 
-		// NEW: Tick with aim point (using lead + accuracy)
+			if (_ammo <= 0)
+			{
+				StartReload();
+				return;
+			}
+
+			if (Time.time < _nextFireTime)
+				return;
+
+			Shoot(target);
+
+			_ammo--;
+			_nextFireTime = Time.time + 1f / Model.Stats.GetStat(StatType.FireRate).Current;
+
+			if (_ammo <= 0)
+				StartReload();
+		}
+		private int GetMaxAmmo()
+		{
+			return Mathf.RoundToInt(Model.Stats.GetStat(StatType.AmmoCount).Maximum);
+		}
+		private void StartReload()
+		{
+			_isReloading = true;
+			_reloadFinishTime = Time.time + Model.Stats.GetStat(StatType.ReloadTime).Maximum;
+		}
+		
 		public void TickWeaponPosition(Vector2 aimPoint)
 		{
 			if (Model == null)
@@ -2819,10 +4012,10 @@ namespace Ships
 
 		protected float RollDamage()
 		{
-			float dmg = Random.Range(Model.MinDamage, Model.MaxDamage);
+			float dmg = Random.Range(Model.Stats.GetStat(StatType.MinDamage).Current, Model.Stats.GetStat(StatType.MaxDamage).Current);
 
-			if (Random.value < Model.CritChance)
-				dmg *= Model.CritMultiplier;
+			if (Random.value < Model.Stats.GetStat(StatType.CritChance).Current)
+				dmg *= Model.Stats.GetStat(StatType.CritMultiplier).Current;
 
 			return dmg;
 		}
@@ -2839,7 +4032,7 @@ namespace Ships
 {
 	public class WeaponModel
 	{
-		private Stats Stats { get; set; }
+		public Stats Stats { get; set; }
 		private readonly List<IOnHitEffect> _effects = new();
 
 		public void AddEffect(IOnHitEffect effect) => _effects.Add(effect);
@@ -2854,23 +4047,7 @@ namespace Ships
 		{
 			Stats = newStats;
 		}
-
-		// --- SAFE GETTER ---
-		private float Safe(StatType t)
-		{
-			if (Stats == null) return 0;
-			return Stats.GetCurrent(t);
-		}
-
-		public float FireRate        => Safe(StatType.FireRate);
-		public float MinDamage       => Safe(StatType.MinDamage);
-		public float MaxDamage       => Safe(StatType.MaxDamage);
-		public float CritChance      => Safe(StatType.CritChance);
-		public float CritMultiplier  => Safe(StatType.CritMultiplier);
-		public float ProjectileSpeed => Safe(StatType.ProjectileSpeed);
-		public float ArmorPierce     => Safe(StatType.ArmorPierce);
-		public float FireRange       => Safe(StatType.FireRange);
-		public float Accuracy        => Safe(StatType.Accuracy);
+		
 	}
 
 
@@ -2905,6 +4082,7 @@ namespace Ships
 		public WeaponTargeting WeaponTargeting;
 		public SideType Side;
 		public TeamMask HitMask;
+		public WeaponSize SlotSize;
 
 		public void Init(SideType sideType)
 		{
@@ -2925,7 +4103,22 @@ namespace Ships
 			}
 
 			if (MountedWeapon)
-				MountedWeapon.Init(this);
+			{
+				Stats stats = new Stats();
+				stats.AddStat(new Stat(StatType.FireRange, 5));
+				stats.AddStat(new Stat(StatType.FireRate, 3f));
+				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
+				stats.AddStat(new Stat(StatType.MinDamage, 5));
+				stats.AddStat(new Stat(StatType.MaxDamage, 10));
+				stats.AddStat(new Stat(StatType.Accuracy, 0.05f));
+				stats.AddStat(new Stat(StatType.CritChance, 0.1f));
+				stats.AddStat(new Stat(StatType.CritMultiplier, 1.2f));
+				stats.AddStat(new Stat(StatType.AmmoCount, 10));
+				stats.AddStat(new Stat(StatType.ReloadTime, 5f));
+				stats.AddStat(new Stat(StatType.ArmorPierce, 0f));
+				MountedWeapon.Init(this, stats);
+			}
+				
 		}
 
 		public bool IsTargetWithinSector(Vector2 dir)
@@ -2954,6 +4147,7 @@ namespace Ships
 
         private readonly List<ITargetable> allTargets = new();
         private ITargetable currentTarget;
+        private const float MaxSpreadAngle = 25f;
 
         private void Start()
         {
@@ -3037,7 +4231,7 @@ namespace Ships
         private bool IsTargetInRange(ITargetable t)
         {
             float dist = Vector2.Distance(Slot.transform.position, t.Transform.position);
-            return dist <= Weapon.Model.FireRange;
+            return dist <= Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
         }
 
         private bool IsTargetInSector(ITargetable t)
@@ -3052,7 +4246,7 @@ namespace Ships
             Vector2 targetPos = t.Transform.position;
             Vector2 vel = t.Velocity;
 
-            float speed = Weapon.Model.ProjectileSpeed;
+            float speed = Weapon.Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
             Vector2 dir;
 
             if (speed > 0.01f)
@@ -3070,21 +4264,21 @@ namespace Ships
 
             dir = ApplyAccuracy(dir);
 
-            return pos + dir * 12f;
+            return pos + dir * 100f;
         }
 
         private Vector2 ApplyAccuracy(Vector2 dir)
         {
-            float acc = Weapon.Model.Accuracy;
+            float acc = Weapon.Model.Stats.GetStat(StatType.Accuracy).Current; // 0..1
+            float spread = (1f - acc) * MaxSpreadAngle;
 
-            if (Random.value <= acc)
+            if (spread <= 0.01f)
                 return dir;
 
-            float maxAngle = 15f * (1f - acc);
-            float a = Random.Range(-maxAngle, maxAngle) * Mathf.Deg2Rad;
+            float angle = UnityEngine.Random.Range(-spread, spread) * Mathf.Deg2Rad;
 
-            float cos = Mathf.Cos(a);
-            float sin = Mathf.Sin(a);
+            float cos = Mathf.Cos(angle);
+            float sin = Mathf.Sin(angle);
 
             return new Vector2(
                 dir.x * cos - dir.y * sin,
@@ -3101,6 +4295,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.EventSystems;
 
 namespace Ships
 {
@@ -3144,29 +4339,28 @@ namespace Ships
         }
         
 
-        public void OnShieldHit(ShieldSide side, Vector2 hitPoint, Projectile proj)
+        public void OnShieldHit(ShieldSide side, CalculatedDamage calculatedDamage)
         {
             var sector = Sectors.FirstOrDefault(s => s.Side == side);
 
             // если сектора нет — прямой урон
+            /*
             if (sector == null)
             {
                 Ship.TakeDamage(proj.Damage, hitPoint, proj.SourceWeapon);
                 return;
             }
+            */
 
-            float dmg = proj.Damage;
+            float dmg = calculatedDamage.FinalDamage;
 
             // Уменьшаем HP щита
             float leftover = sector.Absorb(dmg);
 
             // визуал
             var vis = sector.Visual;
-            vis.Hit(hitPoint);
-
-            // остаток урона — в тело корабля
-            if (leftover > 0)
-                Ship.TakeDamage(leftover, hitPoint, proj.SourceWeapon);
+            vis.Hit(calculatedDamage.HitPoint);
+            GameEvent.UiUpdate();
         }
         
 
@@ -3201,8 +4395,21 @@ namespace Ships
 			if (!HitRules.CanHit(proj.HitMask, Controller.Ship.Team))
 				return;
 
-			Vector2 hitPoint = other.ClosestPoint((Vector2)transform.position);
-			Controller.OnShieldHit(Side, hitPoint, proj);
+			Vector2 hitPoint = proj.transform.position;
+			
+			Stat s;
+			proj.SourceWeapon.Model.Stats.TryGetStat(StatType.ArmorPierce, out s);
+			var calc = DamageCalculator.CalculateHit(
+				projectileDamage: proj.Damage,
+				armorPierce:  s?.Current ?? 0,
+				hitPoint:     hitPoint,
+				sourceWeapon: proj.SourceWeapon,
+				target:       Controller.Ship,
+				wasShieldHit: true
+			);
+
+			GameEvent.TakeDamage(calc);
+			Controller.OnShieldHit(Side, calc); 
 			proj.DestroySelf();
 		}
 	}
@@ -3275,24 +4482,37 @@ namespace Ships
 		{
 			CurrentHp = ShieldHP.Current;
 			Collider.enabled = ShieldHP.Current > 0;
+
+			// Если щит упал — запускаем задержку
 			if (ShieldHP.Current <= 0 && !IsRestoring)
 			{
 				CurrentRestoreTime = RestoreDelay.Current;
 				IsRestoring = true;
 			}
+
+			// Обрабатываем задержку
 			if (IsRestoring)
 			{
-				CurrentRestoreTime --;
+				CurrentRestoreTime -= 1f;
+
 				if (CurrentRestoreTime <= 0)
 				{
 					IsRestoring = false;
-					CurrentRestoreTime = RestoreDelay.Current;
-					ShieldHP.AddToCurrent(ShieldRegen.Current);
+					ShieldHP.AddToCurrent(ShieldHP.Maximum * 0.1f);
 				}
+				GameEvent.UiUpdate();
+				return;
 			}
-			else
+
+			// Нормальная регенерация раз в секунду
+			if (ShieldHP.Current < ShieldHP.Maximum)
+			{
 				ShieldHP.AddToCurrent(ShieldRegen.Current);
+			}
+			GameEvent.UiUpdate();
 		}
+
+
 	}
 }
 
@@ -3376,6 +4596,345 @@ namespace Ships
 		Rear,
 		Omni
 	}
+}
+
+
+// ---------- BattleUi.cs ----------
+using System;
+using System.Collections;
+using UnityEngine;
+
+namespace Ships
+{
+	public class BattleUi : MonoBehaviour
+	{
+		[SerializeField] private PlayerShipStatsContainerUi _playerShipStatsContainer;
+		[SerializeField] private float _updateRatio = 0.01f;
+		private void Awake()
+		{
+			_playerShipStatsContainer = GetComponentInChildren<PlayerShipStatsContainerUi>();
+		}
+
+		private void Start()
+		{
+			GameEvent.OnUiUpdate += OnUpdate;
+		}
+
+		private void OnDestroy()
+		{
+			GameEvent.OnUiUpdate -= OnUpdate;
+		}
+
+		private void OnUpdate()
+		{
+			if (_playerShipStatsContainer)
+				_playerShipStatsContainer.OnUpdate();
+		}
+	}
+}
+
+
+// ---------- PlayerShipStatsContainerUi.cs ----------
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Net.Mime;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Ships
+{
+	public class PlayerShipStatsContainerUi : MonoBehaviour
+	{
+		public List<ShieldUi> ShieldUis = new List<ShieldUi>();
+		private ShieldController _shieldController;
+		[SerializeField] private Image _hpBar;
+		private static readonly int Fill = Shader.PropertyToID("_Fill");
+
+		public void OnUpdate()
+		{
+			var ship = Battle.Instance.Player;
+			if (ship)
+			{
+				if (!_shieldController)
+					_shieldController = ship.GetComponent<ShieldController>();
+				_hpBar.material.SetFloat(Fill, ship.ShipStats.GetStat(StatType.HitPoint).Amount);
+			}
+
+			if (_shieldController)
+			{
+				foreach (var sector in _shieldController.Sectors)
+				{
+					var ui = ShieldUis.Find(x => x.Side == sector.Side);
+					ui.Image.material.SetFloat(Fill, sector.ShieldHP.Amount);
+				}
+			}
+		}
+		
+		[System.Serializable]
+		public class ShieldUi
+		{
+			public ShieldSide Side;
+			public Image Image;
+		}
+	}
+	
+}
+
+
+// ---------- SafeArea.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+	public class SafeArea : MonoBehaviour
+	{
+		private RectTransform _rectTransform;
+		private Rect _lastSafeArea = new Rect(0, 0, 0, 0);
+		private ScreenOrientation _lastOrientation;
+
+		private void Awake()
+		{
+			_rectTransform = GetComponent<RectTransform>();
+			ApplySafeArea();
+		}
+
+		private void Update()
+		{
+			if (_lastSafeArea != Screen.safeArea || _lastOrientation != Screen.orientation)
+			{
+				ApplySafeArea();
+			}
+		}
+
+		private void ApplySafeArea()
+		{
+			var safe = Screen.safeArea;
+
+			var anchorMin = safe.position;
+			var anchorMax = safe.position + safe.size;
+
+			anchorMin.x /= Screen.width;
+			anchorMin.y /= Screen.height;
+			anchorMax.x /= Screen.width;
+			anchorMax.y /= Screen.height;
+
+			_rectTransform.anchorMin = anchorMin;
+			_rectTransform.anchorMax = anchorMax;
+
+			_lastSafeArea = safe;
+			_lastOrientation = Screen.orientation;
+		}
+	}
+}
+
+
+// ---------- AutoGridCellSizer.cs ----------
+namespace Ships
+{
+	using UnityEngine;
+	using UnityEngine.UI;
+
+	[RequireComponent(typeof(GridLayoutGroup))]
+	[ExecuteInEditMode]
+	public class AutoGridCellSizer : MonoBehaviour
+	{
+		[SerializeField] private RectTransform _rect;
+		[SerializeField] private GridLayoutGroup _grid;
+
+		public int columns = 5; // число колонок
+
+		private void Update()
+		{
+			if(!_rect && !_grid)
+				return;
+			float width = _rect.rect.width;
+			float spacing = _grid.spacing.x * (columns - 1);
+			float padding = _grid.padding.left + _grid.padding.right;
+
+			float cellSize = (width - spacing - padding) / columns;
+
+			_grid.cellSize = new Vector2(cellSize, cellSize);
+		}
+	}
+
+}
+
+
+// ---------- InventoryItemVisual.cs ----------
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Ships
+{
+	public class InventoryItemVisual : MonoBehaviour
+	{
+		private InventoryItem _item;
+		private System.Action<InventoryItem> _onClick;
+
+		[Header("UI")]
+		public Image Icon;
+		public Text CountLabel;
+		public Button Button;
+
+		public void Init(InventoryItem item, System.Action<InventoryItem> onClick)
+		{
+			_item = item;
+			_onClick = onClick;
+
+			//CountLabel.text = item.Count.ToString();
+
+			Button.onClick.RemoveAllListeners();
+			Button.onClick.AddListener(() => _onClick(_item));
+		}
+	}
+}
+
+
+// ---------- InventoryVisual.cs ----------
+using System;
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Ships
+{
+	public class InventoryVisual : MonoBehaviour
+	{
+		private InventoryView _view;
+
+		public Transform ListRoot;
+		public InventoryItemVisual ItemPrefab;
+
+		public void Init(InventoryView view)
+		{
+			_view = view;
+
+			// Подписываемся
+			GameEvent.OnInventoryUpdated += UpdateVisual;
+			GameEvent.OnItemSelected += OnItemSelected;
+			UpdateVisual(_view.GetInventory());
+		}
+
+		private void OnDestroy()
+		{
+			GameEvent.OnInventoryUpdated -= UpdateVisual;
+			GameEvent.OnItemSelected -= OnItemSelected;
+		}
+
+		private void UpdateVisual(PlayerInventoryModel inventory)
+		{
+			Debug.Log("Update inventory, items: " + inventory.InventoryUniqueItems.Count);
+			foreach (Transform child in ListRoot)
+				Destroy(child.gameObject);
+
+			foreach (var item in inventory.InventoryUniqueItems)
+			{
+				Debug.Log($"Load item: {item.ItemId}");
+				var visual = Instantiate(ItemPrefab, ListRoot);
+				visual.Init(item, OnItemClicked);
+			}
+		}
+
+		private void OnItemClicked(InventoryItem item)
+		{
+			_view.InstallFromInventory(item);
+		}
+
+		private void OnItemSelected(InventoryItem item)
+		{
+			// Будущее: отображение описания предмета
+			// UI: показываем stats, описание и т.д.
+		}
+	}
+
+
+}
+
+
+// ---------- MetaVisual.cs ----------
+using UnityEngine;
+
+namespace Ships
+{
+	public class MetaVisual : MonoBehaviour
+	{
+		public ShipFitVisual ShipFitVisual;
+		public InventoryVisual InventoryVisual;
+
+		public void OpenInventory()
+		{
+			
+		}
+	}
+}
+
+
+// ---------- ShipFitSlotVisual.cs ----------
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace Ships
+{
+	public class ShipFitSlotVisual : MonoBehaviour
+	{
+		public string SlotId;
+		public bool IsWeapon;
+
+		private ShipFitView _view;
+
+		public void Init(ShipFitView view)
+		{
+			_view = view;
+		}
+
+		public void OnClick()
+		{
+			_view.OnSlotClicked(SlotId, IsWeapon);
+		}
+
+		public void SetIcon(Sprite sprite)
+		{
+			GetComponent<Image>().sprite = sprite;
+		}
+	}
+}
+
+
+// ---------- ShipFitVisual.cs ----------
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Ships
+{
+	public class ShipFitVisual : MonoBehaviour
+	{
+		private ShipFitView _view;
+		public List<ShipFitSlotVisual> WeaponSlots = new();  // 4 UI слота
+		public List<ShipFitSlotVisual> ActiveSlots = new();  // 4 UI слота
+		public List<ShipFitSlotVisual> PassiveSlots = new(); // 4 UI слота
+		public List<ShipFitSlotVisual> HullSlots = new();    // 4 UI слота
+
+		public void Init(ShipFitView view)
+		{
+			_view = view;
+		}
+
+		public void OnWeaponSlotClicked(string slotId)
+		{
+			_view.OnSlotClicked(slotId, isWeaponSlot: true);
+		}
+
+		public void UpdateSlotIcon(string slotId, Sprite icon)
+		{
+			// Находит UI-элемент, обновляет спрайт
+		}
+
+		public void UpdateSlot(string arg1, bool arg2)
+		{
+			
+		}
+	}
+
 }
 
 
