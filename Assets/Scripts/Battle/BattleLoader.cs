@@ -1,10 +1,10 @@
-﻿namespace Ships
+﻿namespace Tanks
 {
 	using UnityEngine;
 
 	public class BattleLoader : MonoBehaviour
 	{
-		public GameObject PlayerShipPrefab;
+		public GameObject PlayerTankPrefab;
 
 		private void Start()
 		{
@@ -16,19 +16,19 @@
 			var fit = MetaBattleBridge.LastFit;
 			if (fit == null) return;
 
-			var hull = HullLoader.Load(fit.SelectedShipId);
-			var go = Instantiate(PlayerShipPrefab, Vector3.zero, Quaternion.identity);
-			var ship = go.GetComponent<PlayerShip>();
+			var hull = HullLoader.Load(fit.SelectedTankId);
+			var go = Instantiate(PlayerTankPrefab, Vector3.zero, Quaternion.identity);
+			var tank = go.GetComponent<PlayerTank>();
 
-			ship.LoadShipFromConfig(fit.SelectedShipId);
-			ship.Init();
+			tank.LoadShipFromConfig(fit.SelectedTankId);
+			tank.Init();
 
-			InstallFit(ship, fit.Fit);
+			InstallFit(tank, fit.Fit);
 		}
 
-		private void InstallFit(PlayerShip ship, ShipFitModel fit)
+		private void InstallFit(PlayerTank tank, TankFitModel fit)
 		{
-			foreach (var slot in ship.WeaponController.Weapons)
+			foreach (var slot in tank.WeaponController.Weapons)
 			{
 				//if (!fit.WeaponSlots.TryGetValue(slot.name, out var itemId))
 				//	continue;

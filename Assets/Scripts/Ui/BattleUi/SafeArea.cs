@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public class SafeArea : MonoBehaviour
 	{

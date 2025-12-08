@@ -5,14 +5,14 @@ using System.Linq;
 using System.Reflection;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
-	public abstract class ShipBase : MonoBehaviour, ITargetable
+	public abstract class TankBase : MonoBehaviour, ITargetable
 	{
 		public ShipVisual _visual;
 		public SideType SideType;
 		[SerializeField] private TeamMask _team;
-		public Stats ShipStats;
+		public Stats TankStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
 		public WeaponController WeaponController;
@@ -32,7 +32,7 @@ namespace Ships
 		{
 			get
 			{
-				if (ShipStats.TryGetStat(StatType.HitPoint, out var hp))
+				if (TankStats.TryGetStat(StatType.HitPoint, out var hp))
 					return hp.Current > 0;
 				return true;
 			}
@@ -40,7 +40,7 @@ namespace Ships
 
 		public virtual void LoadShipFromConfig(string fileName)
 		{
-			ShipStats = new Stats();
+			TankStats = new Stats();
 			var data = HullLoader.Load(fileName);
 			var fields = typeof(StatContainer).GetFields(
 				BindingFlags.Public | BindingFlags.Instance);
@@ -51,7 +51,7 @@ namespace Ships
 				if (!Enum.TryParse(fieldName, out StatType statType))
 					continue;
 				var value = (float)f.GetValue(data.stats);
-				ShipStats.AddStat(new Stat(statType, value));
+				TankStats.AddStat(new Stat(statType, value));
 			}
 			
 			if (TryGetComponent<ShieldController>(out var controller))
@@ -137,11 +137,11 @@ namespace Ships
 			}
 
 			WeaponController.Init(SideType);
-			Battle.Instance.AllShips.Add(this);
+			Battle.Instance.AllTanks.Add(this);
 			StartCoroutine(TickEffects());
 			// отправляем визуализаторам данные статов
 			StatVisuals.Clear();
-			foreach (var kvp in ShipStats.All)
+			foreach (var kvp in TankStats.All)
 			{
 				StatVisuals.Add(new StatVisual { Name = kvp.Key });
 			}
@@ -212,7 +212,7 @@ namespace Ships
 				yield return new WaitForSeconds(1f);
 
 				// 1) Тик модификаторов статов
-				ShipStats.Tick();
+				TankStats.Tick();
 
 				// 2) Тик эффектов
 				for (int i = ActiveEffects.Count - 1; i >= 0; i--)
@@ -236,7 +236,7 @@ namespace Ships
 			if (!IsAlive)
 			{
 				if (SideType == SideType.Enemy)
-					Battle.Instance.AllShips.Remove(this);
+					Battle.Instance.AllTanks.Remove(this);
 
 				Destroy(gameObject);
 				return;
@@ -248,7 +248,7 @@ namespace Ships
 			_lastPos = pos;
 
 			// обновляем визуальное состояние статов
-			foreach (var kvp in ShipStats.All)
+			foreach (var kvp in TankStats.All)
 			{
 				var statType = kvp.Key;
 				var stat = kvp.Value;
@@ -290,12 +290,12 @@ namespace Ships
 
 		public bool TryGetStat(StatType name, out IStat stat)
 		{
-			bool result = ShipStats.TryGetStat(name, out var s);
+			bool result = TankStats.TryGetStat(name, out var s);
 			stat = s;
 			return result;
 		}
 
-		public IStat GetStat(StatType name) => ShipStats.GetStat(name);
-		public IEnumerable<IStat> GetAllStats() => ShipStats.All.Values;
+		public IStat GetStat(StatType name) => TankStats.GetStat(name);
+		public IEnumerable<IStat> GetAllStats() => TankStats.All.Values;
 	}
 }

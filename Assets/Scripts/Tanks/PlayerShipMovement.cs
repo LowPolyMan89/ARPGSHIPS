@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
     public class PlayerShipMovement : MonoBehaviour
     {
@@ -9,7 +9,7 @@ namespace Ships
 
         private Vector2 _desiredDirection;
 
-        private ShipBase _ship;
+        private TankBase _tank;
         private PlayerInputSystem _hw;
         private PlayerInputUI _ui;
 
@@ -24,7 +24,7 @@ namespace Ships
 
         private void Awake()
         {
-            _ship = GetComponent<ShipBase>();
+            _tank = GetComponent<TankBase>();
             _hw = FindObjectOfType<PlayerInputSystem>();
             _ui = FindObjectOfType<PlayerInputUI>();
         }
@@ -66,7 +66,7 @@ namespace Ships
             transform.rotation = Quaternion.RotateTowards(
                 Quaternion.Euler(0, 0, currentAngle),
                 Quaternion.Euler(0, 0, targetAngle),
-                _ship.GetStat(StatType.TurnSpeed).Current * Time.deltaTime
+                _tank.GetStat(StatType.TurnSpeed).Current * Time.deltaTime
             );
         }
 
@@ -75,9 +75,9 @@ namespace Ships
         // ============================================================
         private void HandleMovement()
         {
-            var maxSpeed   = _ship.GetStat(StatType.MoveSpeed).Current;
-            var accel      = _ship.GetStat(StatType.Acceleration).Current;
-            var brakePower = _ship.GetStat(StatType.BrakePower).Current;
+            var maxSpeed   = _tank.GetStat(StatType.MoveSpeed).Current;
+            var accel      = _tank.GetStat(StatType.Acceleration).Current;
+            var brakePower = _tank.GetStat(StatType.BrakePower).Current;
 
             var currentSpeed = velocity.magnitude;
             var forward = transform.up;

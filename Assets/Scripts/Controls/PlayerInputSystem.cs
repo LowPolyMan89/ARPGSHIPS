@@ -1,4 +1,4 @@
-﻿using Ships;
+﻿using Tanks;
 using UnityEngine;
 
 public class PlayerInputSystem : MonoBehaviour, IPlayerInput

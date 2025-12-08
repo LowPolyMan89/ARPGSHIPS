@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public class ShieldHitbox : MonoBehaviour
 	{
@@ -12,7 +12,7 @@ namespace Ships
 			if (!other.TryGetComponent<Projectile>(out var proj))
 				return;
 
-			if (!HitRules.CanHit(proj.HitMask, Controller.Ship.Team))
+			if (!HitRules.CanHit(proj.HitMask, Controller._tank.Team))
 				return;
 
 			Vector2 hitPoint = proj.transform.position;
@@ -24,7 +24,7 @@ namespace Ships
 				armorPierce:  s?.Current ?? 0,
 				hitPoint:     hitPoint,
 				sourceWeapon: proj.SourceWeapon,
-				target:       Controller.Ship,
+				target:       Controller._tank,
 				wasShieldHit: true
 			);
 

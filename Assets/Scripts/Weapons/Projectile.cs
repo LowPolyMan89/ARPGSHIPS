@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Ships
+namespace Tanks
 {
 	using UnityEngine;
 
@@ -12,7 +12,7 @@ namespace Ships
 		private float damage;
 		private float armorPierce;
 		public WeaponBase SourceWeapon;
-		public ShipBase Owner;
+		public TankBase Owner;
 		public TeamMask HitMask;
 		[SerializeField] private Vector2 moveDir;
 

@@ -1,8 +1,8 @@
 ﻿using System.IO;
-using Ships.Ships;
+using Tanks.Ships;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public static class MetaSaveSystem
 	{

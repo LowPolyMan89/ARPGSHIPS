@@ -1,7 +1,7 @@
 ﻿using System.Collections;
 using UnityEngine;
 
-namespace Ships.HitEffect
+namespace Tanks.HitEffect
 {
     public class DamageOverTimeEffect : IStackableEffect
     {
@@ -33,7 +33,7 @@ namespace Ships.HitEffect
             if (Random.value > chance)
                 return;
 
-            if (target is not ShipBase ship)
+            if (target is not TankBase ship)
                 return;
 
             // 1) Стакаем/обновляем эффект на корабле
@@ -48,25 +48,25 @@ namespace Ships.HitEffect
             ship.StartCoroutine(DoDamageOverTime(ship));
         }
 
-        private IEnumerator DoDamageOverTime(ShipBase ship)
+        private IEnumerator DoDamageOverTime(TankBase tank)
         {
             while (true)
             {
-                var eff = ship.GetEffect(EffectId);
+                var eff = tank.GetEffect(EffectId);
 
                 // Эффект исчез → снимаем
                 if (eff == null)
                     break;
 
                 // наносим фиксированный урон (НЕ зависит от стаков)
-                if (ship.TryGetStat(StatType.HitPoint, out var hpStat))
+                if (tank.TryGetStat(StatType.HitPoint, out var hpStat))
                     hpStat.AddToCurrent(-damagePerTick);
 
                 yield return new WaitForSeconds(1f);
             }
 
             // эффект закончился → символически убираем DoT из активных потоков
-            ship.RunningDotEffects.Remove(EffectId);
+            tank.RunningDotEffects.Remove(EffectId);
         }
     }
 }

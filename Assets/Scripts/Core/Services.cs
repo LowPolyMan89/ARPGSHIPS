@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ships
+namespace Tanks
 {
 	public static class Services
 	{

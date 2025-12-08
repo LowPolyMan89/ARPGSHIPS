@@ -1,14 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Ships
+namespace Tanks
 {
 	[Serializable]
 	public class MetaState
 	{
-		public string SelectedShipId;
-		public ShipFitModel Fit = new ShipFitModel();
-		public List<ShipFitModel> PlayerShipFits = new ();
+		public string SelectedTankId;
+		public TankFitModel Fit = new TankFitModel();
+		public List<TankFitModel> PlayerShipFits = new ();
 		public PlayerInventoryModel InventoryModel = new PlayerInventoryModel();
 	}
 

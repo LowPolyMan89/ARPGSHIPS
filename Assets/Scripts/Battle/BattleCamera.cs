@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public class BattleCamera : MonoBehaviour
 	{
@@ -28,7 +28,7 @@ namespace Ships
 
 		private void FollowPlayer()
 		{
-			PlayerShip player = Battle.Instance.Player;
+			PlayerTank player = Battle.Instance.Player;
 
 			Vector2 basePos = player.transform.position;
 			Vector2 offset = player.Velocity.normalized * moveOffsetStrength;

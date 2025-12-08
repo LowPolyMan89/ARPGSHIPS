@@ -2,8 +2,8 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.IO;
-using Ships;
-using Ships.Ships;
+using Tanks;
+using Tanks.Ships;
 
 public class ItemGeneratorWindow : EditorWindow
 {

@@ -2,7 +2,7 @@
 using System.IO;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	using System.IO;
 	using UnityEngine;

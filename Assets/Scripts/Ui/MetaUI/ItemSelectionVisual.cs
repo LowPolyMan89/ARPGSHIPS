@@ -3,7 +3,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Ships
+namespace Tanks
 {
 	public class ItemSelectionVisual : MonoBehaviour
 	{

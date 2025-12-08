@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Ships
+namespace Tanks
 {
 	[Serializable]
 	public class LootTable

@@ -1,10 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Ships
+namespace Tanks
 {
 	[Serializable]
-	public class ShipFitModel
+	public class TankFitModel
 	{
 		public string ShipId;
 		public List<SelectedShipWeapon> SelectedShipWeapons = new ();

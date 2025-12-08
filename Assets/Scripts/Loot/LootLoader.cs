@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public static class LootLoader
 	{

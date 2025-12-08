@@ -5,7 +5,7 @@ using System.Net.Mime;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Ships
+namespace Tanks
 {
 	public class PlayerShipStatsContainerUi : MonoBehaviour
 	{
@@ -21,7 +21,7 @@ namespace Ships
 			{
 				if (!_shieldController)
 					_shieldController = ship.GetComponent<ShieldController>();
-				_hpBar.material.SetFloat(Fill, ship.ShipStats.GetStat(StatType.HitPoint).Amount);
+				_hpBar.material.SetFloat(Fill, ship.TankStats.GetStat(StatType.HitPoint).Amount);
 			}
 
 			if (_shieldController)

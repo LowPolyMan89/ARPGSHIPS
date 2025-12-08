@@ -1,8 +1,8 @@
 ﻿using System.Collections.Generic;
 
-namespace Ships
+namespace Tanks
 {
-	public class PlayerShip : ShipBase
+	public class PlayerTank : TankBase
 	{
 		
 		private void Awake()

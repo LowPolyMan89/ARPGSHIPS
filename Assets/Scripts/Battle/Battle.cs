@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public class Battle : MonoBehaviour
 	{
@@ -11,9 +11,9 @@ namespace Ships
 		public Vector2 MinBounds = new Vector2(-50, -50);
 		public Vector2 MaxBounds = new Vector2(50, 50);
 		[Header("Runtime")]
-		public PlayerShip Player;
+		public PlayerTank Player;
 		public BattleCamera CameraController;
-		public List<ShipBase> AllShips = new();
+		public List<TankBase> AllTanks = new();
 		public Transform PlayerSpawnPosition;
 
 		private void Awake()

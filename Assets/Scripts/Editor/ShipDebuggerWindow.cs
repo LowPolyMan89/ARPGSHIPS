@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
-using Ships;
+using Tanks;
 
 public class ShipDebuggerWindow : EditorWindow
 {
@@ -54,7 +54,7 @@ public class ShipDebuggerWindow : EditorWindow
 
         scroll = EditorGUILayout.BeginScrollView(scroll);
 
-        var ships = FindObjectsByType<ShipBase>(FindObjectsSortMode.None);
+        var ships = FindObjectsByType<TankBase>(FindObjectsSortMode.None);
 
         foreach (var ship in ships)
         {
@@ -65,38 +65,38 @@ public class ShipDebuggerWindow : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 
-    private void DrawShip(ShipBase ship)
+    private void DrawShip(TankBase tank)
     {
         GUILayout.BeginVertical(box);
 
-        EditorGUILayout.LabelField(ship.name, header);
+        EditorGUILayout.LabelField(tank.name, header);
 
         GUILayout.BeginHorizontal();
         GUILayout.Box("ICON", GUILayout.Width(80), GUILayout.Height(80));
 
         GUILayout.BeginVertical();
-        DrawStats(ship);
+        DrawStats(tank);
         GUILayout.Space(5);
-        DrawActiveEffects(ship);
+        DrawActiveEffects(tank);
         GUILayout.EndVertical();
 
         GUILayout.EndHorizontal();
 
         GUILayout.Space(10);
-        DrawWeapons(ship);
+        DrawWeapons(tank);
 
         GUILayout.EndVertical();
     }
 
-    private void DrawStats(ShipBase ship)
+    private void DrawStats(TankBase tank)
     {
-        foreach (var kv in ship.ShipStats.All)
+        foreach (var kv in tank.TankStats.All)
         {
             Stat stat = kv.Value;
             EditorGUILayout.LabelField($"{kv.Key}: {stat.Current}/{stat.Maximum}");
         }
 
-        foreach (var kv in ship.ShipStats.All)
+        foreach (var kv in tank.TankStats.All)
         {
             Stat stat = kv.Value;
 
@@ -130,15 +130,15 @@ public class ShipDebuggerWindow : EditorWindow
         };
     }
 
-    private void DrawActiveEffects(ShipBase ship)
+    private void DrawActiveEffects(TankBase tank)
     {
-        if (ship.ActiveEffects.Count == 0)
+        if (tank.ActiveEffects.Count == 0)
         {
             EditorGUILayout.LabelField("No active effects", EditorStyles.miniLabel);
             return;
         }
 
-        foreach (var eff in ship.ActiveEffects)
+        foreach (var eff in tank.ActiveEffects)
         {
             EditorGUILayout.LabelField(
                 $"{eff.EffectId} x{eff.Stacks} ({eff.Remaining:F1}/{eff.Duration:F1}s)",
@@ -147,9 +147,9 @@ public class ShipDebuggerWindow : EditorWindow
         }
     }
 
-    private void DrawWeapons(ShipBase ship)
+    private void DrawWeapons(TankBase tank)
     {
-        if (ship.WeaponController == null)
+        if (tank.WeaponController == null)
         {
             EditorGUILayout.LabelField("No weapons", EditorStyles.miniLabel);
             return;
@@ -157,7 +157,7 @@ public class ShipDebuggerWindow : EditorWindow
 
         EditorGUILayout.LabelField("Weapons:", header);
 
-        foreach (var slot in ship.WeaponController.Weapons)
+        foreach (var slot in tank.WeaponController.Weapons)
         {
             if (slot == null || slot.MountedWeapon == null)
             {

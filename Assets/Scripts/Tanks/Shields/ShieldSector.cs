@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	[System.Serializable]
 	public class ShieldSector

@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Ships
+namespace Tanks
 {
 	public interface IStatsProvider
 	{

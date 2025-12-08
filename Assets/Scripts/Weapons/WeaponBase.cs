@@ -1,7 +1,7 @@
 using System;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	using UnityEngine;
 

@@ -1,4 +1,4 @@
-﻿namespace Ships
+﻿namespace Tanks
 {
 	public enum WeaponSize
 	{

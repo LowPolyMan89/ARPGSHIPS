@@ -4,17 +4,17 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Ships
+namespace Tanks
 {
     public class ShieldController : MonoBehaviour
     {
         public List<ShieldSector> Sectors = new();
         public List<ShieldSectorVisual> Visuals = new();
-        public ShipBase Ship;
+        public TankBase _tank;
 
         private void Awake()
         {
-            Ship = GetComponent<ShipBase>();
+            _tank = GetComponent<TankBase>();
             StartCoroutine(Update1Sec());
         }
 

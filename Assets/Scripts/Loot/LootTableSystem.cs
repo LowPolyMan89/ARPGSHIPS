@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public static class LootTableSystem
 	{

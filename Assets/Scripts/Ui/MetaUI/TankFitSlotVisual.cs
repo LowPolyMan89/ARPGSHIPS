@@ -1,16 +1,16 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
 
-namespace Ships
+namespace Tanks
 {
-	public class ShipFitSlotVisual : MonoBehaviour
+	public class TankFitSlotVisual : MonoBehaviour
 	{
 		public string SlotId;
 		public bool IsWeapon;
 
-		private ShipFitView _view;
+		private TankFitView _view;
 
-		public void Init(ShipFitView view)
+		public void Init(TankFitView view)
 		{
 			_view = view;
 		}

@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace Ships
+namespace Tanks
 {
 	using System;
 using System.IO;

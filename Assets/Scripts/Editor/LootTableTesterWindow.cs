@@ -2,7 +2,7 @@
 using UnityEditor;
 using System.Collections.Generic;
 using System.IO;
-using Ships;
+using Tanks;
 
 public class LootTableTesterWindow : EditorWindow
 {

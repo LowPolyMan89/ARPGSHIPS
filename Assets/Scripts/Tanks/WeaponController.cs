@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	[System.Serializable]
 	public class WeaponController
@@ -18,14 +18,14 @@ namespace Ships
 		}
 		public void OnUpdate()
 		{
-			var ships = Battle.Instance.AllShips;
+			var tanks = Battle.Instance.AllTanks;
 
 			foreach (var slot in Weapons)
 			{
 				if (slot?.WeaponTargeting == null)
 					continue;
 
-				slot.WeaponTargeting.UpdateTargetList(ships);
+				slot.WeaponTargeting.UpdateTargetList(tanks);
 			}
 		}
 	}

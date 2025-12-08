@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace Ships.Editor
+namespace Tanks.Editor
 {
 	public class ItemGeneratorEditor
 	{

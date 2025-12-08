@@ -1,6 +1,6 @@
-﻿using Ships.Ships;
+﻿using Tanks.Ships;
 
-namespace Ships
+namespace Tanks
 {
 	using UnityEngine;
 
@@ -12,9 +12,9 @@ namespace Ships
 
 		[SerializeField] private MetaVisual _metaVisual;
 
-		private ShipFitView _shipFitView;
+		private TankFitView _tankFitView;
 		private InventoryView _inventoryView;
-		public ShipFitView ShipFitView => _shipFitView;
+		public TankFitView TankFitView => _tankFitView;
 		public MetaVisual MetaVisual => _metaVisual;
 
 		private void Awake()
@@ -26,10 +26,10 @@ namespace Ships
 			State = MetaSaveSystem.Load();
 
 			_inventoryView = new InventoryView();
-			_shipFitView = new ShipFitView();
+			_tankFitView = new TankFitView();
 
 			_inventoryView.Init(State);
-			_shipFitView.Init(State, _inventoryView);
+			_tankFitView.Init(State, _inventoryView);
 			
 			if (State.InventoryModel.InventoryUniqueItems.Count == 0)
 			{
@@ -37,7 +37,7 @@ namespace Ships
 				MetaSaveSystem.Save(State);
 			}
 
-			_metaVisual.ShipFitVisual.Init(_shipFitView);
+			_metaVisual._tankFitVisual.Init(_tankFitView);
 			_metaVisual.InventoryVisual.Init(_inventoryView);
 		}
 		private void GiveStarterItems()

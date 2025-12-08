@@ -1,6 +1,6 @@
 ﻿{
-  "CurrentShipModel": {
-    "ShipId": "ship_corvette_1",
+  "CurrentTankModel": {
+    "TankId": "ship_corvette_1",
     "SelectedShipWeapons": [
       { "Id": "weapon_laser_small_1", "SlotIndex": 0 },
       { "Id": "weapon_railgun_small_2", "SlotIndex": 1 }

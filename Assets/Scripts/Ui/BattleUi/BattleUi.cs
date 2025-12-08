@@ -2,7 +2,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace Ships
+namespace Tanks
 {
 	public class BattleUi : MonoBehaviour
 	{

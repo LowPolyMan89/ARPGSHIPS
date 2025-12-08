@@ -1,8 +1,7 @@
 {
-  "id": "hull_test_frigate",
-  "name": "Test Frigate",
+  "id": "hull_test_t34",
+  "name": "Test T34",
   "cost": 0,
-
   "stats": {
     "HitPoint": 500,
     "Armor": 5,
@@ -13,8 +12,7 @@
     "Acceleration": 4,
     "BrakePower": 5
   },
-  
-  "shields":[
+  "shields": [
     {
       "id": "Front",
       "value": 25,
@@ -40,7 +38,7 @@
       "regeneration": 2
     }
   ],
-
+  "Engine": "",
   "weaponSlots": [
     "S",
     "S",
@@ -49,7 +47,6 @@
   "activeSlots": 1,
   "passiveSlots": 3,
   "hullSlots": 1,
-
   "uniqueEffects": [],
   "leveling": []
 }

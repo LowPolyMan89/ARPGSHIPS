@@ -1,11 +1,11 @@
 ﻿using UnityEngine;
 using UnityEngine.EventSystems;
 
-namespace Ships
+namespace Tanks
 {
 	public class MetaVisual : MonoBehaviour
 	{
-		public ShipFitVisual ShipFitVisual;
+		public TankFitVisual _tankFitVisual;
 		public InventoryVisual InventoryVisual;
 		[SerializeField] private ItemSelectionVisual _itemSelectionVisual;
 

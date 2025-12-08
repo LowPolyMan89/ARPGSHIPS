@@ -1,4 +1,4 @@
-﻿using Ships;
+﻿using Tanks;
 using UnityEngine;
 
 public class ShieldSectorVisual : MonoBehaviour

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Ships
+namespace Tanks
 {
     public class WeaponTargeting : MonoBehaviour
     {
@@ -33,7 +33,7 @@ namespace Ships
                     continue;
 
                 // 2) принадлежит ли к той команде, по которой можно стрелять?
-                if (!HitRules.CanHit(Slot.HitMask, (t as ShipBase).Team))
+                if (!HitRules.CanHit(Slot.HitMask, (t as TankBase).Team))
                     continue;
 
                 allTargets.Add(t);

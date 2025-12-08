@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Ships.HitEffect
+namespace Tanks.HitEffect
 {
 	public class SlowEffect : IStackableEffect
 	{
@@ -24,7 +24,7 @@ namespace Ships.HitEffect
 		public void Apply(ITargetable target, float damage, WeaponBase sourceWeapon)
 		{
 			if (Random.value > chance) return;
-			if (!(target is ShipBase ship)) return;
+			if (!(target is TankBase ship)) return;
 
 			// 1) Обновить стаки
 			ship.AddOrStackEffect(this, duration);

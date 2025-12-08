@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Ships
+namespace Tanks
 {
 	using System;
 	using System.Collections.Generic;
