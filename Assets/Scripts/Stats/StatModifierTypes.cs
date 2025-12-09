@@ -1,4 +1,4 @@
-﻿namespace Tanks
+namespace Tanks
 {
 	/// <summary>
 	/// Тип изменения величины.

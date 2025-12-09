@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -13,6 +13,9 @@ namespace Tanks.Mobs
 			TankStats.AddStat(new Stat(StatType.HitPoint, 100));
 			TankStats.AddStat(new Stat(StatType.Shield, 50));
 			TankStats.AddStat(new Stat(StatType.MoveSpeed, 10));
+			AimSystem = new AiTurretAimSystem();
+			AimSystem.Init(this);
+			AimSystem.Turret = Turret;
 			Init();
 			LoadTankFromPrefab();
 		}

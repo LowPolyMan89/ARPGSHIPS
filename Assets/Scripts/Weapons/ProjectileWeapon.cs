@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace Tanks
 {
@@ -11,18 +11,19 @@ namespace Tanks
 
 		protected override void Shoot(Transform target)
 		{
-			float damage = RollDamage();
-			float speed = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
+			var dmg = RollDamage();
+			var spd = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
+			var ap  = Model.Stats.GetStat(StatType.ArmorPierce).Current;
 
-			if (speed <= 0.01f)
-			{
-				DoInstantHit(target, damage);
-			}
-			else
-			{
-				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				proj.Init((Vector2)FirePoint.right, damage, speed, Model.Stats.GetStat(StatType.ArmorPierce).Current, this);
-			}
+			var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
+
+			proj.Init(
+				direction: FirePoint.forward,   // ВАЖНО: 3D НАПРАВЛЕНИЕ
+				dmg,
+				spd,
+				ap,
+				this
+			);
 		}
 
 		private void DoInstantHit(Transform target, float dmg)

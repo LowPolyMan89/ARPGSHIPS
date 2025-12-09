@@ -3,18 +3,19 @@ using UnityEngine.InputSystem;
 
 namespace Tanks
 {
-	public class TurretAimSystem
+	public class PlayerTurretAimSystem : TurretAimSystem
 	{
-		public TankTurret Turret;
-
 		private Camera _cam;
 
-		public void Init()
+		/// <summary>
+		/// Возвращает точку на земле (XZ), куда смотрит курсор.
+		/// </summary>
+		public override void Init(TankBase tankBase)
 		{
 			_cam = Camera.main;
 		}
 
-		public void Update()
+		public override void Update()
 		{
 			if (Turret == null)
 				return;
@@ -27,9 +28,6 @@ namespace Tanks
 			Turret.Rotate(dir);
 		}
 
-		/// <summary>
-		/// Возвращает точку на земле (XZ), куда смотрит курсор.
-		/// </summary>
 		private Vector3? GetMouseWorldPoint()
 		{
 			Vector2 mousePos = Mouse.current.position.ReadValue();

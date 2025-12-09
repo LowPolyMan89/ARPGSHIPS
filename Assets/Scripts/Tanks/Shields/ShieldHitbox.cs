@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Tanks
 {
@@ -7,7 +7,7 @@ namespace Tanks
 		public ShieldSide Side;
 		public ShieldController Controller;
 
-		private void OnTriggerEnter2D(Collider2D other)
+		private void OnTriggerEnter(Collider other)
 		{
 			if (!other.TryGetComponent<Projectile>(out var proj))
 				return;

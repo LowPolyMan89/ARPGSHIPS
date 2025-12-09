@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 using Tanks;
@@ -6,11 +6,9 @@ using Tanks;
 public class ShipDebuggerWindow : EditorWindow
 {
     private Vector2 scroll;
-
     GUIStyle redBold;
     GUIStyle header;
     GUIStyle box;
-
     [MenuItem("Tools/ARPG SHIPS/Ship Debugger")]
     public static void Open()
     {
@@ -68,23 +66,17 @@ public class ShipDebuggerWindow : EditorWindow
     private void DrawShip(TankBase tank)
     {
         GUILayout.BeginVertical(box);
-
         EditorGUILayout.LabelField(tank.name, header);
-
         GUILayout.BeginHorizontal();
         GUILayout.Box("ICON", GUILayout.Width(80), GUILayout.Height(80));
-
         GUILayout.BeginVertical();
         DrawStats(tank);
         GUILayout.Space(5);
         DrawActiveEffects(tank);
         GUILayout.EndVertical();
-
         GUILayout.EndHorizontal();
-
         GUILayout.Space(10);
         DrawWeapons(tank);
-
         GUILayout.EndVertical();
     }
 

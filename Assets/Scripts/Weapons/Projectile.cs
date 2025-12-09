@@ -7,54 +7,55 @@ namespace Tanks
 
 	public class Projectile : MonoBehaviour
 	{
-		private Transform target;
-		private float speed;
-		private float damage;
-		private float armorPierce;
+		private Transform _target;
+		private float _speed;
+		private float _damage;
+		private float _pierce;
 		public WeaponBase SourceWeapon;
 		public TankBase Owner;
 		public TeamMask HitMask;
-		[SerializeField] private Vector2 moveDir;
+		[SerializeField] private Vector3 _moveDir;
+		public float Damage => _damage;
 
-		public void Init(Vector2 direction, float dmg, float spd, float ap, WeaponBase source)
+		public void Init(Vector3 direction, float dmg, float spd, float armorPierce, WeaponBase source)
 		{
-			damage = dmg;
-			speed = spd;
-			armorPierce = ap;
+			_moveDir = direction.normalized;
+			_speed = spd;
+			_damage = dmg;
+			_pierce = armorPierce;
 			SourceWeapon = source;
-			moveDir = direction.normalized;
-			HitMask = SourceWeapon.Slot.HitMask;
+			HitMask = source.Slot.HitMask;
 		}
 
-		void Update()
+		private void Update()
 		{
-			transform.position += (Vector3)(moveDir * speed * Time.deltaTime);
+			transform.position += _moveDir * _speed * Time.deltaTime;
 		}
 
-		public float Damage => damage;
+		private void OnTriggerEnter(Collider other)
+		{
+			if (!other.TryGetComponent<ITargetable>(out var t))
+				return;
+
+			if (!HitRules.CanHit(HitMask, t.Team))
+				return;
+
+			var calc = DamageCalculator.CalculateHit(
+				projectileDamage: _damage,
+				armorPierce: _pierce,
+				hitPoint: transform.position,
+				sourceWeapon: SourceWeapon,
+				target: t,
+				wasShieldHit: false
+			);
+
+			GameEvent.TakeDamage(calc);
+			t.TakeDamage(calc);
+			Destroy(gameObject);
+		}
 
 		public void DestroySelf()
 		{
-			Destroy(gameObject);
-		}
-		private void OnTriggerEnter2D(Collider2D other)
-		{
-			if (!other.TryGetComponent<ITargetable>(out var targetable))
-				return;
-			if (!HitRules.CanHit(HitMask, targetable.Team))
-				return;
-		
-			var calc = DamageCalculator.CalculateHit(
-				projectileDamage: damage,
-				armorPierce: armorPierce,
-				hitPoint: transform.position,
-				sourceWeapon: SourceWeapon,
-				target: targetable,
-				wasShieldHit: false
-			);
-			
-			GameEvent.TakeDamage(calc);
-			targetable.TakeDamage(calc);
 			Destroy(gameObject);
 		}
 	}

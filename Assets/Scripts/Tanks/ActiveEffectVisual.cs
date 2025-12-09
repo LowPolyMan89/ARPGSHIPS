@@ -1,4 +1,4 @@
-﻿namespace Tanks
+namespace Tanks
 {
 	[System.Serializable]
 	public class ActiveEffectVisual

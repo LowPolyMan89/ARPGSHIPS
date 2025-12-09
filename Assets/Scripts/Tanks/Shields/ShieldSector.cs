@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Tanks
 {
@@ -6,16 +6,13 @@ namespace Tanks
 	public class ShieldSector
 	{
 		public ShieldSide Side;
-
-		public float StartAngle;
-		public float EndAngle;
 		public float MaxHP;
 		public float Regen;
 		public float RestoreDelayTime;
 		public Stat ShieldHP;
 		public Stat ShieldRegen;
 		public Stat RestoreDelay;
-		public Collider2D Collider;
+		public Collider Collider;
 		public bool IsRestoring;
 		public float CurrentRestoreTime;
 		public float DamageResist = 0f;
@@ -33,18 +30,6 @@ namespace Tanks
 			ShieldHP = new Stat(StatType.Shield, hp);
 			ShieldRegen = new Stat(StatType.ShieldRegen, regen);
 			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, restoreDelay);
-		}
-
-		public bool ContainsAngle(float angle)
-		{
-			if (StartAngle <= EndAngle)
-			{
-				return angle >= StartAngle && angle <= EndAngle;
-			}
-			else
-			{
-				return angle >= StartAngle || angle <= EndAngle;
-			}
 		}
 
 		public float Absorb(float damage)

@@ -1,26 +1,32 @@
-﻿using System;
+using System;
 
 namespace Tanks
 {
 	using UnityEngine;
 
-	public class WeaponSlot : MonoBehaviour
+	public class WeaponSlot : MonoBehaviour, IAimOrigin
 	{
 		public Transform BaseTransform;
-		public float AllowedAngle = 45f;
+		[SerializeField] private float _allowedAngle = 45f;
 		public float RotationSpeed = 180f;
 		public bool IsTurret = false;
 		public WeaponBase MountedWeapon;
 		public WeaponTargeting WeaponTargeting;
 		public SideType Side;
-		public TeamMask HitMask;
+		[SerializeField] private TeamMask _hitMask;
 		public WeaponSize SlotSize;
+
+		public Vector3 Position => transform.position;
+		public Vector3 Forward => transform.forward;
+		public TeamMask HitMask => _hitMask;
+		public float AllowedAngle => _allowedAngle;
+		public float DetectionRange => MountedWeapon ? MountedWeapon.Model.Stats.GetStat(StatType.FireRange).Current : 9999f;
 
 		public void Init(SideType sideType)
 		{
 			Side = sideType;
 
-			HitMask = sideType switch
+			_hitMask = sideType switch
 			{
 				SideType.Player => TeamMask.Enemy,
 				SideType.Enemy => TeamMask.Player,
@@ -32,14 +38,16 @@ namespace Tanks
 			{
 				MountedWeapon = transform.GetComponentInChildren<WeaponBase>();
 				WeaponTargeting = transform.GetComponentInChildren<WeaponTargeting>();
+				if (WeaponTargeting && sideType != SideType.Player)
+					WeaponTargeting.Mode = WeaponTargeting.AimMode.Auto;
 			}
 
 			if (MountedWeapon)
 			{
 				Stats stats = new Stats();
-				stats.AddStat(new Stat(StatType.FireRange, 5));
-				stats.AddStat(new Stat(StatType.FireRate, 3f));
-				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
+				stats.AddStat(new Stat(StatType.FireRange, 50));
+				stats.AddStat(new Stat(StatType.FireRate, 1f));
+				stats.AddStat(new Stat(StatType.ProjectileSpeed, 60));
 				stats.AddStat(new Stat(StatType.MinDamage, 5));
 				stats.AddStat(new Stat(StatType.MaxDamage, 10));
 				stats.AddStat(new Stat(StatType.Accuracy, 0.05f));

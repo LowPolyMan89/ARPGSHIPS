@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace Tanks
@@ -9,8 +9,8 @@ namespace Tanks
 		{
 			LoadShipFromConfig("hull_test_frigate");
 			Init();
-			AimSystem = new TurretAimSystem();
-			AimSystem.Init();
+			AimSystem = new PlayerTurretAimSystem();
+			AimSystem.Init(this);
 			AimSystem.Turret = Turret;
 		}
 	}

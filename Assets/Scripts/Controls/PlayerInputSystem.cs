@@ -1,4 +1,4 @@
-﻿using Tanks;
+using Tanks;
 using UnityEngine;
 
 public class PlayerInputSystem : MonoBehaviour, IPlayerInput

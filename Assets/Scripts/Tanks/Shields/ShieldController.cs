@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -41,7 +41,6 @@ namespace Tanks
         public void RegisterVisual(ShieldSector sector)
         {
             sector.Visual.Init();
-            sector.Visual.SetSectorAngles(sector.StartAngle, sector.EndAngle);
             sector.Visual.SetCharge(sector.ShieldHP.Current / sector.ShieldHP.Maximum);
         }
         
