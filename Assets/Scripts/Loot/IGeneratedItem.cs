@@ -4,7 +4,6 @@ namespace Tanks
 	{
 		string ItemId { get; }
 		string TemplateId { get; }
-
 		string Name { get; }
 		string Rarity { get; }
 	}
