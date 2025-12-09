@@ -5,6 +5,7 @@
 		// Ship
 		HitPoint,
 		MoveSpeed,
+		MoveSpeedRear,
 		TurnSpeed,
 		Shield,
 		ShieldRegen,

@@ -15,14 +15,14 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 	{
 		controls = new PlayerControls();
 
-		controls.Ship.Steering.performed += ctx =>
+		controls.Tank.Steering.performed += ctx =>
 			steering = ctx.ReadValue<Vector2>();
-		controls.Ship.Steering.canceled += _ =>
+		controls.Tank.Steering.canceled += _ =>
 			steering = Vector2.zero;
 
-		controls.Ship.Throttle.performed += ctx =>
+		controls.Tank.Throttle.performed += ctx =>
 			throttleAxis = ctx.ReadValue<float>();
-		controls.Ship.Throttle.canceled += _ =>
+		controls.Tank.Throttle.canceled += _ =>
 			throttleAxis = 0f;
 	}
 

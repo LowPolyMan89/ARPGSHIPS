@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
+using UnityEngine.InputSystem;
 
 namespace Tanks
 {
     public class WeaponTargeting : MonoBehaviour
     {
+        public enum AimMode { Auto, Mouse }
+        public AimMode Mode = AimMode.Mouse;
         public WeaponBase Weapon;
         public WeaponSlot Slot;
 
@@ -45,15 +48,44 @@ namespace Tanks
             if (Slot == null || Weapon == null)
                 return;
 
+            if (Mode == AimMode.Mouse)
+            {
+                AimByMouse();
+                return;
+            }
+
+            // AUTO
             SelectTargetIfNeeded();
 
             if (currentTarget == null)
                 return;
 
-            Vector2 aim = GetAimPoint(currentTarget);
+            Vector3 aim = GetAimPoint(currentTarget);
 
             Weapon.TickWeaponPosition(aim);
             Weapon.TickWeapon(currentTarget.Transform);
+        }
+        private void AimByMouse()
+        {
+            Vector3? worldPos = GetMousePoint();
+            if (worldPos == null)
+                return;
+
+            Vector3 aimPos = worldPos.Value;
+
+            Weapon.TickWeaponPosition(aimPos);
+        }
+        
+        private Vector3? GetMousePoint()
+        {
+            Vector2 mousePos = Mouse.current.position.ReadValue();
+            Ray ray = Camera.main.ScreenPointToRay(mousePos);
+
+            Plane ground = new Plane(Vector3.up, Vector3.zero);
+            if (ground.Raycast(ray, out float dist))
+                return ray.GetPoint(dist);
+
+            return null;
         }
 
         private void SelectTargetIfNeeded()

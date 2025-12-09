@@ -63,7 +63,7 @@ namespace Tanks
 					UnequipItem(InventoryUtils.FindByItemId(inv, existing.Id));
 
 				_state.Fit.SelectedShipWeapons.RemoveAll(x => x.SlotIndex == slotIndex);
-				_state.Fit.SelectedShipWeapons.Add(new TankFitModel.SelectedShipWeapon
+				_state.Fit.SelectedShipWeapons.Add(new TankFitModel.SelectedTankWeapon
 				{
 					Id = item.ItemId,
 					SlotIndex = slotIndex

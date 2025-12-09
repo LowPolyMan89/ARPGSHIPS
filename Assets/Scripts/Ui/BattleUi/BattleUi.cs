@@ -6,11 +6,11 @@ namespace Tanks
 {
 	public class BattleUi : MonoBehaviour
 	{
-		[SerializeField] private PlayerShipStatsContainerUi _playerShipStatsContainer;
+		[SerializeField] private PlayerTankStatsContainerUi _playerTankStatsContainer;
 		[SerializeField] private float _updateRatio = 0.01f;
 		private void Awake()
 		{
-			_playerShipStatsContainer = GetComponentInChildren<PlayerShipStatsContainerUi>();
+			_playerTankStatsContainer = GetComponentInChildren<PlayerTankStatsContainerUi>();
 		}
 
 		private void Start()
@@ -25,8 +25,8 @@ namespace Tanks
 
 		private void OnUpdate()
 		{
-			if (_playerShipStatsContainer)
-				_playerShipStatsContainer.OnUpdate();
+			if (_playerTankStatsContainer)
+				_playerTankStatsContainer.OnUpdate();
 		}
 	}
 }

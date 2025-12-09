@@ -16,7 +16,7 @@
     ]
   },
 
-  "PlayerShipModels": [
+  "PlayerTankModels": [
     {
       "ShipId": "ship_corvette_1",
       "SelectedShipWeapons": [],

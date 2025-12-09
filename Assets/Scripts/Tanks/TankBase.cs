@@ -9,22 +9,23 @@ namespace Tanks
 {
 	public abstract class TankBase : MonoBehaviour, ITargetable
 	{
-		public ShipVisual _visual;
+		public TankVisual _visual;
 		public SideType SideType;
 		[SerializeField] private TeamMask _team;
 		public Stats TankStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
 		public WeaponController WeaponController;
-
+		public TankTurret Turret;
+		public TurretAimSystem AimSystem;
 		public List<ShieldSector> ShieldSectors = new();
 		public HashSet<string> RunningDotEffects = new();
 		public Transform Transform => transform;
 		public TargetSize Size => size;
 
 		private Vector3 _lastPos;
-		private Vector2 _velocity;
-		public Vector2 Velocity => _velocity;
+		private Vector3 _velocity;
+		public Vector3 Velocity => _velocity;
 
 		public TeamMask Team => _team;
 
@@ -76,7 +77,7 @@ namespace Tanks
 			}
 		}
 		
-		public void LoadShipFromPrefab()
+		public void LoadTankFromPrefab()
 		{
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
@@ -132,7 +133,7 @@ namespace Tanks
 			}
 			else
 			{
-				_visual = new ShipVisual();
+				_visual = new TankVisual();
 				_visual.Load();
 			}
 
@@ -279,6 +280,10 @@ namespace Tanks
 				}
 			}
 
+			if (AimSystem != null && AimSystem.Turret != null)
+			{
+				AimSystem.Update();
+			}
 			// обновление оружия
 			WeaponController.OnUpdate();
 		}

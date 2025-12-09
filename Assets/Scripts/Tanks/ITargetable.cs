@@ -7,7 +7,7 @@ namespace Tanks
 		Transform Transform { get; }
 		bool IsAlive { get; }
 		TargetSize Size { get; }
-		Vector2 Velocity { get; }
+		Vector3 Velocity { get; }
 		TeamMask Team { get; }
 		void TakeDamage(CalculatedDamage calculatedDamage);
 	}

@@ -8,7 +8,7 @@ namespace Tanks
 	{
 		public string SelectedTankId;
 		public TankFitModel Fit = new TankFitModel();
-		public List<TankFitModel> PlayerShipFits = new ();
+		public List<TankFitModel> PlayerTankFits = new ();
 		public PlayerInventoryModel InventoryModel = new PlayerInventoryModel();
 	}
 

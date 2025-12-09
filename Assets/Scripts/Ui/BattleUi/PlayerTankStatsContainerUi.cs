@@ -7,7 +7,7 @@ using UnityEngine.UI;
 
 namespace Tanks
 {
-	public class PlayerShipStatsContainerUi : MonoBehaviour
+	public class PlayerTankStatsContainerUi : MonoBehaviour
 	{
 		public List<ShieldUi> ShieldUis = new List<ShieldUi>();
 		private ShieldController _shieldController;
@@ -16,12 +16,12 @@ namespace Tanks
 
 		public void OnUpdate()
 		{
-			var ship = Battle.Instance.Player;
-			if (ship)
+			var tank = Battle.Instance.Player;
+			if (tank)
 			{
 				if (!_shieldController)
-					_shieldController = ship.GetComponent<ShieldController>();
-				_hpBar.material.SetFloat(Fill, ship.TankStats.GetStat(StatType.HitPoint).Amount);
+					_shieldController = tank.GetComponent<ShieldController>();
+				_hpBar.material.SetFloat(Fill, tank.TankStats.GetStat(StatType.HitPoint).Amount);
 			}
 
 			if (_shieldController)

@@ -1,6 +1,6 @@
 ﻿namespace Tanks
 {
-	public sealed class ShipVisual : VisualBase
+	public sealed class TankVisual : VisualBase
 	{
 		public override void Load()
 		{

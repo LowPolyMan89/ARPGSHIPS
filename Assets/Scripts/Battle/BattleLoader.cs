@@ -8,10 +8,10 @@
 
 		private void Start()
 		{
-			LoadPlayerShipFromFit();
+			LoadPlayerTankFromFit();
 		}
 
-		private void LoadPlayerShipFromFit()
+		private void LoadPlayerTankFromFit()
 		{
 			var fit = MetaBattleBridge.LastFit;
 			if (fit == null) return;

@@ -3,7 +3,7 @@
     "name": "PlayerControls",
     "maps": [
         {
-            "name": "Ship",
+            "name": "Tank",
             "id": "a0f6b2aa-37c8-4bcc-abc4-80859f022f25",
             "actions": [
                 {

@@ -6,14 +6,14 @@ namespace Tanks
 	[Serializable]
 	public class TankFitModel
 	{
-		public string ShipId;
-		public List<SelectedShipWeapon> SelectedShipWeapons = new ();
+		public string TankId;
+		public List<SelectedTankWeapon> SelectedShipWeapons = new ();
 		public List<SelectedHullModule> SelectedHullModules = new ();
 		public List<SelectedWeaponModule> SelectedWeaponModules = new ();
 		public List<SelectedActiveModule> SelectedActiveModules = new ();
 		
 		[System.Serializable]
-		public class SelectedShipWeapon
+		public class SelectedTankWeapon
 		{
 			public string Id;
 			public int SlotIndex;

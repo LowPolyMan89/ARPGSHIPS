@@ -45,7 +45,7 @@ namespace Tanks
 			int slotIndex = int.Parse(_currentSlotId);
 
 			MetaController.Instance.TankFitView.EquipItemToSlot(
-				_state.Fit.ShipId,
+				_state.Fit.TankId,
 				slotIndex,
 				item.ItemId,
 				_currentIsWeapon

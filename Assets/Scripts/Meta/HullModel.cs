@@ -29,6 +29,7 @@ namespace Tanks
 		public float TurnSpeed;
 		public float Acceleration;
 		public float BrakePower;
+		public float MoveSpeedRear;
 	}
 	
 	[Serializable]

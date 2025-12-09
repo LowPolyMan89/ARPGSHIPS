@@ -6,7 +6,9 @@ namespace Tanks
 
 	public class WeaponSlot : MonoBehaviour
 	{
+		public Transform BaseTransform;
 		public float AllowedAngle = 45f;
+		public float RotationSpeed = 180f;
 		public bool IsTurret = false;
 		public WeaponBase MountedWeapon;
 		public WeaponTargeting WeaponTargeting;
@@ -50,11 +52,30 @@ namespace Tanks
 			}
 				
 		}
+		private void Awake()
+		{
+			if (!BaseTransform)
+				BaseTransform = transform.parent; // по умолчанию
+		}
+
+		public void RotateWeaponTowards(Vector3 worldDirection)
+		{
+			if (!MountedWeapon)
+				return;
+
+			WeaponRotator.Rotate(
+				rotatingTransform: MountedWeapon.transform,
+				baseTransform: BaseTransform,
+				worldDirection: worldDirection,
+				rotationSpeedDeg: RotationSpeed,
+				maxAngleDeg: AllowedAngle
+			);
+		}
 
 		public bool IsTargetWithinSector(Vector2 dir)
 		{
-			Vector2 forward = transform.right;
-			var angle = Vector2.Angle(forward, dir);
+			Vector2 forward = transform.forward;
+			var angle = Vector3.Angle(forward, dir);
 			return angle <= AllowedAngle;
 		}
 	}

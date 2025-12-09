@@ -14,7 +14,7 @@ namespace Tanks.Mobs
 			TankStats.AddStat(new Stat(StatType.Shield, 50));
 			TankStats.AddStat(new Stat(StatType.MoveSpeed, 10));
 			Init();
-			LoadShipFromPrefab();
+			LoadTankFromPrefab();
 		}
 	}
 }

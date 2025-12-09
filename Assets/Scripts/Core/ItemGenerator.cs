@@ -1,290 +1,294 @@
 ﻿using System;
 using System.IO;
 using System.Collections.Generic;
+using Tanks;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Tanks
 {
 	using System;
-using System.IO;
-using System.Linq;
-using System.Collections.Generic;
-using UnityEngine;
-using Random = UnityEngine.Random;
+	using System.IO;
+	using System.Linq;
+	using System.Collections.Generic;
+	using UnityEngine;
+	using Random = UnityEngine.Random;
 
-namespace Ships
-{
-    public static class ItemGenerator
-    {
-        public static string WeaponConfigsPath =>
-            Path.Combine(Application.streamingAssetsPath, "Configs/Weapons");
-        public static string ModulesConfigsPath =>
-	        Path.Combine(Application.streamingAssetsPath, "Configs/Modules");
+	public static class ItemGenerator
+	{
+		public static string WeaponConfigsPath =>
+			Path.Combine(Application.streamingAssetsPath, "Configs/Weapons");
 
-        public static string OutputPath =>
-            Path.Combine(Application.persistentDataPath, "Inventory");
+		public static string ModulesConfigsPath =>
+			Path.Combine(Application.streamingAssetsPath, "Configs/Modules");
 
-        // =============================
-        // Загрузка всех шаблонов
-        // =============================
-        public static List<string> LoadWeaponFiles()
-        {
-            if (!Directory.Exists(WeaponConfigsPath))
-                return new List<string>();
+		public static string OutputPath =>
+			Path.Combine(Application.persistentDataPath, "Inventory");
 
-            return Directory.GetFiles(WeaponConfigsPath, "*.json")
-                .Select(Path.GetFileName)
-                .ToList();
-        }
-        public static List<string> LoadModuleFiles()
-        {
-	        if (!Directory.Exists(ModulesConfigsPath))
-		        return new List<string>();
+		// =============================
+		// Загрузка всех шаблонов
+		// =============================
+		public static List<string> LoadWeaponFiles()
+		{
+			if (!Directory.Exists(WeaponConfigsPath))
+				return new List<string>();
 
-	        return Directory.GetFiles(ModulesConfigsPath, "*.json")
-		        .Select(Path.GetFileName)
-		        .ToList();
-        }
-        // =============================
-        // Генерация через LootTable
-        // =============================
-        public static GeneratedWeaponItem GenerateWeaponFromLoot(string lootTableId)
-        {
-	        if (!string.IsNullOrEmpty(lootTableId))
-	        {
-		        var table = LootLoader.Load(lootTableId);
-		        if (table != null)
-		        {
-			        var roll = LootTableSystem.Roll(table);
-			        return GenerateWeapon(roll.itemId + ".json", roll.rarity);
-		        }
-	        }
-	        return GenerateWeaponFromAllTemplates();
-        }
-        public static GeneratedWeaponItem GenerateModuleFromLoot(string lootTableId = null)
-        {
+			return Directory.GetFiles(WeaponConfigsPath, "*.json")
+				.Select(Path.GetFileName)
+				.ToList();
+		}
 
-	        return GenerateModuleFromAllTemplates();
-        }
+		public static List<string> LoadModuleFiles()
+		{
+			if (!Directory.Exists(ModulesConfigsPath))
+				return new List<string>();
 
-        public static GeneratedWeaponItem GenerateModule(string templateFile, string forcedRarity)
-        {
-	        return new GeneratedWeaponItem();
-        }
+			return Directory.GetFiles(ModulesConfigsPath, "*.json")
+				.Select(Path.GetFileName)
+				.ToList();
+		}
 
-        // =============================
-        // Глобальный пул всех оружий
-        // =============================
-        private static GeneratedWeaponItem GenerateModuleFromAllTemplates()
-        {
-	        return new GeneratedWeaponItem();
-        }
-        private static GeneratedWeaponItem GenerateWeaponFromAllTemplates()
-        {
-	        var files = LoadWeaponFiles();
-	        if (files.Count == 0) return null;
+		// =============================
+		// Генерация через LootTable
+		// =============================
+		public static GeneratedWeaponItem GenerateWeaponFromLoot(string lootTableId)
+		{
+			if (!string.IsNullOrEmpty(lootTableId))
+			{
+				var table = LootLoader.Load(lootTableId);
+				if (table != null)
+				{
+					var roll = LootTableSystem.Roll(table);
+					return GenerateWeapon(roll.itemId + ".json", roll.rarity);
+				}
+			}
 
-	        List<(string template, string rarity, int weight)> pool = new();
+			return GenerateWeaponFromAllTemplates();
+		}
 
-	        foreach (var file in files)
-	        {
-		        var json = File.ReadAllText(Path.Combine(WeaponConfigsPath, file));
-		        var template = JsonUtility.FromJson<WeaponTemplate>(json);
+		public static GeneratedWeaponItem GenerateModuleFromLoot(string lootTableId = null)
+		{
+			return GenerateModuleFromAllTemplates();
+		}
 
-		        foreach (var r in template.Rarities)
-			        pool.Add((template.Id, r.Rarity, r.DropChance));
-	        }
+		public static GeneratedWeaponItem GenerateModule(string templateFile, string forcedRarity)
+		{
+			return new GeneratedWeaponItem();
+		}
 
-	        var pick = PickGlobal(pool);
-	        return GenerateWeapon(pick.template + ".json", pick.rarity);
-        }
+		// =============================
+		// Глобальный пул всех оружий
+		// =============================
+		private static GeneratedWeaponItem GenerateModuleFromAllTemplates()
+		{
+			return new GeneratedWeaponItem();
+		}
 
-        private static (string template, string rarity) PickGlobal(
-            List<(string template, string rarity, int weight)> entries)
-        {
-            int total = entries.Sum(e => e.weight);
-            int roll = Random.Range(0, total);
-            int accum = 0;
+		private static GeneratedWeaponItem GenerateWeaponFromAllTemplates()
+		{
+			var files = LoadWeaponFiles();
+			if (files.Count == 0) return null;
 
-            foreach (var e in entries)
-            {
-                accum += e.weight;
-                if (roll < accum)
-                    return (e.template, e.rarity);
-            }
+			List<(string template, string rarity, int weight)> pool = new();
 
-            return (entries[0].template, entries[0].rarity);
-        }
+			foreach (var file in files)
+			{
+				var json = File.ReadAllText(Path.Combine(WeaponConfigsPath, file));
+				var template = JsonUtility.FromJson<WeaponTemplate>(json);
 
-        // =============================
-        // Основной метод генерации
-        // =============================
-        public static GeneratedWeaponItem GenerateWeapon(string templateFile, string forcedRarity)
-        {
-            var fullPath = Path.Combine(WeaponConfigsPath, templateFile);
-            var json = File.ReadAllText(fullPath);
+				foreach (var r in template.Rarities)
+					pool.Add((template.Id, r.Rarity, r.DropChance));
+			}
 
-            var template = JsonUtility.FromJson<WeaponTemplate>(json);
+			var pick = PickGlobal(pool);
+			return GenerateWeapon(pick.template + ".json", pick.rarity);
+		}
 
-            string rarity = forcedRarity == "Random"
-                ? PickRandomRarity(template)
-                : forcedRarity;
+		private static (string template, string rarity) PickGlobal(
+			List<(string template, string rarity, int weight)> entries)
+		{
+			int total = entries.Sum(e => e.weight);
+			int roll = Random.Range(0, total);
+			int accum = 0;
 
-            var rarityData = FindRarity(template, rarity);
+			foreach (var e in entries)
+			{
+				accum += e.weight;
+				if (roll < accum)
+					return (e.template, e.rarity);
+			}
 
-            var item = new GeneratedWeaponItem
-            {
-                ItemId = Services.UniqueIdGenerator.GenerateItemId(),
-                TemplateId = template.Id,
-                Name = template.Name,
-                Rarity = rarity,
+			return (entries[0].template, entries[0].rarity);
+		}
 
-                Slot = template.Slot,
-                DamageType = template.DamageType,
-                Size = template.Size,
-                Icon = template.Icon
-            };
+		// =============================
+		// Основной метод генерации
+		// =============================
+		public static GeneratedWeaponItem GenerateWeapon(string templateFile, string forcedRarity)
+		{
+			var fullPath = Path.Combine(WeaponConfigsPath, templateFile);
+			var json = File.ReadAllText(fullPath);
 
-            List<StatValue> stats = new();
-            foreach (var s in rarityData.Stats.Entries)
-            {
-                float v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
-                stats.Add(new StatValue { Name = s.Name, Value = v });
-            }
-            item.Stats = stats.ToArray();
+			var template = JsonUtility.FromJson<WeaponTemplate>(json);
 
-            item.Effects = GenerateEffects(template, rarityData);
+			string rarity = forcedRarity == "Random"
+				? PickRandomRarity(template)
+				: forcedRarity;
 
-            SaveItem(item);
-            return item;
-        }
+			var rarityData = FindRarity(template, rarity);
 
-        // =============================
-        // Внутренние хелперы
-        // =============================
-        private static WeaponTemplate.RarityEntry FindRarity(WeaponTemplate t, string rarity)
-        {
-            return t.Rarities.FirstOrDefault(
-                r => r.Rarity.Equals(rarity, StringComparison.OrdinalIgnoreCase));
-        }
+			var item = new GeneratedWeaponItem
+			{
+				ItemId = Services.UniqueIdGenerator.GenerateItemId(),
+				TemplateId = template.Id,
+				Name = template.Name,
+				Rarity = rarity,
 
-        private static string PickRandomRarity(WeaponTemplate tpl)
-        {
-            int total = tpl.Rarities.Sum(r => r.DropChance);
-            int roll = Random.Range(0, total);
-            int accum = 0;
+				Slot = template.Slot,
+				DamageType = template.DamageType,
+				Size = template.Size,
+				Icon = template.Icon
+			};
 
-            foreach (var r in tpl.Rarities)
-            {
-                accum += r.DropChance;
-                if (roll < accum)
-                    return r.Rarity;
-            }
+			List<StatValue> stats = new();
+			foreach (var s in rarityData.Stats.Entries)
+			{
+				float v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
+				stats.Add(new StatValue { Name = s.Name, Value = v });
+			}
 
-            return tpl.Rarities[0].Rarity;
-        }
+			item.Stats = stats.ToArray();
 
-        private static List<string> GenerateEffects(WeaponTemplate tpl, WeaponTemplate.RarityEntry rarity)
-        {
-            var result = new List<string>();
-            int max = rarity.MaxEffectCount;
+			item.Effects = GenerateEffects(template, rarityData);
 
-            if (max <= 0 || tpl.AvailableEffects == null)
-                return result;
+			SaveItem(item);
+			return item;
+		}
 
-            int count = Random.Range(0, max + 1);
-            HashSet<int> used = new();
+		// =============================
+		// Внутренние хелперы
+		// =============================
+		private static WeaponTemplate.RarityEntry FindRarity(WeaponTemplate t, string rarity)
+		{
+			return t.Rarities.FirstOrDefault(
+				r => r.Rarity.Equals(rarity, StringComparison.OrdinalIgnoreCase));
+		}
 
-            while (result.Count < count)
-            {
-                int i = Random.Range(0, tpl.AvailableEffects.Length);
-                if (used.Add(i))
-                    result.Add(tpl.AvailableEffects[i]);
-            }
+		private static string PickRandomRarity(WeaponTemplate tpl)
+		{
+			int total = tpl.Rarities.Sum(r => r.DropChance);
+			int roll = Random.Range(0, total);
+			int accum = 0;
 
-            return result;
-        }
+			foreach (var r in tpl.Rarities)
+			{
+				accum += r.DropChance;
+				if (roll < accum)
+					return r.Rarity;
+			}
 
-        private static void SaveItem(GeneratedWeaponItem item)
-        {
-            if (!Directory.Exists(OutputPath))
-                Directory.CreateDirectory(OutputPath);
+			return tpl.Rarities[0].Rarity;
+		}
 
-            var json = JsonUtility.ToJson(item, true);
-            var path = Path.Combine(OutputPath, item.ItemId + ".json");
+		private static List<string> GenerateEffects(WeaponTemplate tpl, WeaponTemplate.RarityEntry rarity)
+		{
+			var result = new List<string>();
+			int max = rarity.MaxEffectCount;
 
-            File.WriteAllText(path, json);
-            Debug.Log("Saved item → " + path);
-        }
-    }
+			if (max <= 0 || tpl.AvailableEffects == null)
+				return result;
+
+			int count = Random.Range(0, max + 1);
+			HashSet<int> used = new();
+
+			while (result.Count < count)
+			{
+				int i = Random.Range(0, tpl.AvailableEffects.Length);
+				if (used.Add(i))
+					result.Add(tpl.AvailableEffects[i]);
+			}
+
+			return result;
+		}
+
+		private static void SaveItem(GeneratedWeaponItem item)
+		{
+			if (!Directory.Exists(OutputPath))
+				Directory.CreateDirectory(OutputPath);
+
+			var json = JsonUtility.ToJson(item, true);
+			var path = Path.Combine(OutputPath, item.ItemId + ".json");
+
+			File.WriteAllText(path, json);
+			Debug.Log("Saved item → " + path);
+		}
+	}
 }
 
 
-	[Serializable]
-	public sealed class WeaponTemplate
-	{
-		public string Id;
-		public string Name;
-		public string Icon;
-		public string Slot;
-		public string DamageType;
-		public string Size;
+[Serializable]
+public sealed class WeaponTemplate
+{
+	public string Id;
+	public string Name;
+	public string Icon;
+	public string Slot;
+	public string DamageType;
+	public string Size;
 
-		public string[] AvailableEffects;
+	public string[] AvailableEffects;
 
-		public RarityEntry[] Rarities;
-
-		[Serializable]
-		public sealed class RarityEntry
-		{
-			public string Rarity;
-			public int DropChance;
-			public int MaxEffectCount;
-			public StatList Stats;
-		}
-
-		[Serializable]
-		public sealed class StatList
-		{
-			public StatRangeEntry[] Entries;
-		}
-
-		[Serializable]
-		public sealed class StatRangeEntry
-		{
-			public string Name;
-			public float Min;
-			public float Max;
-		}
-	}
+	public RarityEntry[] Rarities;
 
 	[Serializable]
-	public class GeneratedWeaponItem : IGeneratedItem
+	public sealed class RarityEntry
 	{
-		public string ItemId;
-		public string TemplateId;
-		public string Name;
 		public string Rarity;
-
-		public string Slot;
-		public string DamageType;
-		public string Size;
-		public string Icon;
-
-		public StatValue[] Stats;
-		public List<string> Effects;
-		string IGeneratedItem.ItemId => ItemId;
-		string IGeneratedItem.TemplateId => TemplateId;
-		string IGeneratedItem.Name => Name;
-		string IGeneratedItem.Rarity => Rarity;
+		public int DropChance;
+		public int MaxEffectCount;
+		public StatList Stats;
 	}
-
 
 	[Serializable]
-	public sealed class StatValue
+	public sealed class StatList
+	{
+		public StatRangeEntry[] Entries;
+	}
+
+	[Serializable]
+	public sealed class StatRangeEntry
 	{
 		public string Name;
-		public float Value;
+		public float Min;
+		public float Max;
 	}
+}
+
+[Serializable]
+public class GeneratedWeaponItem : IGeneratedItem
+{
+	public string ItemId;
+	public string TemplateId;
+	public string Name;
+	public string Rarity;
+
+	public string Slot;
+	public string DamageType;
+	public string Size;
+	public string Icon;
+
+	public StatValue[] Stats;
+	public List<string> Effects;
+	string IGeneratedItem.ItemId => ItemId;
+	string IGeneratedItem.TemplateId => TemplateId;
+	string IGeneratedItem.Name => Name;
+	string IGeneratedItem.Rarity => Rarity;
+}
+
+
+[Serializable]
+public sealed class StatValue
+{
+	public string Name;
+	public float Value;
 }

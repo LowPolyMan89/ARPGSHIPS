@@ -33,19 +33,19 @@ namespace Tanks.HitEffect
             if (Random.value > chance)
                 return;
 
-            if (target is not TankBase ship)
+            if (target is not TankBase tankBase)
                 return;
 
             // 1) Стакаем/обновляем эффект на корабле
-            ship.AddOrStackEffect(this, duration);
+            tankBase.AddOrStackEffect(this, duration);
 
             // 2) Если DoT уже работает — НЕ запускать второй
-            if (ship.RunningDotEffects.Contains(EffectId))
+            if (tankBase.RunningDotEffects.Contains(EffectId))
                 return;
 
             // 3) Иначе запускаем DoT
-            ship.RunningDotEffects.Add(EffectId);
-            ship.StartCoroutine(DoDamageOverTime(ship));
+            tankBase.RunningDotEffects.Add(EffectId);
+            tankBase.StartCoroutine(DoDamageOverTime(tankBase));
         }
 
         private IEnumerator DoDamageOverTime(TankBase tank)

@@ -66,23 +66,15 @@ namespace Tanks
 			_reloadFinishTime = Time.time + Model.Stats.GetStat(StatType.ReloadTime).Maximum;
 		}
 		
-		public void TickWeaponPosition(Vector2 aimPoint)
+		public void TickWeaponPosition(Vector3 aimPoint)
 		{
-			if (Model == null)
-				return;
-
-			Vector2 dir = aimPoint - (Vector2)Slot.transform.position;
-			RotateToTarget(dir);
+			Vector3 dir = aimPoint - Slot.transform.position;
+			Slot.RotateWeaponTowards(dir);
 		}
 
-		protected virtual void RotateToTarget(Vector2 direction)
+		protected virtual void RotateToDirection(Vector3 worldDir)
 		{
-			if (!Slot.IsTurret)
-				return;
-
-			float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-			Quaternion rot = Quaternion.Euler(0, 0, angle);
-			transform.rotation = Quaternion.Lerp(transform.rotation, rot, Time.deltaTime * 10f);
+			Slot.RotateWeaponTowards(worldDir);
 		}
 
 		protected abstract void Shoot(Transform target);
