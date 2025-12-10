@@ -12,10 +12,10 @@ namespace Tanks
 		public TankVisual _visual;
 		public SideType SideType;
 		[SerializeField] private TeamMask _team;
+		public TeamMask HitMask;
 		public Stats TankStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
-		public WeaponController WeaponController;
 		public TankTurret Turret;
 		public TurretAimSystem AimSystem;
 		public List<ShieldSector> ShieldSectors = new();
@@ -136,8 +136,6 @@ namespace Tanks
 				_visual = new TankVisual();
 				_visual.Load();
 			}
-
-			WeaponController.Init(SideType);
 			Battle.Instance.AllTanks.Add(this);
 			StartCoroutine(TickEffects());
 			// отправляем визуализаторам данные статов
@@ -284,8 +282,6 @@ namespace Tanks
 			{
 				AimSystem.Update();
 			}
-			// обновление оружия
-			WeaponController.OnUpdate();
 		}
 
 

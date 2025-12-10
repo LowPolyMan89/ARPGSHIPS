@@ -1,90 +1,57 @@
-using System;
+using UnityEngine;
 
 namespace Tanks
 {
-	using UnityEngine;
+    public class WeaponSlot : MonoBehaviour
+    {
+        [Header("Slot config")]
+        public WeaponSize SlotSize;
+        public TankBase Owner;
+        public Transform MountPoint;
+        [Tooltip("Максимальный угол отклонения от слота FORWARD (для логики, не для вращения!)")]
+        [SerializeField] private float _allowedAngle = 180f;
+        public float AllowedAngle => _allowedAngle;
 
-	public class WeaponSlot : MonoBehaviour, IAimOrigin
-	{
-		public Transform BaseTransform;
-		[SerializeField] private float _allowedAngle = 45f;
-		public float RotationSpeed = 180f;
-		public bool IsTurret = false;
-		public WeaponBase MountedWeapon;
-		public WeaponTargeting WeaponTargeting;
-		public SideType Side;
-		[SerializeField] private TeamMask _hitMask;
-		public WeaponSize SlotSize;
+        [Header("Runtime")]
+        public WeaponBase MountedWeapon;
 
-		public Vector3 Position => transform.position;
-		public Vector3 Forward => transform.forward;
-		public TeamMask HitMask => _hitMask;
-		public float AllowedAngle => _allowedAngle;
-		public float DetectionRange => MountedWeapon ? MountedWeapon.Model.Stats.GetStat(StatType.FireRange).Current : 9999f;
+        private void Awake()
+        {
+            if (!Owner)
+                Owner = GetComponentInParent<TankBase>();
+            MountedWeapon = WeaponBuilder.Build("item_1765113613959_pya1", this);
+            if (MountedWeapon)
+                InitWeapon(MountedWeapon);
+        }
 
-		public void Init(SideType sideType)
-		{
-			Side = sideType;
+        /// <summary>
+        /// Временная заглушка — создание статы пушки.
+        /// Потом будет заменено на загрузку из JSON.
+        /// </summary>
+        private void InitWeapon(WeaponBase weapon)
+        {
+            weapon.Slot = this;
+            weapon.Owner = Owner;
+            
+        }
 
-			_hitMask = sideType switch
-			{
-				SideType.Player => TeamMask.Enemy,
-				SideType.Enemy => TeamMask.Player,
-				SideType.Ally => TeamMask.Enemy | TeamMask.Player, 
-				_ => TeamMask.All
-			};
+        public void AttachWeapon(WeaponBase weapon)
+        {
+            MountedWeapon = weapon;
+            if (!weapon) return;
 
-			if (transform.childCount > 0)
-			{
-				MountedWeapon = transform.GetComponentInChildren<WeaponBase>();
-				WeaponTargeting = transform.GetComponentInChildren<WeaponTargeting>();
-				if (WeaponTargeting && sideType != SideType.Player)
-					WeaponTargeting.Mode = WeaponTargeting.AimMode.Auto;
-			}
+            weapon.transform.SetParent(transform, false);
 
-			if (MountedWeapon)
-			{
-				Stats stats = new Stats();
-				stats.AddStat(new Stat(StatType.FireRange, 50));
-				stats.AddStat(new Stat(StatType.FireRate, 1f));
-				stats.AddStat(new Stat(StatType.ProjectileSpeed, 60));
-				stats.AddStat(new Stat(StatType.MinDamage, 5));
-				stats.AddStat(new Stat(StatType.MaxDamage, 10));
-				stats.AddStat(new Stat(StatType.Accuracy, 0.05f));
-				stats.AddStat(new Stat(StatType.CritChance, 0.1f));
-				stats.AddStat(new Stat(StatType.CritMultiplier, 1.2f));
-				stats.AddStat(new Stat(StatType.AmmoCount, 10));
-				stats.AddStat(new Stat(StatType.ReloadTime, 5f));
-				stats.AddStat(new Stat(StatType.ArmorPierce, 0f));
-				MountedWeapon.Init(this, stats);
-			}
-				
-		}
-		private void Awake()
-		{
-			if (!BaseTransform)
-				BaseTransform = transform.parent; // по умолчанию
-		}
+            InitWeapon(weapon);
+        }
 
-		public void RotateWeaponTowards(Vector3 worldDirection)
-		{
-			if (!MountedWeapon)
-				return;
+        public void DetachWeapon()
+        {
+            if (!MountedWeapon) return;
 
-			WeaponRotator.Rotate(
-				rotatingTransform: MountedWeapon.transform,
-				baseTransform: BaseTransform,
-				worldDirection: worldDirection,
-				rotationSpeedDeg: RotationSpeed,
-				maxAngleDeg: AllowedAngle
-			);
-		}
-
-		public bool IsTargetWithinSector(Vector2 dir)
-		{
-			Vector2 forward = transform.forward;
-			var angle = Vector3.Angle(forward, dir);
-			return angle <= AllowedAngle;
-		}
-	}
+            MountedWeapon.Slot = null;
+            MountedWeapon.Owner = null;
+            MountedWeapon = null;
+        }
+    }
 }

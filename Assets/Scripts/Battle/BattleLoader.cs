@@ -28,16 +28,6 @@ namespace Tanks
 
 		private void InstallFit(PlayerTank tank, TankFitModel fit)
 		{
-			foreach (var slot in tank.WeaponController.Weapons)
-			{
-				//if (!fit.WeaponSlots.TryGetValue(slot.name, out var itemId))
-				//	continue;
-
-				//if (itemId != null)
-				//	InstallWeapon(slot, itemId);
-			}
-
-			// когда появятся ModuleSlots — аналогично
 		}
 
 		private void InstallWeapon(WeaponSlot slot, string itemId)

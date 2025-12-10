@@ -6,7 +6,7 @@ namespace Tanks
 	{
 		public Stats Stats { get; set; }
 		private readonly List<IOnHitEffect> _effects = new();
-
+		public bool IsAutoFire = true;
 		public void AddEffect(IOnHitEffect effect) => _effects.Add(effect);
 		public IReadOnlyList<IOnHitEffect> Effects => _effects;
 

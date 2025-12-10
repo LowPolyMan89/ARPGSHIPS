@@ -24,8 +24,8 @@ namespace Tanks
 			if (worldPos == null)
 				return;
 
-			Vector3 dir = worldPos.Value - Turret.TurretTransform.position;
-			Turret.Rotate(dir);
+			Vector3 dir = worldPos.Value - Turret.transform.position;
+			Turret.RotateTowards(dir);
 		}
 
 		private Vector3? GetMouseWorldPoint()

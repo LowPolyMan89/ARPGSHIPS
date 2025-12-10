@@ -15,66 +15,66 @@ namespace Tanks
 		private int _ammo;
 		private bool _isReloading;
 		private float _reloadFinishTime;
-		
+		public TankBase Owner { get; set; }
+
+		public float NextFireTime => _nextFireTime;
+
+		public float ReloadFinishTime
+		{
+			get => _reloadFinishTime;
+			set => _reloadFinishTime = value;
+		}
+
+		public bool IsReloading => _isReloading;
+
+		public int Ammo => _ammo;
+
 		public void Init(WeaponSlot slot, Stats stats)
 		{
 			Model = new WeaponModel();
 			Model.InjectStat(stats);
 			Slot = slot;
-			_ammo = GetMaxAmmo(); 
+			_ammo = GetMaxAmmo();
 		}
-
-		public void TickWeapon(Transform target)
+		public void TryFire(ITargetable target)
 		{
-			if (target == null || Model == null)
+			if (target == null)
 				return;
-
 			if (_isReloading)
 			{
-				if (Time.time >= _reloadFinishTime)
+				if (Time.time >= ReloadFinishTime)
 				{
 					_isReloading = false;
 					_ammo = GetMaxAmmo();
 				}
-				return;
+				else
+				{
+					return;
+				}
 			}
-
-			if (_ammo <= 0)
-			{
-				StartReload();
+			if (Time.time < NextFireTime)
 				return;
-			}
-
-			if (Time.time < _nextFireTime)
-				return;
-
-			Shoot(target);
+			Shoot(target.Transform);
 
 			_ammo--;
 			_nextFireTime = Time.time + 1f / Model.Stats.GetStat(StatType.FireRate).Current;
-
 			if (_ammo <= 0)
 				StartReload();
 		}
+
 		private int GetMaxAmmo()
 		{
-			return Mathf.RoundToInt(Model.Stats.GetStat(StatType.AmmoCount).Maximum);
+			Stat a;
+			if (Model.Stats.TryGetStat(StatType.AmmoCount, out a))
+			{
+				return Mathf.RoundToInt(a.Maximum);
+			}
+			return 0;
 		}
 		private void StartReload()
 		{
 			_isReloading = true;
-			_reloadFinishTime = Time.time + Model.Stats.GetStat(StatType.ReloadTime).Maximum;
-		}
-		
-		public void TickWeaponPosition(Vector3 aimPoint)
-		{
-			Vector3 dir = aimPoint - Slot.transform.position;
-			Slot.RotateWeaponTowards(dir);
-		}
-
-		protected virtual void RotateToDirection(Vector3 worldDir)
-		{
-			Slot.RotateWeaponTowards(worldDir);
+			ReloadFinishTime = Time.time + Model.Stats.GetStat(StatType.ReloadTime).Maximum;
 		}
 
 		protected abstract void Shoot(Transform target);

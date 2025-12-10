@@ -1,30 +1,32 @@
 using UnityEngine;
-using UnityEngine.EventSystems;
 
 namespace Tanks
 {
-	using UnityEngine;
-
 	public class Projectile : MonoBehaviour
 	{
-		private Transform _target;
 		private float _speed;
 		private float _damage;
 		private float _pierce;
-		public WeaponBase SourceWeapon;
-		public TankBase Owner;
-		public TeamMask HitMask;
-		[SerializeField] private Vector3 _moveDir;
+
+		public WeaponBase SourceWeapon { get; private set; }
+		public TankBase Owner { get; private set; }
+		public TeamMask HitMask { get; private set; }
+
+		[SerializeField] 
+		private Vector3 _moveDir;
+
 		public float Damage => _damage;
 
 		public void Init(Vector3 direction, float dmg, float spd, float armorPierce, WeaponBase source)
 		{
-			_moveDir = direction.normalized;
-			_speed = spd;
-			_damage = dmg;
-			_pierce = armorPierce;
+			_moveDir   = direction.normalized;
+			_speed     = spd;
+			_damage    = dmg;
+			_pierce    = armorPierce;
+
 			SourceWeapon = source;
-			HitMask = source.Slot.HitMask;
+			Owner        = source.Slot.Owner;
+			HitMask      = Owner.HitMask;   // ← КОРРЕКТНО!
 		}
 
 		private void Update()
@@ -37,6 +39,7 @@ namespace Tanks
 			if (!other.TryGetComponent<ITargetable>(out var t))
 				return;
 
+			// команда владельца решает, можно ли наносить урон
 			if (!HitRules.CanHit(HitMask, t.Team))
 				return;
 
@@ -59,5 +62,4 @@ namespace Tanks
 			Destroy(gameObject);
 		}
 	}
-
 }

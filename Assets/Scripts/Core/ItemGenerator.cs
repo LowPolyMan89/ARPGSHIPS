@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using Tanks;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -143,7 +144,7 @@ namespace Tanks
 				TemplateId = template.Id,
 				Name = template.Name,
 				Rarity = rarity,
-
+				Prefab =  template.Prefab,
 				Slot = template.Slot,
 				DamageType = template.DamageType,
 				Size = template.Size,
@@ -235,7 +236,7 @@ public sealed class WeaponTemplate
 	public string Slot;
 	public string DamageType;
 	public string Size;
-
+	public string Prefab;
 	public string[] AvailableEffects;
 
 	public RarityEntry[] Rarities;
@@ -276,6 +277,7 @@ public class GeneratedWeaponItem : IGeneratedItem
 	public string DamageType;
 	public string Size;
 	public string Icon;
+	public string Prefab;
 
 	public StatValue[] Stats;
 	public List<string> Effects;

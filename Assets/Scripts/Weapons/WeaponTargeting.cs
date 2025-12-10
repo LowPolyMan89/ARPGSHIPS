@@ -1,75 +1,65 @@
+using Tanks;
 using UnityEngine;
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine.InputSystem;
 
-namespace Tanks
+public class WeaponTargeting : MonoBehaviour
 {
-    public class WeaponTargeting : MonoBehaviour
-    {
-        public enum AimMode { Auto, Mouse }
-        public AimMode Mode = AimMode.Mouse;
+	public TankTurret Turret;            // null → фиксированное оружие
+	public WeaponBase Weapon;
+	public bool IsAutoFire = true;
+	public float AimTolerance = 3f;
 
-        public WeaponBase Weapon;
-        public WeaponSlot Slot;
+	private TargetFinder finder = new();
+	private TankBase owner;
 
-        private UniversalTargetingSystem targeting = new();
+	private void Awake()
+	{
+		owner = GetComponentInParent<TankBase>();
+	}
 
-        private void Start()
-        {
-            if (!Slot)
-                Slot = GetComponentInParent<WeaponSlot>();
+	void Update()
+	{
+		if (!owner || !Weapon)
+			return;
 
-            targeting.Init(Slot, Weapon);
-        }
+		finder.UpdateTargets(Battle.Instance.AllTanks, owner.HitMask);
 
-        public void UpdateTargetList(IEnumerable<ITargetable> targets)
-        {
-            targeting.UpdateTargets(targets);
-        }
+		float range = Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
 
-        private void Update()
-        {
-            if (Slot == null || Weapon == null)
-                return;
+		// определяем позицию и forward источника наведения
 
-            if (Mode == AimMode.Mouse)
-            {
-                AimByMouse();
-                return;
-            }
+		Vector3 origin = Turret ? Turret.Pivot.position : Weapon.transform.position;
+		Vector3 forward = Turret ? Turret.Pivot.forward : Weapon.transform.forward;
+		float maxAngle = Turret ? Turret.MaxAngle : Weapon.Slot.AllowedAngle; // если нет турели → по слоту
 
-            // AUTO
-            var target = targeting.GetTarget();
-            if (target == null)
-                return;
+		var target = finder.FindBestTarget(
+			origin,
+			forward,
+			maxAngle,
+			range
+		);
+		if (target == null)
+			return;
+		Debug.Log($"{gameObject.transform.root.name} find target: {target}");
+		Vector3 predicted = finder.Predict(
+			target,
+			Weapon.FirePoint.position,
+			Weapon.Model.Stats.GetStat(StatType.ProjectileSpeed).Current
+		);
 
-            Vector3 aimPoint = targeting.GetAimPoint(target);
-            Weapon.TickWeaponPosition(aimPoint);
-            if (targeting.IsAimedAt(target))
-                Weapon.TickWeapon(target.Transform);
-        }
+		Vector3 dir = predicted - origin;
 
-        private void AimByMouse()
-        {
-            Vector3? mouse = GetMousePoint();
-            if (mouse == null)
-                return;
+		// --- вращение ---
+		if (Turret)
+		{
+			Turret.RotateTowards(dir);
+		}
 
-            Weapon.TickWeaponPosition(mouse.Value);
-        }
-
-        private Vector3? GetMousePoint()
-        {
-            Vector2 m = Mouse.current.position.ReadValue();
-            Ray ray = Camera.main.ScreenPointToRay(m);
-
-            Plane g = new Plane(Vector3.up, Vector3.zero);
-            if (g.Raycast(ray, out float d))
-                return ray.GetPoint(d);
-
-            return null;
-        }
-    }
-
+		// --- стрельба, если наведено ---
+		if (finder.IsAimedAt(Turret ? Turret.Pivot : Weapon.transform, dir, AimTolerance) && IsAutoFire)
+		{
+			Weapon.TryFire(target);
+		}
+			
+	}
 }

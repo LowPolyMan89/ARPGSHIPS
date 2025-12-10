@@ -5,6 +5,7 @@
   "Slot": "Weapon",
   "DamageType": "Kinetic",
   "Size": "S",
+  "Prefab": "weapon_p_small_bolter_1",
 
   "AvailableEffects": [
     "IgnoreArmor",
@@ -19,15 +20,17 @@
       "MaxEffectCount": 0,
       "Stats": {
         "Entries": [
-          { "Name": "DamageMin",       "Min": 5,  "Max": 10 },
-          { "Name": "DamageMax",       "Min": 7,  "Max": 14 },
+          { "Name": "MinDamage",       "Min": 5,  "Max": 10 },
+          { "Name": "MaxDamage",       "Min": 7,  "Max": 14 },
           { "Name": "FireRange",       "Min": 5,  "Max": 7 },
           { "Name": "RotationSpeed",   "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 5,  "Max": 7 },
           { "Name": "Accuracy",        "Min": 1,  "Max": 2 },
           { "Name": "ArmorPierce",     "Min": 2,  "Max": 5 },
           { "Name": "FireRate",        "Min": 2,  "Max": 3 },
-          { "Name": "AmmoCount",       "Min": 10, "Max": 13 }
+          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
+          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
         ]
       }
     },
@@ -38,15 +41,18 @@
       "MaxEffectCount": 0,
       "Stats": {
         "Entries": [
-          { "Name": "DamageMin", "Min": 7, "Max": 13 },
-          { "Name": "DamageMax", "Min": 13, "Max": 18 },
+          { "Name": "MinDamage", "Min": 7, "Max": 13 },
+          { "Name": "MaxDamage", "Min": 13, "Max": 18 },
           { "Name": "FireRange", "Min": 5, "Max": 7 },
           { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 5, "Max": 7 },
           { "Name": "Accuracy", "Min": 1, "Max": 2 },
           { "Name": "ArmorPierce", "Min": 2, "Max": 5 },
           { "Name": "FireRate", "Min": 2, "Max": 3 },
-          { "Name": "AmmoCount", "Min": 12, "Max": 16 }
+          { "Name": "AmmoCount", "Min": 12, "Max": 16 },
+          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
+          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
         ]
       }
     },
@@ -57,15 +63,18 @@
       "MaxEffectCount": 1,
       "Stats": {
         "Entries": [
-          { "Name": "DamageMin", "Min": 10, "Max": 15 },
-          { "Name": "DamageMax", "Min": 15, "Max": 22 },
+          { "Name": "MinDamage", "Min": 10, "Max": 15 },
+          { "Name": "MaxDamage", "Min": 15, "Max": 22 },
           { "Name": "FireRange", "Min": 5, "Max": 7 },
           { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 5, "Max": 7 },
           { "Name": "Accuracy", "Min": 1, "Max": 2 },
           { "Name": "ArmorPierce", "Min": 2, "Max": 5 },
           { "Name": "FireRate", "Min": 2, "Max": 3 },
-          { "Name": "AmmoCount", "Min": 12, "Max": 20 }
+          { "Name": "AmmoCount", "Min": 12, "Max": 20 },
+          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
+          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
         ]
       }
     },
@@ -76,15 +85,18 @@
       "MaxEffectCount": 2,
       "Stats": {
         "Entries": [
-          { "Name": "DamageMin", "Min": 12, "Max": 17 },
-          { "Name": "DamageMax", "Min": 18, "Max": 26 },
+          { "Name": "MinDamage", "Min": 12, "Max": 17 },
+          { "Name": "MaxDamage", "Min": 18, "Max": 26 },
           { "Name": "FireRange", "Min": 5.5, "Max": 7.5 },
           { "Name": "RotationSpeed", "Min": 11, "Max": 18 },
           { "Name": "ProjectileSpeed", "Min": 5.5, "Max": 8 },
           { "Name": "Accuracy", "Min": 1.2, "Max": 2.5 },
           { "Name": "ArmorPierce", "Min": 3, "Max": 7 },
           { "Name": "FireRate", "Min": 2.2, "Max": 3.5 },
-          { "Name": "AmmoCount", "Min": 14, "Max": 22 }
+          { "Name": "AmmoCount", "Min": 14, "Max": 22 },
+          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
+          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
         ]
       }
     },
@@ -95,15 +107,18 @@
       "MaxEffectCount": 3,
       "Stats": {
         "Entries": [
-          { "Name": "DamageMin", "Min": 15, "Max": 20 },
-          { "Name": "DamageMax", "Min": 22, "Max": 32 },
+          { "Name": "MinDamage", "Min": 15, "Max": 20 },
+          { "Name": "MaxDamage", "Min": 22, "Max": 32 },
           { "Name": "FireRange", "Min": 6,  "Max": 8 },
           { "Name": "RotationSpeed", "Min": 12, "Max": 20 },
           { "Name": "ProjectileSpeed", "Min": 6,  "Max": 9 },
           { "Name": "Accuracy", "Min": 1.5, "Max": 3 },
           { "Name": "ArmorPierce", "Min": 4, "Max": 8 },
           { "Name": "FireRate", "Min": 2.5, "Max": 4 },
-          { "Name": "AmmoCount", "Min": 16, "Max": 25 }
+          { "Name": "AmmoCount", "Min": 16, "Max": 25 },
+          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
+          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
         ]
       }
     }

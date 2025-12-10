@@ -2,44 +2,29 @@ using UnityEngine;
 
 namespace Tanks
 {
-	public class TankTurret : MonoBehaviour, IAimOrigin
+	public class TankTurret : MonoBehaviour
 	{
+		[Header("Rotation")]
+		public Transform Pivot;          // Что вращаем (Turret top)
+		public Transform BaseTransform;  // Относительно чего ограничиваем угол
 		public float RotationSpeed = 180f;
-		public float MaxAngle = 360f;
-		[SerializeField] private float _detectionRange = 30f;
-		public Transform TurretTransform;
-		public Transform BaseTransform;
-		public Vector3 Position => transform.position;
-		public Vector3 Forward => transform.forward;
-		
-		[SerializeField] private TeamMask _hitMask;
-		public TeamMask HitMask => _hitMask;
-		public float AllowedAngle => MaxAngle;
-		public float DetectionRange => _detectionRange;
+		public float MaxAngle = 180f;    // сектор от центра
 
 		private void Awake()
 		{
-			if (!TurretTransform)
-				TurretTransform = transform;
-
-			if (!BaseTransform)
-				BaseTransform = transform.parent;
+			if (!Pivot) Pivot = transform;
+			if (!BaseTransform) BaseTransform = transform.parent;
 		}
 
-		public void Rotate(Vector3 worldDirection)
+		public void RotateTowards(Vector3 worldDirection)
 		{
 			WeaponRotator.Rotate(
-				rotatingTransform: TurretTransform,
+				rotatingTransform: Pivot,
 				baseTransform: BaseTransform,
 				worldDirection: worldDirection,
 				rotationSpeedDeg: RotationSpeed,
 				maxAngleDeg: MaxAngle
 			);
-		}
-
-		public void SetHitMask(TeamMask mask)
-		{
-			_hitMask = mask;
 		}
 	}
 }

@@ -27,6 +27,7 @@ namespace Tanks
 		Accuracy,
 		AmmoCount,
 		ReloadTime,
+		RotationSpeed,
 
 		// Resistances
 		KineticResist,
