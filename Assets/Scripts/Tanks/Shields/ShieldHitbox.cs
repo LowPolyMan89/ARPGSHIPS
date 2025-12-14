@@ -4,7 +4,7 @@ namespace Tanks
 {
 	public class ShieldHitbox : MonoBehaviour
 	{
-		public ShieldSide Side;
+	
 		public ShieldController Controller;
 
 		private void OnTriggerEnter(Collider other)
@@ -29,7 +29,7 @@ namespace Tanks
 			);
 
 			GameEvent.TakeDamage(calc);
-			Controller.OnShieldHit(Side, calc); 
+			Controller.OnShieldHit(calc); 
 			proj.DestroySelf();
 		}
 	}

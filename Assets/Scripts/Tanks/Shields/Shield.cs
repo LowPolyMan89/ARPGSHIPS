@@ -3,9 +3,8 @@ using UnityEngine;
 namespace Tanks
 {
 	[System.Serializable]
-	public class ShieldSector
+	public class Shield
 	{
-		public ShieldSide Side;
 		public float MaxHP;
 		public float Regen;
 		public float RestoreDelayTime;
@@ -24,12 +23,16 @@ namespace Tanks
 			ShieldHP = new Stat(StatType.Shield, MaxHP);
 			ShieldRegen = new Stat(StatType.ShieldRegen, Regen);
 			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, RestoreDelayTime);
+			Visual.Init();
+			Visual.SetCharge(ShieldHP.Current / ShieldHP.Maximum);
 		}
 		public void InitFromConfig(float hp, float regen, float restoreDelay)
 		{
 			ShieldHP = new Stat(StatType.Shield, hp);
 			ShieldRegen = new Stat(StatType.ShieldRegen, regen);
 			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, restoreDelay);
+			Visual.Init();
+			Visual.SetCharge(ShieldHP.Current / ShieldHP.Maximum);
 		}
 
 		public float Absorb(float damage)

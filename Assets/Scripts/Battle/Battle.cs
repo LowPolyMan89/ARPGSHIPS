@@ -1,5 +1,5 @@
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace Tanks
 {
@@ -7,9 +7,10 @@ namespace Tanks
 	{
 		public static Battle Instance;
 
-		[Header("Battlefield Bounds")]
-		public Vector2 MinBounds = new Vector2(-50, -50);
-		public Vector2 MaxBounds = new Vector2(50, 50);
+		[Header("Battlefield Bounds (3D)")]
+		public Vector3 MinBounds = new Vector3(-500, 0, -500);
+		public Vector3 MaxBounds = new Vector3(500, 10, 500);
+
 		[Header("Runtime")]
 		public PlayerTank Player;
 		public BattleCamera CameraController;
@@ -18,32 +19,44 @@ namespace Tanks
 
 		private void Awake()
 		{
-			if(Instance)
+			if (Instance)
 				Destroy(gameObject);
 			else
 				Instance = this;
 		}
 
-		public Vector2 ClampPosition(Vector2 pos)
+		/// <summary>
+		/// Ограничивает позицию в 3D-объёме.
+		/// </summary>
+		public Vector3 ClampPosition(Vector3 pos)
 		{
-			pos.x = Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x);
-			pos.y = Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y);
-			return pos;
+			return new Vector3(
+				Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x),
+				Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y),
+				Mathf.Clamp(pos.z, MinBounds.z, MaxBounds.z)
+			);
 		}
 
-		public bool IsInside(Vector2 pos)
+		/// <summary>
+		/// Проверяет, находится ли точка внутри объёма.
+		/// </summary>
+		public bool IsInside(Vector3 pos)
 		{
 			return pos.x >= MinBounds.x && pos.x <= MaxBounds.x &&
-			       pos.y >= MinBounds.y && pos.y <= MaxBounds.y;
+			       pos.y >= MinBounds.y && pos.y <= MaxBounds.y &&
+			       pos.z >= MinBounds.z && pos.z <= MaxBounds.z;
 		}
-		#if UNITY_EDITOR
+
+#if UNITY_EDITOR
 		private void OnDrawGizmos()
 		{
 			Gizmos.color = Color.green;
-			Vector2 size = MaxBounds - MinBounds;
-			Gizmos.DrawWireCube((MinBounds + MaxBounds) / 2f, size);
+
+			Vector3 center = (MinBounds + MaxBounds) * 0.5f;
+			Vector3 size = MaxBounds - MinBounds;
+
+			Gizmos.DrawWireCube(center, size);
 		}
-		#endif
+#endif
 	}
-	
 }

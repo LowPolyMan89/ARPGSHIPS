@@ -6,7 +6,7 @@ namespace Tanks
 	{
 		public TankTurret Turret;
 		public TeamMask HitMask;
-
+		[SerializeField] private LayerMask _obstacle;
 		public float Range = 30f;
 		public float Sector = 180f;
 		public float AimTolerance = 5f;
@@ -32,6 +32,8 @@ namespace Tanks
 			Vector3 dir = target.Transform.position - Turret.Pivot.position;
 			dir.y = 0; // 2D-плоскость
 
+			if(!LineOfSightUtility.HasLOS(Turret.Pivot.position, target.Transform.position, _obstacle))
+				return;
 			// ВРАЩАЕМ БАШНЮ
 			AimDriver.Rotate(Turret.Pivot, dir, Turret.RotationSpeed);
 

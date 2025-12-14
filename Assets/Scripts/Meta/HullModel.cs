@@ -13,7 +13,7 @@ namespace Tanks
 		public int cost;
 
 		public StatContainer stats;
-		public List<ShieldModel> shields;
+		public ShieldModel Shield;
 		public List<WeaponSlotModel> weaponSlots;
 		public List<EffectModel> uniqueEffects;
 		public List<LevelModel> leveling;
@@ -49,10 +49,9 @@ namespace Tanks
 	[Serializable]
 	public class ShieldModel
 	{
-		public string id;
-		public float value;
-		public float restoreTime;
-		public float regeneration;
+		public float Hp;
+		public float Regen;
+		public float RegenDelay;
 	}
 
 	[Serializable]

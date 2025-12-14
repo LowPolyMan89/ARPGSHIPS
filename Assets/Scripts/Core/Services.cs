@@ -1,9 +1,15 @@
 using System;
+using UnityEngine;
 
 namespace Tanks
 {
 	public static class Services
 	{
+		public static bool IsInLayerMask(GameObject obj, LayerMask mask)
+		{
+			return (mask.value & (1 << obj.layer)) != 0;
+		}
+		
 		public static class UniqueIdGenerator
 		{
 			private static readonly char[] Chars =

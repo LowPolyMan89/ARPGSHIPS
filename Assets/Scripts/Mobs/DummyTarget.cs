@@ -9,11 +9,7 @@ namespace Tanks.Mobs
 	{
 		private void Start()
 		{
-			TankStats = new Stats();
-			TankStats.AddStat(new Stat(StatType.HitPoint, 100));
-			TankStats.AddStat(new Stat(StatType.Shield, 50));
-			TankStats.AddStat(new Stat(StatType.MoveSpeed, 10));
-			Init();
+			LoadShipFromConfig("hull_test_frigate");
 			LoadTankFromPrefab();
 		}
 	}

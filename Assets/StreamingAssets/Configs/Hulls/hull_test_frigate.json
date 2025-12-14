@@ -7,38 +7,17 @@
     "Armor": 5,
     "Shield": 200,
     "ShieldRegen": 3,
-    "MoveSpeed": 4,
+    "MoveSpeed": 6,
     "MoveSpeedRear" : 2,
     "TurnSpeed": 80,
     "Acceleration": 4,
     "BrakePower": 5
   },
-  "shields": [
-    {
-      "id": "Front",
-      "value": 25,
-      "restoreTime": 10,
-      "regeneration": 2
-    },
-    {
-      "id": "Left",
-      "value": 25,
-      "restoreTime": 10,
-      "regeneration": 2
-    },
-    {
-      "id": "Right",
-      "value": 25,
-      "restoreTime": 10,
-      "regeneration": 2
-    },
-    {
-      "id": "Rear",
-      "value": 25,
-      "restoreTime": 10,
-      "regeneration": 2
-    }
-  ],
+  "Shield": {
+    "Hp": 100,
+    "Regen": 2,
+    "RegenDelay": 15
+  },
   "Engine": "",
   "weaponSlots": [
     "S",

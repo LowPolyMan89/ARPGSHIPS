@@ -92,6 +92,5 @@ namespace Tanks
 
 		public bool WasShieldHit;
 		public bool WasDirectHull;
-		public ShieldSide? HitShieldSide;
 	}
 }

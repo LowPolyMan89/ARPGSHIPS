@@ -2,10 +2,19 @@ using UnityEngine;
 
 namespace Tanks
 {
+    public enum ActivateSlotWeaponType
+    {
+        Auto,
+        LMB,
+        RMB
+    }
     public class WeaponSlot : MonoBehaviour
     {
+        public LayerMask ObstacleLayers;
         [Header("Slot config")]
         public WeaponSize SlotSize;
+
+        public ActivateSlotWeaponType ActivateSlotWeaponType;
         public TankBase Owner;
         public Transform MountPoint;
         [Tooltip("Максимальный угол отклонения от слота FORWARD (для логики, не для вращения!)")]

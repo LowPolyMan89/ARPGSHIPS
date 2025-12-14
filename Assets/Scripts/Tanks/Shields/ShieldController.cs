@@ -8,8 +8,8 @@ namespace Tanks
 {
     public class ShieldController : MonoBehaviour
     {
-        public List<ShieldSector> Sectors = new();
-        public List<ShieldSectorVisual> Visuals = new();
+
+        public Shield TankShield;
         public TankBase _tank;
 
         private void Awake()
@@ -23,32 +23,19 @@ namespace Tanks
             while (gameObject.activeSelf)
             {
                 yield return new WaitForSeconds(1f);
-                foreach (var s in Sectors)
-                    s.Tick();
+                TankShield.Tick();
             }
         }
         private void Update()
         {
             UpdateVisuals();
         }
-
-        public void AddSector(ShieldSector sector)
-        {
-            Sectors.Add(sector);
-            RegisterVisual(sector);
-        }
-
-        public void RegisterVisual(ShieldSector sector)
-        {
-            sector.Visual.Init();
-            sector.Visual.SetCharge(sector.ShieldHP.Current / sector.ShieldHP.Maximum);
-        }
+        
         
 
-        public void OnShieldHit(ShieldSide side, CalculatedDamage calculatedDamage)
+        public void OnShieldHit(CalculatedDamage calculatedDamage)
         {
-            var sector = Sectors.FirstOrDefault(s => s.Side == side);
-
+   
             // если сектора нет — прямой урон
             /*
             if (sector == null)
@@ -61,10 +48,10 @@ namespace Tanks
             float dmg = calculatedDamage.FinalDamage;
 
             // Уменьшаем HP щита
-            float leftover = sector.Absorb(dmg);
+            float leftover = TankShield.Absorb(dmg);
 
             // визуал
-            var vis = sector.Visual;
+            var vis = TankShield.Visual;
             vis.Hit(calculatedDamage.HitPoint);
             GameEvent.UiUpdate();
         }
@@ -72,11 +59,8 @@ namespace Tanks
 
         private void UpdateVisuals()
         {
-            foreach (var se in Sectors)
-            {
-                var t = se.ShieldHP.Current / se.ShieldHP.Maximum;
-                se.Visual.SetCharge(t);
-            }
+            var t = TankShield.ShieldHP.Current / TankShield.ShieldHP.Maximum;
+            TankShield.Visual.SetCharge(t);
         }
     }
 }

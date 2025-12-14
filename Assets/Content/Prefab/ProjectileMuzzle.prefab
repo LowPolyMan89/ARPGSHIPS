@@ -11,7 +11,6 @@ GameObject:
   - component: {fileID: 1437593633642707907}
   - component: {fileID: 4769860284713054685}
   - component: {fileID: 3689741428324765953}
-  - component: {fileID: 7007058487949613362}
   m_Layer: 0
   m_Name: Sphere
   m_TagString: Untagged
@@ -87,27 +86,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!135 &7007058487949613362
-SphereCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8058243402439629473}
-  m_Material: {fileID: 0}
-  m_IncludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_ExcludeLayers:
-    serializedVersion: 2
-    m_Bits: 0
-  m_LayerOverridePriority: 0
-  m_IsTrigger: 0
-  m_ProvidesContacts: 0
-  m_Enabled: 1
-  serializedVersion: 3
-  m_Radius: 0.5
-  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &8640198785758852037
 GameObject:
   m_ObjectHideFlags: 0
@@ -155,9 +133,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3530c4ed9c7243709f280bf82f354de5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.Projectile
-  SourceWeapon: {fileID: 0}
-  Owner: {fileID: 0}
-  HitMask: 0
   _moveDir: {x: 0, y: 0, z: 0}
 --- !u!54 &3219706224093656819
 Rigidbody:
@@ -167,7 +142,7 @@ Rigidbody:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8640198785758852037}
   serializedVersion: 4
-  m_Mass: 1
+  m_Mass: 0.01
   m_Drag: 0
   m_AngularDrag: 0.05
   m_CenterOfMass: {x: 0, y: 0, z: 0}
@@ -181,7 +156,7 @@ Rigidbody:
     m_Bits: 0
   m_ImplicitCom: 1
   m_ImplicitTensor: 1
-  m_UseGravity: 1
+  m_UseGravity: 0
   m_IsKinematic: 1
   m_Interpolate: 0
   m_Constraints: 0
@@ -201,7 +176,7 @@ SphereCollider:
     serializedVersion: 2
     m_Bits: 0
   m_LayerOverridePriority: 0
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3

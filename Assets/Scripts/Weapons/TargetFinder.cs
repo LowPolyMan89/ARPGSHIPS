@@ -53,7 +53,7 @@ namespace Tanks
 		public bool IsAimedAt(Transform pivot, Vector3 toAimDir, float toleranceDeg)
 		{
 			float angle = Vector3.Angle(pivot.forward, toAimDir);
-			Debug.Log($"{pivot.root} angle {angle}");
+			//Debug.Log($"{pivot.root} angle {angle}");
 			return angle <= toleranceDeg;
 		}
 	}

@@ -18,7 +18,6 @@ namespace Tanks
 		public List<StatVisual> StatVisuals = new();
 		public TankTurret Turret;
 		public TurretAimSystem AimSystem;
-		public List<ShieldSector> ShieldSectors = new();
 		public HashSet<string> RunningDotEffects = new();
 		public Transform Transform => transform;
 		public TargetSize Size => size;
@@ -57,23 +56,11 @@ namespace Tanks
 			
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
-				foreach (var sector in ShieldSectors)
-				{
-					var modelFromSide = data.shields.Find(x =>
-					{
-						return Enum.TryParse<ShieldSide>(x.id, true, out var parsed) 
-						       && parsed == sector.Side;
-					});
-
-					sector.InitFromConfig(
-						hp: modelFromSide.value,
-						regen: modelFromSide.regeneration,
-						restoreDelay: modelFromSide.restoreTime
-					);
-
-					controller.AddSector(sector);
-				}
-				
+				controller.TankShield.InitFromConfig(
+					hp: data.Shield.Hp,
+					regen: data.Shield.Regen,
+					restoreDelay: data.Shield.RegenDelay
+				);
 			}
 		}
 		
@@ -81,11 +68,7 @@ namespace Tanks
 		{
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
-				foreach (var sector in ShieldSectors)
-				{
-					sector.InitFromPrefab();
-					controller.AddSector(sector);
-				}
+				controller.TankShield.InitFromPrefab();
 			}
 		}
 		

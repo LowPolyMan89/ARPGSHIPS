@@ -32,10 +32,18 @@ namespace Tanks
 		private void Update()
 		{
 			transform.position += _moveDir * _speed * Time.deltaTime;
+			if (!Battle.Instance.IsInside(transform.position))
+			{
+				Destroy(gameObject);
+			}
 		}
 
 		private void OnTriggerEnter(Collider other)
 		{
+			if (Services.IsInLayerMask(other.gameObject, SourceWeapon.Slot.ObstacleLayers))
+			{
+				Destroy(gameObject);
+			}
 			if (!other.TryGetComponent<ITargetable>(out var t))
 				return;
 

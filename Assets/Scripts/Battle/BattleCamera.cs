@@ -7,7 +7,6 @@ namespace Tanks
 		[Header("Follow Settings")]
 		public float followSmooth = 0.2f;
 		public float moveOffsetStrength = 2f;
-
 		private Vector3 _velocity;
 		private PlayerTank _player;
 
@@ -50,25 +49,10 @@ namespace Tanks
 				ref _velocity,
 				followSmooth
 			);
-
-			// ограничение карты → XZ
-			smoothed = ClampCameraToBounds(smoothed);
+			
 
 			transform.position = smoothed;
 		}
-
-		private Vector3 ClampCameraToBounds(Vector3 camPos)
-		{
-			Battle b = Battle.Instance;
-
-			// твоя карта работает в X/Z, а высота это Y
-			Vector2 clamped = b.ClampPosition(new Vector2(camPos.x, camPos.z));
-
-			camPos.x = clamped.x;
-			camPos.z = clamped.y;
-			camPos.y = _fixedY;
-
-			return camPos;
-		}
+		
 	}
 }

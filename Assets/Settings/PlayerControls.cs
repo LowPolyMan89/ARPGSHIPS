@@ -109,6 +109,24 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""FireLMB"",
+                    ""type"": ""Button"",
+                    ""id"": ""dfa42a31-e147-4b47-b792-a19e2c32f934"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""FireRMB"",
+                    ""type"": ""Button"",
+                    ""id"": ""717b1b77-327b-4635-afed-66acf832c21e"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -276,6 +294,28 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""action"": ""Throttle"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": true
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""3f3d9df3-9d69-4683-9160-215f2027ebcc"",
+                    ""path"": ""<Mouse>/leftButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""FireLMB"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""e5ac5c57-3e6d-42ab-b39f-691957e8bbcb"",
+                    ""path"": ""<Mouse>/rightButton"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""FireRMB"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -286,6 +326,8 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Tank = asset.FindActionMap("Tank", throwIfNotFound: true);
         m_Tank_Steering = m_Tank.FindAction("Steering", throwIfNotFound: true);
         m_Tank_Throttle = m_Tank.FindAction("Throttle", throwIfNotFound: true);
+        m_Tank_FireLMB = m_Tank.FindAction("FireLMB", throwIfNotFound: true);
+        m_Tank_FireRMB = m_Tank.FindAction("FireRMB", throwIfNotFound: true);
     }
 
     ~@PlayerControls()
@@ -368,6 +410,8 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private List<ITankActions> m_TankActionsCallbackInterfaces = new List<ITankActions>();
     private readonly InputAction m_Tank_Steering;
     private readonly InputAction m_Tank_Throttle;
+    private readonly InputAction m_Tank_FireLMB;
+    private readonly InputAction m_Tank_FireRMB;
     /// <summary>
     /// Provides access to input actions defined in input action map "Tank".
     /// </summary>
@@ -387,6 +431,14 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Tank/Throttle".
         /// </summary>
         public InputAction @Throttle => m_Wrapper.m_Tank_Throttle;
+        /// <summary>
+        /// Provides access to the underlying input action "Tank/FireLMB".
+        /// </summary>
+        public InputAction @FireLMB => m_Wrapper.m_Tank_FireLMB;
+        /// <summary>
+        /// Provides access to the underlying input action "Tank/FireRMB".
+        /// </summary>
+        public InputAction @FireRMB => m_Wrapper.m_Tank_FireRMB;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -419,6 +471,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Throttle.started += instance.OnThrottle;
             @Throttle.performed += instance.OnThrottle;
             @Throttle.canceled += instance.OnThrottle;
+            @FireLMB.started += instance.OnFireLMB;
+            @FireLMB.performed += instance.OnFireLMB;
+            @FireLMB.canceled += instance.OnFireLMB;
+            @FireRMB.started += instance.OnFireRMB;
+            @FireRMB.performed += instance.OnFireRMB;
+            @FireRMB.canceled += instance.OnFireRMB;
         }
 
         /// <summary>
@@ -436,6 +494,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @Throttle.started -= instance.OnThrottle;
             @Throttle.performed -= instance.OnThrottle;
             @Throttle.canceled -= instance.OnThrottle;
+            @FireLMB.started -= instance.OnFireLMB;
+            @FireLMB.performed -= instance.OnFireLMB;
+            @FireLMB.canceled -= instance.OnFireLMB;
+            @FireRMB.started -= instance.OnFireRMB;
+            @FireRMB.performed -= instance.OnFireRMB;
+            @FireRMB.canceled -= instance.OnFireRMB;
         }
 
         /// <summary>
@@ -490,5 +554,19 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnThrottle(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "FireLMB" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnFireLMB(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "FireRMB" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnFireRMB(InputAction.CallbackContext context);
     }
 }
