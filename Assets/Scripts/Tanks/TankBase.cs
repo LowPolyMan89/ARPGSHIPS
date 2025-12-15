@@ -9,6 +9,7 @@ namespace Tanks
 {
 	public abstract class TankBase : MonoBehaviour, ITargetable
 	{
+		public List<ActiveEffectInstance> ActiveEffects = new();
 		public TankVisual _visual;
 		public SideType SideType;
 		[SerializeField] private TeamMask _team;
@@ -92,8 +93,6 @@ namespace Tanks
 			}
 		}
 
-		public List<ActiveEffectInstance> ActiveEffects = new();
-
 
 		// ============================================================
 		// INIT
@@ -148,7 +147,14 @@ namespace Tanks
 			if (calc.SourceWeapon?.Model?.Effects != null)
 			{
 				foreach (var effect in calc.SourceWeapon.Model.Effects)
+				{
+					Debug.Log(
+						$"[EFFECT CALL] {effect.GetType().Name} " +
+						$"on {name} | Damage={calc.FinalDamage}"
+					);
 					effect.Apply(this, calc.FinalDamage, calc.SourceWeapon);
+				}
+					
 			}
 		}
 
@@ -170,6 +176,11 @@ namespace Tanks
 			{
 				inst = new ActiveEffectInstance(effect.EffectId, duration);
 				ActiveEffects.Add(inst);
+
+				Debug.Log(
+					$"[EFFECT ADD] {effect.EffectId} added to {name} " +
+					$"| Duration={duration}"
+				);
 			}
 			else
 			{
@@ -179,8 +190,14 @@ namespace Tanks
 					inst.Stacks = Mathf.Min(inst.Stacks + 1, effect.MaxStacks);
 				else
 					inst.Stacks = 1;
+
+				Debug.Log(
+					$"[EFFECT STACK] {effect.EffectId} on {name} " +
+					$"| Stacks={inst.Stacks}/{effect.MaxStacks}"
+				);
 			}
 		}
+
 
 
 		// ============================================================

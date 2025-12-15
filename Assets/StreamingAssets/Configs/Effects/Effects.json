@@ -1,0 +1,11 @@
+﻿{
+  "Effects" :
+          [
+            {
+              "Name": "DotFire",
+              "Info": "dot_fire_text",
+              "Icon" : "dot_fire_icon",
+              "Script": "DotFireDamage"
+            }
+          ]
+}

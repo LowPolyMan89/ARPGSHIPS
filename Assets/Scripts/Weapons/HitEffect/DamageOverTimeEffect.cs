@@ -54,19 +54,29 @@ namespace Tanks.HitEffect
             {
                 var eff = tank.GetEffect(EffectId);
 
-                // Эффект исчез → снимаем
                 if (eff == null)
+                {
+                    Debug.Log($"[DOT END] {EffectId} on {tank.name}");
                     break;
+                }
 
-                // наносим фиксированный урон (НЕ зависит от стаков)
                 if (tank.TryGetStat(StatType.HitPoint, out var hpStat))
+                {
                     hpStat.AddToCurrent(-damagePerTick);
+
+                    Debug.Log(
+                        $"[DOT TICK] {EffectId} on {tank.name} " +
+                        $"| Damage={damagePerTick} " +
+                        $"| Stacks={eff.Stacks} " +
+                        $"| HP={hpStat.Current}"
+                    );
+                }
 
                 yield return new WaitForSeconds(1f);
             }
 
-            // эффект закончился → символически убираем DoT из активных потоков
             tank.RunningDotEffects.Remove(EffectId);
         }
+
     }
 }

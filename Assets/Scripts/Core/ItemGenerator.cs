@@ -19,12 +19,33 @@ namespace Tanks
 	{
 		public static string WeaponConfigsPath =>
 			Path.Combine(Application.streamingAssetsPath, "Configs/Weapons");
+		public static string EffectsConfigsPath =>
+			Path.Combine(Application.streamingAssetsPath, "Configs/Effects");
 
 		public static string ModulesConfigsPath =>
 			Path.Combine(Application.streamingAssetsPath, "Configs/Modules");
 
 		public static string OutputPath =>
 			Path.Combine(Application.persistentDataPath, "Inventory");
+		
+		private static Dictionary<string, EffectTemplate> _effectsCache;
+
+		private static void EnsureEffectsLoaded()
+		{
+			if (_effectsCache != null)
+				return;
+
+			_effectsCache = new Dictionary<string, EffectTemplate>();
+
+			foreach (var file in LoadEffectsFiles())
+			{
+				var json = File.ReadAllText(Path.Combine(EffectsConfigsPath, file));
+				var collection = JsonUtility.FromJson<EffectTemplateCollection>(json);
+
+				foreach (var e in collection.Effects)
+					_effectsCache[e.Name] = e;
+			}
+		}
 
 		// =============================
 		// Загрузка всех шаблонов
@@ -35,6 +56,16 @@ namespace Tanks
 				return new List<string>();
 
 			return Directory.GetFiles(WeaponConfigsPath, "*.json")
+				.Select(Path.GetFileName)
+				.ToList();
+		}
+		
+		public static List<string> LoadEffectsFiles()
+		{
+			if (!Directory.Exists(EffectsConfigsPath))
+				return new List<string>();
+
+			return Directory.GetFiles(EffectsConfigsPath, "*.json")
 				.Select(Path.GetFileName)
 				.ToList();
 		}
@@ -191,26 +222,64 @@ namespace Tanks
 			return tpl.Rarities[0].Rarity;
 		}
 
-		private static List<string> GenerateEffects(WeaponTemplate tpl, WeaponTemplate.RarityEntry rarity)
+		private static List<EffectValue> GenerateEffects(
+			WeaponTemplate tpl,
+			WeaponTemplate.RarityEntry rarity)
 		{
-			var result = new List<string>();
-			int max = rarity.MaxEffectCount;
+			if (rarity.MaxEffectCount <= 0)
+				return null;
 
-			if (max <= 0 || tpl.AvailableEffects == null)
-				return result;
+			if (tpl.AvailableEffects == null || tpl.AvailableEffects.Length == 0)
+				return null;
 
-			int count = Random.Range(0, max + 1);
-			HashSet<int> used = new();
+			EnsureEffectsLoaded();
 
-			while (result.Count < count)
+			var effects = new List<EffectValue>();
+
+			int count = Random.Range(1, rarity.MaxEffectCount + 1);
+			var used = new HashSet<int>();
+
+			while (effects.Count < count && used.Count < tpl.AvailableEffects.Length)
 			{
 				int i = Random.Range(0, tpl.AvailableEffects.Length);
-				if (used.Add(i))
-					result.Add(tpl.AvailableEffects[i]);
+				if (!used.Add(i))
+					continue;
+
+				var effectRef = tpl.AvailableEffects[i];
+
+				if (!_effectsCache.TryGetValue(effectRef.Name, out var effectTpl))
+				{
+					Debug.LogWarning($"Effect template not found: {effectRef.Name}");
+					continue;
+				}
+
+				var effect = new EffectValue
+				{
+					Name = effectTpl.Name,
+					Stats = new List<StatValue>()
+				};
+
+				foreach (var s in effectRef.Stats.Entries)
+				{
+					float value = Random.Range(s.Min, s.Max);
+					if (Mathf.Abs(value) > 10f)
+						value = Mathf.Round(value);
+					else
+						value = (float)Math.Round(value, 2);
+
+					effect.Stats.Add(new StatValue
+					{
+						Name = s.Name,
+						Value = value
+					});
+				}
+
+				effects.Add(effect);
 			}
 
-			return result;
+			return effects.Count > 0 ? effects : null;
 		}
+
 
 		private static void SaveItem(GeneratedWeaponItem item)
 		{
@@ -237,7 +306,7 @@ public sealed class WeaponTemplate
 	public string DamageType;
 	public string Size;
 	public string Prefab;
-	public string[] AvailableEffects;
+	public EffectTemplateRef[] AvailableEffects;
 
 	public RarityEntry[] Rarities;
 
@@ -280,14 +349,37 @@ public class GeneratedWeaponItem : IGeneratedItem
 	public string Prefab;
 
 	public StatValue[] Stats;
-	public List<string> Effects;
+	public List<EffectValue> Effects;
 	string IGeneratedItem.ItemId => ItemId;
 	string IGeneratedItem.TemplateId => TemplateId;
 	string IGeneratedItem.Name => Name;
 	string IGeneratedItem.Rarity => Rarity;
 }
-
-
+[Serializable]
+public sealed class EffectValue
+{
+	public string Name;
+	public List<StatValue> Stats = new List<StatValue>();
+}
+[Serializable]
+public sealed class EffectTemplate
+{
+	public string Name;
+	public string Info;
+	public string Icon;
+	public string Script;
+}
+[Serializable]
+public sealed class EffectTemplateRef
+{
+	public string Name;
+	public WeaponTemplate.StatList Stats;
+}
+[Serializable]
+public sealed class EffectTemplateCollection
+{
+	public EffectTemplate[] Effects;
+}
 [Serializable]
 public sealed class StatValue
 {

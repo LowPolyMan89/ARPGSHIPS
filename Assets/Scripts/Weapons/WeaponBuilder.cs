@@ -10,19 +10,42 @@ namespace Tanks
 	{
 		public static WeaponBase Build(string weaponId, WeaponSlot slot)
 		{
-			var data = JsonUtility.FromJson<WeaponLoadData>(File.ReadAllText(ItemGenerator.OutputPath + "/" + weaponId + ".json"));
-			var weaponBase = GameObject.Instantiate(Resources.Load($"Weapons/{data.Prefab}") as GameObject, slot.MountPoint, false);
+			var path = Path.Combine(ItemGenerator.OutputPath, weaponId + ".json");
+			var json = File.ReadAllText(path);
+
+			var data = JsonUtility.FromJson<WeaponLoadData>(json);
+
+			var prefab = Resources.Load<GameObject>($"Weapons/{data.Prefab}");
+			var go = GameObject.Instantiate(prefab, slot.MountPoint, false);
+
+			var weapon = go.GetComponent<WeaponBase>();
+
+			// ---------- Stats ----------
 			var stats = new Stats();
-			foreach (var statData in data.Stats)
+			foreach (var s in data.Stats)
 			{
-				stats.AddStat(new Stat(Enum.Parse<StatType>(statData.Name), statData.Value));
+				var statType = Enum.Parse<StatType>(s.Name);
+				stats.AddStat(new Stat(statType, s.Value));
 			}
-			weaponBase.GetComponent<WeaponBase>().Init(slot, stats);
-			return null;
+
+			weapon.Init(slot, stats);
+
+			// ---------- Effects ----------
+			if (data.Effects != null)
+			{
+				foreach (var eff in data.Effects)
+				{
+					var runtime = EffectFactory.Create(eff);
+					if (runtime != null)
+						weapon.Model.AddEffect(runtime);
+				}
+			}
+
+			return weapon;
 		}
 	}
 
-	[System.Serializable]
+	[Serializable]
 	public class WeaponLoadData
 	{
 		public string ItemId;
@@ -34,8 +57,9 @@ namespace Tanks
 		public string Size;
 		public string Icon;
 		public string Prefab;
-		public List<StatData> Stats = new List<StatData>();
-		public List<string> Effects = new List<string>();
+
+		public List<StatData> Stats = new();
+		public List<EffectValue> Effects = new();
 	}
 
 	[System.Serializable]

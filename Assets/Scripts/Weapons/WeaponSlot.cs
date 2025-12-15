@@ -28,7 +28,7 @@ namespace Tanks
         {
             if (!Owner)
                 Owner = GetComponentInParent<TankBase>();
-            MountedWeapon = WeaponBuilder.Build("item_1765113613959_pya1", this);
+            MountedWeapon = WeaponBuilder.Build("1", this);
             if (MountedWeapon)
                 InitWeapon(MountedWeapon);
         }

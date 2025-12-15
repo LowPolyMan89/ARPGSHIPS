@@ -33,5 +33,10 @@ namespace Tanks
 		KineticResist,
 		ThermalResist,
 		ExplosionResist,
+		
+		//values
+		Duration,
+		Value,
+		Chance // 0 - 1
 	}
 }

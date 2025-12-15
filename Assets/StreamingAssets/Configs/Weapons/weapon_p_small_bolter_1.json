@@ -8,9 +8,17 @@
   "Prefab": "weapon_p_small_bolter_1",
 
   "AvailableEffects": [
-    "IgnoreArmor",
-    "DotFire",
-    "BoostFireSpeed"
+    {
+      "Name": "DotFire",
+      "Stats": {
+        "Entries": [
+          { "Name": "MinDamage", "Min": 5,  "Max": 10 },
+          { "Name": "MaxDamage", "Min": 10,  "Max": 20 },
+          { "Name": "Chance", "Min": 0.05,  "Max": 0.8 },
+          { "Name": "Duration", "Min": 2,  "Max": 5 }
+          ]
+      }
+    }
   ],
 
   "Rarities": [
@@ -82,7 +90,7 @@
     {
       "Rarity": "Epic",
       "DropChance": 7,
-      "MaxEffectCount": 2,
+      "MaxEffectCount": 1,
       "Stats": {
         "Entries": [
           { "Name": "MinDamage", "Min": 12, "Max": 17 },
@@ -104,7 +112,7 @@
     {
       "Rarity": "Legendary",
       "DropChance": 3,
-      "MaxEffectCount": 3,
+      "MaxEffectCount": 1,
       "Stats": {
         "Entries": [
           { "Name": "MinDamage", "Min": 15, "Max": 20 },
