@@ -1,24 +1,17 @@
 using System;
-using System.IO;
 using System.Collections.Generic;
-using Tanks;
-using UnityEditor.SceneManagement;
+using System.IO;
+using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 namespace Tanks
 {
-	using System;
-	using System.IO;
-	using System.Linq;
-	using System.Collections.Generic;
-	using UnityEngine;
-	using Random = UnityEngine.Random;
-
 	public static class ItemGenerator
 	{
 		public static string WeaponConfigsPath =>
 			Path.Combine(Application.streamingAssetsPath, "Configs/Weapons");
+
 		public static string EffectsConfigsPath =>
 			Path.Combine(Application.streamingAssetsPath, "Configs/Effects");
 
@@ -27,7 +20,7 @@ namespace Tanks
 
 		public static string OutputPath =>
 			Path.Combine(Application.persistentDataPath, "Inventory");
-		
+
 		private static Dictionary<string, EffectTemplate> _effectsCache;
 
 		private static void EnsureEffectsLoaded()
@@ -35,7 +28,7 @@ namespace Tanks
 			if (_effectsCache != null)
 				return;
 
-			_effectsCache = new Dictionary<string, EffectTemplate>();
+			_effectsCache = new Dictionary<string, EffectTemplate>(StringComparer.OrdinalIgnoreCase);
 
 			foreach (var file in LoadEffectsFiles())
 			{
@@ -47,9 +40,6 @@ namespace Tanks
 			}
 		}
 
-		// =============================
-		// Загрузка всех шаблонов
-		// =============================
 		public static List<string> LoadWeaponFiles()
 		{
 			if (!Directory.Exists(WeaponConfigsPath))
@@ -59,7 +49,7 @@ namespace Tanks
 				.Select(Path.GetFileName)
 				.ToList();
 		}
-		
+
 		public static List<string> LoadEffectsFiles()
 		{
 			if (!Directory.Exists(EffectsConfigsPath))
@@ -80,9 +70,6 @@ namespace Tanks
 				.ToList();
 		}
 
-		// =============================
-		// Генерация через LootTable
-		// =============================
 		public static GeneratedWeaponItem GenerateWeaponFromLoot(string lootTableId)
 		{
 			if (!string.IsNullOrEmpty(lootTableId))
@@ -108,9 +95,6 @@ namespace Tanks
 			return new GeneratedWeaponItem();
 		}
 
-		// =============================
-		// Глобальный пул всех оружий
-		// =============================
 		private static GeneratedWeaponItem GenerateModuleFromAllTemplates()
 		{
 			return new GeneratedWeaponItem();
@@ -140,6 +124,9 @@ namespace Tanks
 			List<(string template, string rarity, int weight)> entries)
 		{
 			int total = entries.Sum(e => e.weight);
+			if (total <= 0)
+				return (entries[0].template, entries[0].rarity);
+
 			int roll = Random.Range(0, total);
 			int accum = 0;
 
@@ -153,9 +140,6 @@ namespace Tanks
 			return (entries[0].template, entries[0].rarity);
 		}
 
-		// =============================
-		// Основной метод генерации
-		// =============================
 		public static GeneratedWeaponItem GenerateWeapon(string templateFile, string forcedRarity)
 		{
 			var fullPath = Path.Combine(WeaponConfigsPath, templateFile);
@@ -168,6 +152,12 @@ namespace Tanks
 				: forcedRarity;
 
 			var rarityData = FindRarity(template, rarity);
+			if (rarityData == null)
+			{
+				Debug.LogWarning($"Rarity '{rarity}' not found for weapon '{template.Id}', fallback to first entry.");
+				rarityData = template.Rarities.FirstOrDefault();
+				rarity = rarityData?.Rarity ?? "Unknown";
+			}
 
 			var item = new GeneratedWeaponItem
 			{
@@ -175,7 +165,7 @@ namespace Tanks
 				TemplateId = template.Id,
 				Name = template.Name,
 				Rarity = rarity,
-				Prefab =  template.Prefab,
+				Prefab = template.Prefab,
 				Slot = template.Slot,
 				DamageType = template.DamageType,
 				Size = template.Size,
@@ -183,23 +173,22 @@ namespace Tanks
 			};
 
 			List<StatValue> stats = new();
-			foreach (var s in rarityData.Stats.Entries)
+			if (rarityData?.Stats?.Entries != null)
 			{
-				float v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
-				stats.Add(new StatValue { Name = s.Name, Value = v });
+				foreach (var s in rarityData.Stats.Entries)
+				{
+					float v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
+					stats.Add(new StatValue { Name = s.Name, Value = v });
+				}
 			}
 
 			item.Stats = stats.ToArray();
-
 			item.Effects = GenerateEffects(template, rarityData);
 
 			SaveItem(item);
 			return item;
 		}
 
-		// =============================
-		// Внутренние хелперы
-		// =============================
 		private static WeaponTemplate.RarityEntry FindRarity(WeaponTemplate t, string rarity)
 		{
 			return t.Rarities.FirstOrDefault(
@@ -209,6 +198,9 @@ namespace Tanks
 		private static string PickRandomRarity(WeaponTemplate tpl)
 		{
 			int total = tpl.Rarities.Sum(r => r.DropChance);
+			if (total <= 0)
+				return tpl.Rarities[0].Rarity;
+
 			int roll = Random.Range(0, total);
 			int accum = 0;
 
@@ -226,7 +218,7 @@ namespace Tanks
 			WeaponTemplate tpl,
 			WeaponTemplate.RarityEntry rarity)
 		{
-			if (rarity.MaxEffectCount <= 0)
+			if (rarity == null || rarity.MaxEffectCount <= 0)
 				return null;
 
 			if (tpl.AvailableEffects == null || tpl.AvailableEffects.Length == 0)
@@ -252,6 +244,9 @@ namespace Tanks
 					Debug.LogWarning($"Effect template not found: {effectRef.Name}");
 					continue;
 				}
+
+				if (effectRef.Stats?.Entries == null || effectRef.Stats.Entries.Length == 0)
+					continue;
 
 				var effect = new EffectValue
 				{
@@ -280,7 +275,6 @@ namespace Tanks
 			return effects.Count > 0 ? effects : null;
 		}
 
-
 		private static void SaveItem(GeneratedWeaponItem item)
 		{
 			if (!Directory.Exists(OutputPath))
@@ -290,37 +284,87 @@ namespace Tanks
 			var path = Path.Combine(OutputPath, item.ItemId + ".json");
 
 			File.WriteAllText(path, json);
-			Debug.Log("Saved item → " + path);
+			Debug.Log("Saved item at " + path);
 		}
 	}
-}
-
-
-[Serializable]
-public sealed class WeaponTemplate
-{
-	public string Id;
-	public string Name;
-	public string Icon;
-	public string Slot;
-	public string DamageType;
-	public string Size;
-	public string Prefab;
-	public EffectTemplateRef[] AvailableEffects;
-
-	public RarityEntry[] Rarities;
 
 	[Serializable]
-	public sealed class RarityEntry
+	public sealed class WeaponTemplate
 	{
-		public string Rarity;
-		public int DropChance;
-		public int MaxEffectCount;
-		public StatList Stats;
+		public string Id;
+		public string Name;
+		public string Icon;
+		public string Slot;
+		public string DamageType;
+		public string Size;
+		public string Prefab;
+		public EffectTemplateRef[] AvailableEffects;
+
+		public RarityEntry[] Rarities;
+
+		[Serializable]
+		public sealed class RarityEntry
+		{
+			public string Rarity;
+			public int DropChance;
+			public int MaxEffectCount;
+			public StatRangeList Stats;
+		}
 	}
 
 	[Serializable]
-	public sealed class StatList
+	public class GeneratedWeaponItem : IGeneratedItem
+	{
+		public string ItemId;
+		public string TemplateId;
+		public string Name;
+		public string Rarity;
+
+		public string Slot;
+		public string DamageType;
+		public string Size;
+		public string Icon;
+		public string Prefab;
+
+		public StatValue[] Stats;
+		public List<EffectValue> Effects;
+		string IGeneratedItem.ItemId => ItemId;
+		string IGeneratedItem.TemplateId => TemplateId;
+		string IGeneratedItem.Name => Name;
+		string IGeneratedItem.Rarity => Rarity;
+	}
+
+	[Serializable]
+	public sealed class EffectValue
+	{
+		public string Name;
+		public List<StatValue> Stats = new List<StatValue>();
+	}
+
+	[Serializable]
+	public sealed class EffectTemplate
+	{
+		public string Name;
+		public string Info;
+		public string Icon;
+		public string Script;
+	}
+
+	[Serializable]
+	public sealed class EffectTemplateRef
+	{
+		public string Name;
+		public StatRangeList Stats;
+	}
+
+	[Serializable]
+	public sealed class EffectTemplateCollection
+	{
+		public EffectTemplate[] Effects;
+	}
+
+	[Serializable]
+	public sealed class StatRangeList
 	{
 		public StatRangeEntry[] Entries;
 	}
@@ -332,57 +376,11 @@ public sealed class WeaponTemplate
 		public float Min;
 		public float Max;
 	}
-}
 
-[Serializable]
-public class GeneratedWeaponItem : IGeneratedItem
-{
-	public string ItemId;
-	public string TemplateId;
-	public string Name;
-	public string Rarity;
-
-	public string Slot;
-	public string DamageType;
-	public string Size;
-	public string Icon;
-	public string Prefab;
-
-	public StatValue[] Stats;
-	public List<EffectValue> Effects;
-	string IGeneratedItem.ItemId => ItemId;
-	string IGeneratedItem.TemplateId => TemplateId;
-	string IGeneratedItem.Name => Name;
-	string IGeneratedItem.Rarity => Rarity;
-}
-[Serializable]
-public sealed class EffectValue
-{
-	public string Name;
-	public List<StatValue> Stats = new List<StatValue>();
-}
-[Serializable]
-public sealed class EffectTemplate
-{
-	public string Name;
-	public string Info;
-	public string Icon;
-	public string Script;
-}
-[Serializable]
-public sealed class EffectTemplateRef
-{
-	public string Name;
-	public WeaponTemplate.StatList Stats;
-}
-[Serializable]
-public sealed class EffectTemplateCollection
-{
-	public EffectTemplate[] Effects;
-}
-[Serializable]
-public sealed class StatValue
-{
-	public string Name;
-	public float Value;
+	[Serializable]
+	public sealed class StatValue
+	{
+		public string Name;
+		public float Value;
+	}
 }

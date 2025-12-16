@@ -6,7 +6,6 @@
 	}
 
 
-
 // ---------- IVisual.cs ----------
 namespace Tanks
 {
@@ -19,8 +18,8 @@ namespace Tanks
 
 
 // ---------- Battle.cs ----------
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace Tanks
 {
@@ -28,9 +27,10 @@ namespace Tanks
 	{
 		public static Battle Instance;
 
-		[Header("Battlefield Bounds")]
-		public Vector2 MinBounds = new Vector2(-50, -50);
-		public Vector2 MaxBounds = new Vector2(50, 50);
+		[Header("Battlefield Bounds (3D)")]
+		public Vector3 MinBounds = new Vector3(-500, 0, -500);
+		public Vector3 MaxBounds = new Vector3(500, 10, 500);
+
 		[Header("Runtime")]
 		public PlayerTank Player;
 		public BattleCamera CameraController;
@@ -39,34 +39,46 @@ namespace Tanks
 
 		private void Awake()
 		{
-			if(Instance)
+			if (Instance)
 				Destroy(gameObject);
 			else
 				Instance = this;
 		}
 
-		public Vector2 ClampPosition(Vector2 pos)
+		/// <summary>
+		/// Ограничивает позицию в 3D-объёме.
+		/// </summary>
+		public Vector3 ClampPosition(Vector3 pos)
 		{
-			pos.x = Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x);
-			pos.y = Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y);
-			return pos;
+			return new Vector3(
+				Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x),
+				Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y),
+				Mathf.Clamp(pos.z, MinBounds.z, MaxBounds.z)
+			);
 		}
 
-		public bool IsInside(Vector2 pos)
+		/// <summary>
+		/// Проверяет, находится ли точка внутри объёма.
+		/// </summary>
+		public bool IsInside(Vector3 pos)
 		{
 			return pos.x >= MinBounds.x && pos.x <= MaxBounds.x &&
-			       pos.y >= MinBounds.y && pos.y <= MaxBounds.y;
+			       pos.y >= MinBounds.y && pos.y <= MaxBounds.y &&
+			       pos.z >= MinBounds.z && pos.z <= MaxBounds.z;
 		}
-		#if UNITY_EDITOR
+
+#if UNITY_EDITOR
 		private void OnDrawGizmos()
 		{
 			Gizmos.color = Color.green;
-			Vector2 size = MaxBounds - MinBounds;
-			Gizmos.DrawWireCube((MinBounds + MaxBounds) / 2f, size);
+
+			Vector3 center = (MinBounds + MaxBounds) * 0.5f;
+			Vector3 size = MaxBounds - MinBounds;
+
+			Gizmos.DrawWireCube(center, size);
 		}
-		#endif
+#endif
 	}
-	
 }
 
 
@@ -123,26 +135,11 @@ namespace Tanks
 				ref _velocity,
 				followSmooth
 			);
-
-			// ограничение карты → XZ
-			smoothed = ClampCameraToBounds(smoothed);
+			
 
 			transform.position = smoothed;
 		}
-
-		private Vector3 ClampCameraToBounds(Vector3 camPos)
-		{
-			Battle b = Battle.Instance;
-
-			// твоя карта работает в X/Z, а высота это Y
-			Vector2 clamped = b.ClampPosition(new Vector2(camPos.x, camPos.z));
-
-			camPos.x = clamped.x;
-			camPos.z = clamped.y;
-			camPos.y = _fixedY;
-
-			return camPos;
-		}
+		
 	}
 }
 
@@ -178,16 +175,6 @@ namespace Tanks
 
 		private void InstallFit(PlayerTank tank, TankFitModel fit)
 		{
-			foreach (var slot in tank.WeaponController.Weapons)
-			{
-				//if (!fit.WeaponSlots.TryGetValue(slot.name, out var itemId))
-				//	continue;
-
-				//if (itemId != null)
-				//	InstallWeapon(slot, itemId);
-			}
-
-			// когда появятся ModuleSlots — аналогично
 		}
 
 		private void InstallWeapon(WeaponSlot slot, string itemId)
@@ -216,114 +203,95 @@ namespace Tanks
 
 
 // ---------- WeaponSectorVisual.cs ----------
-using Unity.VisualScripting;
 using UnityEngine;
 
 namespace Tanks
 {
-	using UnityEngine;
+    [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+    public class WeaponSectorVisual : MonoBehaviour
+    {
+        [Header("Manual Settings (not from WeaponSlot)")]
+        public float Range = 20f;        // дальность сектора
+        public float Angle = 60f;        // угол сектора (в градусах)
+        public float InnerRadius = 0f;   // внутренняя дуга (обычно 0)
 
-	[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-	public class WeaponSectorVisual : MonoBehaviour
-	{
-		public WeaponSlot slot;
+        [Header("Quality")]
+        public int segments = 48;
 
-		[Header("Visual")] public Color color = new Color(1f, 1f, 1f, 1f);
-		public int segments = 48;
+        private Mesh _mesh;
 
-		[Header("Arc settings")] public float innerOffset = 3f; // отступ внутренней дуги
+        private void Awake()
+        {
+            _mesh = new Mesh();
+            _mesh.name = "WeaponSectorMesh3D";
+            GetComponent<MeshFilter>().mesh = _mesh;
+        }
 
-		private Mesh mesh;
+        private void LateUpdate()
+        {
+            GenerateArc(InnerRadius, Range, Angle);
+        }
 
-		private void Awake()
-		{
-			mesh = new Mesh();
-			mesh.name = "WeaponSectorMesh";
-			GetComponent<MeshFilter>().mesh = mesh;
+        private void GenerateArc(float innerR, float outerR, float angleDeg)
+        {
+            _mesh.Clear();
 
-			if (!slot)
-				slot = GetComponentInParent<WeaponSlot>();
-		}
+            int steps = Mathf.Max(4, segments);
+            int vertCount = (steps + 1) * 2;
 
-		private void LateUpdate()
-		{
-			if (!slot || slot.MountedWeapon == null || slot.MountedWeapon.Model == null)
-				return;
+            Vector3[] verts = new Vector3[vertCount];
+            Vector2[] uvs   = new Vector2[vertCount];
+            int[] tris      = new int[steps * 6];
 
-			// позиция/поворот слота
-			transform.position = slot.transform.position;
-			transform.rotation = slot.transform.rotation;
+            float halfAngle = angleDeg * 0.5f;
+            int v = 0;
 
-			// игнорируем scale родителей
-			transform.localScale = Vector3.one;
+            for (int i = 0; i <= steps; i++)
+            {
+                float t = i / (float)steps;
+                float angle = Mathf.Lerp(-halfAngle, halfAngle, t) * Mathf.Deg2Rad;
 
-			float outerRadius = slot.MountedWeapon.Model.Stats.GetStat(StatType.FireRange).Current;
-			float innerRadius = Mathf.Max(0, outerRadius - innerOffset);
+                // направление в XZ-плоскости
+                Vector3 dir = new Vector3(
+                    Mathf.Sin(angle),   // X
+                    0f,
+                    Mathf.Cos(angle)    // Z
+                );
 
-			GenerateArc(innerRadius, outerRadius, slot.AllowedAngle);
-		}
+                verts[v]     = dir * innerR;
+                verts[v + 1] = dir * outerR;
 
-		private void GenerateArc(float innerR, float outerR, float angle)
-		{
-			mesh.Clear();
+                uvs[v] = new Vector2(t, 0f);
+                uvs[v + 1] = new Vector2(t, 1f);
 
-			int steps = Mathf.Max(4, segments);
-			int vertCount = (steps + 1) * 2;
+                v += 2;
+            }
 
-			Vector3[] verts = new Vector3[vertCount];
-			Vector2[] uvs = new Vector2[vertCount];
-			int[] tris = new int[steps * 6];
+            int ti = 0;
+            for (int i = 0; i < steps; i++)
+            {
+                int i0 = i * 2;
+                int i1 = i0 + 1;
+                int i2 = i0 + 2;
+                int i3 = i0 + 3;
 
-			float parentScale = slot.transform.lossyScale.x;
+                tris[ti++] = i1;
+                tris[ti++] = i0;
+                tris[ti++] = i2;
 
-			innerR /= parentScale;
-			outerR /= parentScale;
+                tris[ti++] = i1;
+                tris[ti++] = i2;
+                tris[ti++] = i3;
+            }
 
-			int v = 0;
+            _mesh.vertices = verts;
+            _mesh.uv = uvs;
+            _mesh.triangles = tris;
 
-			for (int i = 0; i <= steps; i++)
-			{
-				float t = i / (float)steps;
-				float rad = Mathf.Lerp(-angle, angle, t) * Mathf.Deg2Rad;
-
-				Vector3 dir = new Vector3(Mathf.Cos(rad), Mathf.Sin(rad), 0);
-
-				// внутренняя дуга
-				verts[v] = dir * innerR;
-				uvs[v] = new Vector2(t, 0f);
-
-				// внешняя дуга
-				verts[v + 1] = dir * outerR;
-				uvs[v + 1] = new Vector2(t, 1f);
-
-				v += 2;
-			}
-
-			int ti = 0;
-			for (int i = 0; i < steps; i++)
-			{
-				int i0 = i * 2;
-				int i1 = i0 + 1;
-				int i2 = i0 + 2;
-				int i3 = i0 + 3;
-
-				tris[ti++] = i1;
-				tris[ti++] = i0;
-				tris[ti++] = i2;
-
-				tris[ti++] = i1;
-				tris[ti++] = i2;
-				tris[ti++] = i3;
-			}
-
-			mesh.vertices = verts;
-			mesh.uv = uvs;
-			mesh.triangles = tris;
-
-			mesh.RecalculateNormals();
-			mesh.RecalculateBounds();
-		}
-	}
+            _mesh.RecalculateNormals();
+            _mesh.RecalculateBounds();
+        }
+    }
 }
 
 
@@ -351,13 +319,20 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 	private Vector2 steering;
 	private float throttleAxis;
 
-	public Vector2 Steering => steering;      // -1..1 per axis
-	public float Throttle => throttleAxis;    // -1..1 (Shift/Ctrl)
+	private bool fireLMB;
+	private bool fireRMB;
+
+	public Vector2 Steering => steering;
+	public float Throttle => throttleAxis;
+
+	public bool FireLMB => fireLMB;
+	public bool FireRMB => fireRMB;
 
 	private void Awake()
 	{
 		controls = new PlayerControls();
 
+		// --- движение ---
 		controls.Tank.Steering.performed += ctx =>
 			steering = ctx.ReadValue<Vector2>();
 		controls.Tank.Steering.canceled += _ =>
@@ -367,6 +342,13 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 			throttleAxis = ctx.ReadValue<float>();
 		controls.Tank.Throttle.canceled += _ =>
 			throttleAxis = 0f;
+
+		// --- стрельба ---
+		controls.Tank.FireLMB.performed += _ => fireLMB = true;
+		controls.Tank.FireLMB.canceled += _ => fireLMB = false;
+
+		controls.Tank.FireRMB.performed += _ => fireRMB = true;
+		controls.Tank.FireRMB.canceled += _ => fireRMB = false;
 	}
 
 	private void OnEnable() => controls.Enable();
@@ -399,6 +381,25 @@ namespace Tanks
 		}
 	}
 
+}
+
+
+// ---------- AimDriver.cs ----------
+using UnityEngine;
+
+public static class AimDriver
+{
+	public static void Rotate(Transform pivot, Vector3 dir, float speedDeg)
+	{
+		Vector3 flat = new Vector3(dir.x, 0, dir.z);
+		if (flat.sqrMagnitude < 0.0001f) return;
+
+		Quaternion targetRot = Quaternion.LookRotation(flat);
+		pivot.rotation = Quaternion.RotateTowards(
+			pivot.rotation,
+			targetRot,
+			speedDeg * Time.deltaTime);
+	}
 }
 
 
@@ -497,7 +498,6 @@ namespace Tanks
 
 		public bool WasShieldHit;
 		public bool WasDirectHull;
-		public ShieldSide? HitShieldSide;
 	}
 }
 
@@ -544,6 +544,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using Tanks;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -685,7 +686,7 @@ namespace Tanks
 				TemplateId = template.Id,
 				Name = template.Name,
 				Rarity = rarity,
-
+				Prefab =  template.Prefab,
 				Slot = template.Slot,
 				DamageType = template.DamageType,
 				Size = template.Size,
@@ -777,7 +778,7 @@ public sealed class WeaponTemplate
 	public string Slot;
 	public string DamageType;
 	public string Size;
-
+	public string Prefab;
 	public string[] AvailableEffects;
 
 	public RarityEntry[] Rarities;
@@ -818,6 +819,7 @@ public class GeneratedWeaponItem : IGeneratedItem
 	public string DamageType;
 	public string Size;
 	public string Icon;
+	public string Prefab;
 
 	public StatValue[] Stats;
 	public List<string> Effects;
@@ -871,6 +873,37 @@ namespace Tanks
 		public static InventoryItem FindByItemId(PlayerInventoryModel inv, string itemId)
 		{
 			return inv.InventoryUniqueItems.Find(i => i.ItemId == itemId);
+		}
+	}
+}
+
+
+// ---------- WeaponRangeResolver.cs ----------
+using UnityEngine;
+
+namespace Tanks
+{
+	public static class WeaponRangeResolver
+	{
+		public static float GetMinFireRange(TankBase tank)
+		{
+			float minRange = float.MaxValue;
+
+			var weapons = tank.GetComponentsInChildren<WeaponBase>(true);
+			foreach (var weapon in weapons)
+			{
+				if (weapon.Model == null)
+					continue;
+
+				var stat = weapon.Model.Stats.GetStat(StatType.FireRange);
+				if (stat != null && stat.Current > 0f)
+					minRange = Mathf.Min(minRange, stat.Current);
+			}
+
+			if (minRange == float.MaxValue)
+				minRange = 5f; // fallback
+
+			return minRange;
 		}
 	}
 }
@@ -1128,7 +1161,6 @@ public class DebugStatsPanel : EditorWindow
 }
 
 
-
 // ---------- ItemGeneratorEditor.cs ----------
 using UnityEditor;
 using UnityEngine;
@@ -1375,7 +1407,6 @@ public class ItemGeneratorWindow : EditorWindow
         return result;
     }
 }
-
 
 
 // ---------- LootTableTesterWindow.cs ----------
@@ -1669,223 +1700,6 @@ public class LootTableTesterWindow : EditorWindow
 }
 
 
-
-// ---------- ShipDebuggerWindow.cs ----------
-using UnityEngine;
-using UnityEditor;
-using System.Collections.Generic;
-using Tanks;
-
-public class ShipDebuggerWindow : EditorWindow
-{
-    private Vector2 scroll;
-
-    GUIStyle redBold;
-    GUIStyle header;
-    GUIStyle box;
-
-    [MenuItem("Tools/ARPG SHIPS/Ship Debugger")]
-    public static void Open()
-    {
-        GetWindow<ShipDebuggerWindow>("Ship Debugger");
-    }
-
-    private void EnsureStyles()
-    {
-        if (redBold == null)
-        {
-            redBold = new GUIStyle(EditorStyles.label)
-            {
-                normal = { textColor = new Color(1f, 0.25f, 0.25f) },
-                fontStyle = FontStyle.Bold
-            };
-        }
-
-        if (header == null)
-        {
-            header = new GUIStyle(EditorStyles.boldLabel)
-            {
-                fontSize = 13
-            };
-        }
-
-        if (box == null)
-        {
-            box = new GUIStyle("box")
-            {
-                padding = new RectOffset(10, 10, 10, 10)
-            };
-        }
-    }
-
-    private void OnGUI()
-    {
-        EnsureStyles();
-
-        if (!Application.isPlaying)
-            return;
-
-        scroll = EditorGUILayout.BeginScrollView(scroll);
-
-        var ships = FindObjectsByType<TankBase>(FindObjectsSortMode.None);
-
-        foreach (var ship in ships)
-        {
-            DrawShip(ship);
-            GUILayout.Space(15);
-        }
-
-        EditorGUILayout.EndScrollView();
-    }
-
-    private void DrawShip(TankBase tank)
-    {
-        GUILayout.BeginVertical(box);
-
-        EditorGUILayout.LabelField(tank.name, header);
-
-        GUILayout.BeginHorizontal();
-        GUILayout.Box("ICON", GUILayout.Width(80), GUILayout.Height(80));
-
-        GUILayout.BeginVertical();
-        DrawStats(tank);
-        GUILayout.Space(5);
-        DrawActiveEffects(tank);
-        GUILayout.EndVertical();
-
-        GUILayout.EndHorizontal();
-
-        GUILayout.Space(10);
-        DrawWeapons(tank);
-
-        GUILayout.EndVertical();
-    }
-
-    private void DrawStats(TankBase tank)
-    {
-        foreach (var kv in tank.TankStats.All)
-        {
-            Stat stat = kv.Value;
-            EditorGUILayout.LabelField($"{kv.Key}: {stat.Current}/{stat.Maximum}");
-        }
-
-        foreach (var kv in tank.TankStats.All)
-        {
-            Stat stat = kv.Value;
-
-            if (stat.Modifiers.Count == 0)
-                continue;
-
-            foreach (var mod in stat.Modifiers)
-            {
-                string txt = FormatModifier(stat.Name, mod);
-
-                if (mod.Periodicity == StatModifierPeriodicity.Timed)
-                    txt += $" ({mod.RemainingTicks}s)";
-
-                EditorGUILayout.LabelField(txt, redBold);
-            }
-        }
-    }
-
-    private string FormatModifier(StatType type, StatModifier mod)
-    {
-        string sign = mod.Value >= 0 ? "+" : "-";
-        float val = Mathf.Abs(mod.Value);
-
-        return mod.Type switch
-        {
-            StatModifierType.Flat        => $"Buff {sign}{val} {type}",
-            StatModifierType.PercentAdd  => $"Buff {sign}{val * 100}% {type}",
-            StatModifierType.PercentMult => $"x{1 + mod.Value} {type}",
-            StatModifierType.Set         => $"Set {type} = {mod.Value}",
-            _ => "Modifier"
-        };
-    }
-
-    private void DrawActiveEffects(TankBase tank)
-    {
-        if (tank.ActiveEffects.Count == 0)
-        {
-            EditorGUILayout.LabelField("No active effects", EditorStyles.miniLabel);
-            return;
-        }
-
-        foreach (var eff in tank.ActiveEffects)
-        {
-            EditorGUILayout.LabelField(
-                $"{eff.EffectId} x{eff.Stacks} ({eff.Remaining:F1}/{eff.Duration:F1}s)",
-                redBold
-            );
-        }
-    }
-
-    private void DrawWeapons(TankBase tank)
-    {
-        if (tank.WeaponController == null)
-        {
-            EditorGUILayout.LabelField("No weapons", EditorStyles.miniLabel);
-            return;
-        }
-
-        EditorGUILayout.LabelField("Weapons:", header);
-
-        foreach (var slot in tank.WeaponController.Weapons)
-        {
-            if (slot == null || slot.MountedWeapon == null)
-            {
-                EditorGUILayout.LabelField("Slot empty");
-                continue;
-            }
-
-            var w = slot.MountedWeapon;
-
-            GUILayout.BeginVertical(box);
-            EditorGUILayout.LabelField(w.name, EditorStyles.boldLabel);
-
-            if (w.Model != null)
-            {
-                EditorGUILayout.LabelField(
-                    $"FireRate {w.Model.Stats.GetStat(StatType.FireRate).Current}/s " +
-                    $"| Speed {w.Model.Stats.GetStat(StatType.ProjectileSpeed).Current} " +
-                    $"| Range {w.Model.Stats.GetStat(StatType.FireRange).Current}");
-
-                EditorGUILayout.LabelField(
-                    $"Damage {w.Model.Stats.GetStat(StatType.MinDamage).Current}" +
-                    $"-{w.Model.Stats.GetStat(StatType.MaxDamage).Current}" +
-                    $" | Crit {w.Model.Stats.GetStat(StatType.CritChance).Current * 100}% " +
-                    $"x{w.Model.Stats.GetStat(StatType.CritMultiplier).Current}");
-
-                EditorGUILayout.LabelField($"Accuracy {w.Model.Stats.GetStat(StatType.Accuracy).Current}");
-            }
-
-            DrawWeaponTargeting(slot);
-
-            GUILayout.EndVertical();
-        }
-    }
-
-    private void DrawWeaponTargeting(WeaponSlot slot)
-    {
-        if (slot.WeaponTargeting == null)
-            return;
-
-        var wt = slot.WeaponTargeting;
-
-        var f = wt.GetType().GetField("currentTarget",
-            System.Reflection.BindingFlags.NonPublic |
-            System.Reflection.BindingFlags.Instance);
-
-        var t = f?.GetValue(wt) as ITargetable;
-
-        EditorGUILayout.LabelField(
-            "Status: " + (t != null ? "firing" : "idle"),
-            t != null ? redBold : EditorStyles.miniLabel);
-    }
-}
-
-
-
 // ---------- UniversalBarEditor.cs ----------
 using UnityEngine;
 using UnityEditor;
@@ -2033,6 +1847,53 @@ public class UniversalBarEditor : ShaderGUI
     }
 }
 
+
+// ---------- WeaponBaseEditor.cs ----------
+using UnityEditor;
+using UnityEngine;
+
+namespace Tanks
+{
+	[CustomEditor(typeof(WeaponBase), true)]
+	public class WeaponBaseEditor : UnityEditor.Editor
+	{
+		private bool _showStats;
+
+		public override void OnInspectorGUI()
+		{
+			if (Application.isPlaying)
+				Repaint();
+			// Рисуем стандартный инспектор
+			DrawDefaultInspector();
+
+			var weapon = (WeaponBase)target;
+
+			EditorGUILayout.Space(10);
+
+			_showStats = EditorGUILayout.Foldout(_showStats, "Stats Debug Info");
+
+			if (_showStats)
+			{
+				if (weapon.Model == null || weapon.Model.Stats == null)
+				{
+					EditorGUILayout.HelpBox("Stats not initialized", MessageType.Info);
+					return;
+				}
+
+				EditorGUILayout.BeginVertical("box");
+
+				foreach (var stat in weapon.Model.Stats.All)
+				{
+					EditorGUILayout.LabelField(stat.Key.ToString(), $"{stat.Value.Current.ToString()} / {stat.Value.Maximum.ToString()}");
+				}
+				EditorGUILayout.LabelField($"Reloading", $"{weapon.ReloadFinishTime.ToString()}");
+				EditorGUILayout.LabelField($"RateTime", $"{weapon.NextFireTime.ToString()}");
+				EditorGUILayout.LabelField($"Ammo", $"{weapon.Ammo.ToString()}");
+				EditorGUILayout.EndVertical();
+			}
+		}
+	}
+}
 
 
 // ---------- IGeneratedItem.cs ----------
@@ -2215,7 +2076,7 @@ namespace Tanks
 		public int cost;
 
 		public StatContainer stats;
-		public List<ShieldModel> shields;
+		public ShieldModel Shield;
 		public List<WeaponSlotModel> weaponSlots;
 		public List<EffectModel> uniqueEffects;
 		public List<LevelModel> leveling;
@@ -2251,10 +2112,9 @@ namespace Tanks
 	[Serializable]
 	public class ShieldModel
 	{
-		public string id;
-		public float value;
-		public float restoreTime;
-		public float regeneration;
+		public float Hp;
+		public float Regen;
+		public float RegenDelay;
 	}
 
 	[Serializable]
@@ -2662,11 +2522,7 @@ namespace Tanks.Mobs
 	{
 		private void Start()
 		{
-			TankStats = new Stats();
-			TankStats.AddStat(new Stat(StatType.HitPoint, 100));
-			TankStats.AddStat(new Stat(StatType.Shield, 50));
-			TankStats.AddStat(new Stat(StatType.MoveSpeed, 10));
-			Init();
+			LoadShipFromConfig("hull_test_frigate");
 			LoadTankFromPrefab();
 		}
 	}
@@ -2943,7 +2799,6 @@ namespace Tanks
 }
 
 
-
 // ---------- StatModifier.cs ----------
 namespace Tanks
 {
@@ -3139,6 +2994,7 @@ namespace Tanks
 		Accuracy,
 		AmmoCount,
 		ReloadTime,
+		RotationSpeed,
 
 		// Resistances
 		KineticResist,
@@ -3218,134 +3074,12 @@ namespace Tanks
 		{
 			LoadShipFromConfig("hull_test_frigate");
 			Init();
-			AimSystem = new TurretAimSystem();
-			AimSystem.Init();
+			AimSystem = new PlayerTurretAimSystem();
+			AimSystem.Init(this);
 			AimSystem.Turret = Turret;
 		}
 	}
 }
-
-
-// ---------- PlayerTankMovement.cs ----------
-using UnityEngine;
-
-namespace Tanks
-{
-    public class PlayerTankMovement : MonoBehaviour
-    {
-        [Header("Runtime")]
-        public float currentSpeed;      // текущая линейная скорость
-        public float currentTurnSpeed;  // скорость поворота корпуса
-        public Vector3 velocity;
-
-        private TankBase _tank;
-        private PlayerInputSystem _hw;
-        private PlayerInputUI _ui;
-
-        // параметры управления
-        private float _inputForward;    // W/S   (-1..1)
-        private float _inputTurn;       // A/D   (-1..1)
-
-        private void Awake()
-        {
-            _tank = GetComponent<TankBase>();
-            _hw = FindObjectOfType<PlayerInputSystem>();
-            _ui = FindObjectOfType<PlayerInputUI>();
-        }
-
-        private void Update()
-        {
-            ReadInput();
-            HandleRotation();
-            HandleMovement();
-        }
-
-        // ============================================================
-        // INPUT
-        // ============================================================
-        private void ReadInput()
-        {
-            Vector2 hardware = _hw != null ? _hw.Steering : Vector2.zero;
-            Vector2 ui = _ui != null ? _ui.SteeringUI : Vector2.zero;
-
-            Vector2 sum = hardware + ui;
-
-            // sum.x = A/D   — поворот
-            // sum.y = W/S   — движение
-            _inputTurn = Mathf.Clamp(sum.x, -1f, 1f);
-            _inputForward = Mathf.Clamp(sum.y, -1f, 1f);
-        }
-
-        // ============================================================
-        // ROTATION (A/D)
-        // ============================================================
-        private void HandleRotation()
-        {
-            float turnStat = _tank.GetStat(StatType.TurnSpeed).Current;
-            float turnSpeed = turnStat * _inputTurn;
-
-            // вращаем корпус вокруг Y
-            transform.Rotate(0f, turnSpeed * Time.deltaTime, 0f);
-        }
-
-        // ============================================================
-        // MOVEMENT (W/S)
-        // ============================================================
-        private void HandleMovement()
-        {
-            float accel = _tank.GetStat(StatType.Acceleration).Current;
-            float brake = _tank.GetStat(StatType.BrakePower).Current;
-            float forwardMax = _tank.GetStat(StatType.MoveSpeed).Current;
-            float reverseMax = _tank.GetStat(StatType.MoveSpeedRear).Current; // твой новый MoveSpeedRear
-
-            float targetSpeed = 0f;
-
-            if (_inputForward > 0.01f)
-            {
-                // движение вперёд
-                targetSpeed = forwardMax * _inputForward;
-            }
-            else if (_inputForward < -0.01f)
-            {
-                // движение назад (ограничено MoveSpeedRear)
-                targetSpeed = reverseMax * _inputForward;
-            }
-            else
-            {
-                // отпустили W/S → торможение
-                targetSpeed = 0f;
-            }
-
-            // разгон или торможение
-            currentSpeed = Mathf.MoveTowards(
-                currentSpeed,
-                targetSpeed,
-                (Mathf.Abs(targetSpeed) > Mathf.Abs(currentSpeed) ? accel : brake) * Time.deltaTime
-            );
-
-            // направление — строго forward
-            velocity = transform.forward * currentSpeed;
-
-            // движение
-            transform.position += velocity * Time.deltaTime;
-
-            // ограничение карты
-            if (Battle.Instance != null)
-            {
-                Vector3 pos = transform.position;
-
-                Vector2 clamped = Battle.Instance.ClampPosition(new Vector2(pos.x, pos.z));
-                if (Mathf.Abs(pos.x - clamped.x) > 0.001f || Mathf.Abs(pos.z - clamped.y) > 0.001f)
-                {
-                    currentSpeed = 0f; // обнулить скорость при ударе об границу
-                }
-
-                transform.position = new Vector3(clamped.x, pos.y, clamped.y);
-            }
-        }
-    }
-}
-
 
 
 // ---------- SideType.cs ----------
@@ -3375,13 +3109,12 @@ namespace Tanks
 		public TankVisual _visual;
 		public SideType SideType;
 		[SerializeField] private TeamMask _team;
+		public TeamMask HitMask;
 		public Stats TankStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
-		public WeaponController WeaponController;
 		public TankTurret Turret;
 		public TurretAimSystem AimSystem;
-		public List<ShieldSector> ShieldSectors = new();
 		public HashSet<string> RunningDotEffects = new();
 		public Transform Transform => transform;
 		public TargetSize Size => size;
@@ -3420,23 +3153,11 @@ namespace Tanks
 			
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
-				foreach (var sector in ShieldSectors)
-				{
-					var modelFromSide = data.shields.Find(x =>
-					{
-						return Enum.TryParse<ShieldSide>(x.id, true, out var parsed) 
-						       && parsed == sector.Side;
-					});
-
-					sector.InitFromConfig(
-						hp: modelFromSide.value,
-						regen: modelFromSide.regeneration,
-						restoreDelay: modelFromSide.restoreTime
-					);
-
-					controller.AddSector(sector);
-				}
-				
+				controller.TankShield.InitFromConfig(
+					hp: data.Shield.Hp,
+					regen: data.Shield.Regen,
+					restoreDelay: data.Shield.RegenDelay
+				);
 			}
 		}
 		
@@ -3444,11 +3165,7 @@ namespace Tanks
 		{
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
-				foreach (var sector in ShieldSectors)
-				{
-					sector.InitFromPrefab();
-					controller.AddSector(sector);
-				}
+				controller.TankShield.InitFromPrefab();
 			}
 		}
 		
@@ -3499,8 +3216,6 @@ namespace Tanks
 				_visual = new TankVisual();
 				_visual.Load();
 			}
-
-			WeaponController.Init(SideType);
 			Battle.Instance.AllTanks.Add(this);
 			StartCoroutine(TickEffects());
 			// отправляем визуализаторам данные статов
@@ -3647,8 +3362,6 @@ namespace Tanks
 			{
 				AimSystem.Update();
 			}
-			// обновление оружия
-			WeaponController.OnUpdate();
 		}
 
 
@@ -3676,64 +3389,26 @@ namespace Tanks
 {
 	public class TankTurret : MonoBehaviour
 	{
-		[Header("Settings")]
-		public float RotationSpeed = 180f;   // deg/sec
-		public float MaxAngle = 360f;        // 360 = без ограничений
-
-		[Header("References")]
-		public Transform TurretTransform;    // сама башня
-		public Transform BaseTransform;      // корпус танка (ранее твой TurretDirectionTransform)
+		[Header("Rotation")]
+		public Transform Pivot;          // Что вращаем (Turret top)
+		public Transform BaseTransform;  // Относительно чего ограничиваем угол
+		public float RotationSpeed = 180f;
+		public float MaxAngle = 180f;    // сектор от центра
 
 		private void Awake()
 		{
-			if (!TurretTransform)
-				TurretTransform = transform;
-
-			if (!BaseTransform)
-				BaseTransform = TurretTransform.parent;
+			if (!Pivot) Pivot = transform;
+			if (!BaseTransform) BaseTransform = transform.parent;
 		}
 
-		/// <summary>
-		/// direction — МИРОВОЙ вектор на цель (targetPos - turretPos).
-		/// Вращаем башню только по Y с учётом сектора относительно корпуса.
-		/// </summary>
-		public void Rotate(Vector3 direction)
+		public void RotateTowards(Vector3 worldDirection)
 		{
-			direction.y = 0f;
-			if (direction.sqrMagnitude < 0.0001f)
-				return;
-
-			direction.Normalize();
-
-			// Куда хотим смотреть в МИРЕ
-			var desiredWorldRot = Quaternion.LookRotation(direction, Vector3.up);
-
-			// Рот корпуса (базовый)
-			var baseRot = BaseTransform ? BaseTransform.rotation : Quaternion.identity;
-
-			// Переводим желаемый поворот в ЛОКАЛЬ корпуса
-			var localDesired = Quaternion.Inverse(baseRot) * desiredWorldRot;
-			var localEuler = localDesired.eulerAngles;
-
-			// Берём локальный yaw и приводим к диапазону [-180; 180]
-			var localYaw = Mathf.DeltaAngle(0f, localEuler.y);
-
-			// Ограничиваем сектором, если нужно
-			if (MaxAngle < 359f)
-			{
-				var half = MaxAngle * 0.5f;
-				localYaw = Mathf.Clamp(localYaw, -half, half);
-			}
-
-			// Собираем обратно: корпус + ограниченный локальный yaw башни
-			var clampedLocalRot = Quaternion.Euler(0f, localYaw, 0f);
-			var finalWorldRot = baseRot * clampedLocalRot;
-
-			// Плавно доворачиваем башню
-			TurretTransform.rotation = Quaternion.RotateTowards(
-				TurretTransform.rotation,
-				finalWorldRot,
-				RotationSpeed * Time.deltaTime
+			WeaponRotator.Rotate(
+				rotatingTransform: Pivot,
+				baseTransform: BaseTransform,
+				worldDirection: worldDirection,
+				rotationSpeedDeg: RotationSpeed,
+				maxAngleDeg: MaxAngle
 			);
 		}
 	}
@@ -3789,55 +3464,6 @@ namespace Tanks
 }
 
 
-// ---------- TurretAimSystem.cs ----------
-using UnityEngine;
-using UnityEngine.InputSystem;
-
-namespace Tanks
-{
-	public class TurretAimSystem
-	{
-		public TankTurret Turret;
-
-		private Camera _cam;
-
-		public void Init()
-		{
-			_cam = Camera.main;
-		}
-
-		public void Update()
-		{
-			if (Turret == null)
-				return;
-
-			Vector3? worldPos = GetMouseWorldPoint();
-			if (worldPos == null)
-				return;
-
-			Vector3 dir = worldPos.Value - Turret.TurretTransform.position;
-			Turret.Rotate(dir);
-		}
-
-		/// <summary>
-		/// Возвращает точку на земле (XZ), куда смотрит курсор.
-		/// </summary>
-		private Vector3? GetMouseWorldPoint()
-		{
-			Vector2 mousePos = Mouse.current.position.ReadValue();
-			Ray ray = _cam.ScreenPointToRay(mousePos);
-
-			Plane ground = new Plane(Vector3.up, Vector3.zero);
-
-			if (ground.Raycast(ray, out float dist))
-				return ray.GetPoint(dist);
-
-			return null;
-		}
-	}
-}
-
-
 // ---------- VisualBase.cs ----------
 namespace Tanks
 {
@@ -3850,36 +3476,45 @@ namespace Tanks
 }
 
 
-// ---------- WeaponController.cs ----------
-using System.Collections.Generic;
-using System.Linq;
+// ---------- AiTurretSystem.cs ----------
 using UnityEngine;
 
 namespace Tanks
 {
-	[System.Serializable]
-	public class WeaponController
+	public class AiTurretSystem : MonoBehaviour
 	{
-		public List<WeaponSlot> Weapons = new List<WeaponSlot>();
-		
-		public void Init(SideType sideType)
-		{
-			foreach (var weapon in Weapons)
-			{
-				weapon.Init(sideType);
-			}
-		}
-		public void OnUpdate()
-		{
-			var tanks = Battle.Instance.AllTanks;
+		public TankTurret Turret;
+		public TeamMask HitMask;
 
-			foreach (var slot in Weapons)
-			{
-				if (slot?.WeaponTargeting == null)
-					continue;
+		public float Range = 30f;
+		public float Sector = 180f;
+		public float AimTolerance = 5f;
 
-				slot.WeaponTargeting.UpdateTargetList(tanks);
-			}
+		private TargetFinder finder = new();
+
+		private void Update()
+		{
+			// обновляем список целей
+			finder.UpdateTargets(Battle.Instance.AllTanks, HitMask);
+
+			// выбираем лучшую цель
+			var target = finder.FindBestTarget(
+				Turret.Pivot.position,
+				Turret.Pivot.forward,
+				Sector,
+				Range
+			);
+
+			if (target == null)
+				return;
+
+			Vector3 dir = target.Transform.position - Turret.Pivot.position;
+			dir.y = 0; // 2D-плоскость
+
+			// ВРАЩАЕМ БАШНЮ
+			AimDriver.Rotate(Turret.Pivot, dir, Turret.RotationSpeed);
+
+			// Если захочешь — тут можно добавлять стрельбу через WeaponTargeting
 		}
 	}
 }
@@ -3908,68 +3543,118 @@ namespace Tanks
 }
 
 
-// ---------- Projectile.cs ----------
+// ---------- PlayerTurretAimSystem.cs ----------
 using UnityEngine;
-using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace Tanks
 {
-	using UnityEngine;
+	public class PlayerTurretAimSystem : TurretAimSystem
+	{
+		private Camera _cam;
 
+		/// <summary>
+		/// Возвращает точку на земле (XZ), куда смотрит курсор.
+		/// </summary>
+		public override void Init(TankBase tankBase)
+		{
+			_cam = Camera.main;
+		}
+
+		public override void Update()
+		{
+			if (Turret == null)
+				return;
+
+			Vector3? worldPos = GetMouseWorldPoint();
+			if (worldPos == null)
+				return;
+
+			Vector3 dir = worldPos.Value - Turret.transform.position;
+			Turret.RotateTowards(dir);
+		}
+
+		private Vector3? GetMouseWorldPoint()
+		{
+			Vector2 mousePos = Mouse.current.position.ReadValue();
+			Ray ray = _cam.ScreenPointToRay(mousePos);
+
+			Plane ground = new Plane(Vector3.up, Vector3.zero);
+
+			if (ground.Raycast(ray, out float dist))
+				return ray.GetPoint(dist);
+
+			return null;
+		}
+	}
+}
+
+
+// ---------- Projectile.cs ----------
+using UnityEngine;
+
+namespace Tanks
+{
 	public class Projectile : MonoBehaviour
 	{
-		private Transform target;
-		private float speed;
-		private float damage;
-		private float armorPierce;
-		public WeaponBase SourceWeapon;
-		public TankBase Owner;
-		public TeamMask HitMask;
-		[SerializeField] private Vector2 moveDir;
+		private float _speed;
+		private float _damage;
+		private float _pierce;
 
-		public void Init(Vector2 direction, float dmg, float spd, float ap, WeaponBase source)
+		public WeaponBase SourceWeapon { get; private set; }
+		public TankBase Owner { get; private set; }
+		public TeamMask HitMask { get; private set; }
+
+		[SerializeField] 
+		private Vector3 _moveDir;
+
+		public float Damage => _damage;
+
+		public void Init(Vector3 direction, float dmg, float spd, float armorPierce, WeaponBase source)
 		{
-			damage = dmg;
-			speed = spd;
-			armorPierce = ap;
+			_moveDir   = direction.normalized;
+			_speed     = spd;
+			_damage    = dmg;
+			_pierce    = armorPierce;
+
 			SourceWeapon = source;
-			moveDir = direction.normalized;
-			HitMask = SourceWeapon.Slot.HitMask;
+			Owner        = source.Slot.Owner;
+			HitMask      = Owner.HitMask;   // ← КОРРЕКТНО!
 		}
 
-		void Update()
+		private void Update()
 		{
-			transform.position += (Vector3)(moveDir * speed * Time.deltaTime);
+			transform.position += _moveDir * _speed * Time.deltaTime;
 		}
 
-		public float Damage => damage;
+		private void OnTriggerEnter(Collider other)
+		{
+			if (!other.TryGetComponent<ITargetable>(out var t))
+				return;
+
+			// команда владельца решает, можно ли наносить урон
+			if (!HitRules.CanHit(HitMask, t.Team))
+				return;
+
+			var calc = DamageCalculator.CalculateHit(
+				projectileDamage: _damage,
+				armorPierce: _pierce,
+				hitPoint: transform.position,
+				sourceWeapon: SourceWeapon,
+				target: t,
+				wasShieldHit: false
+			);
+
+			GameEvent.TakeDamage(calc);
+			t.TakeDamage(calc);
+			Destroy(gameObject);
+		}
 
 		public void DestroySelf()
 		{
 			Destroy(gameObject);
 		}
-		private void OnTriggerEnter2D(Collider2D other)
-		{
-			if (!other.TryGetComponent<ITargetable>(out var targetable))
-				return;
-			if (!HitRules.CanHit(HitMask, targetable.Team))
-				return;
-		
-			var calc = DamageCalculator.CalculateHit(
-				projectileDamage: damage,
-				armorPierce: armorPierce,
-				hitPoint: transform.position,
-				sourceWeapon: SourceWeapon,
-				target: targetable,
-				wasShieldHit: false
-			);
-			
-			GameEvent.TakeDamage(calc);
-			targetable.TakeDamage(calc);
-			Destroy(gameObject);
-		}
 	}
-
 }
 
 
@@ -3987,18 +3672,19 @@ namespace Tanks
 
 		protected override void Shoot(Transform target)
 		{
-			float damage = RollDamage();
-			float speed = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
+			var dmg = RollDamage();
+			var spd = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
+			var ap  = Model.Stats.GetStat(StatType.ArmorPierce).Current;
 
-			if (speed <= 0.01f)
-			{
-				DoInstantHit(target, damage);
-			}
-			else
-			{
-				var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
-				proj.Init((Vector2)FirePoint.right, damage, speed, Model.Stats.GetStat(StatType.ArmorPierce).Current, this);
-			}
+			var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
+
+			proj.Init(
+				direction: FirePoint.forward,   // ВАЖНО: 3D НАПРАВЛЕНИЕ
+				dmg,
+				spd,
+				ap,
+				this
+			);
 		}
 
 		private void DoInstantHit(Transform target, float dmg)
@@ -4016,14 +3702,93 @@ namespace Tanks
 }
 
 
-// ---------- WeaponBase.cs ----------
-using System;
+// ---------- TargetFinder.cs ----------
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Tanks
 {
-	using UnityEngine;
+	public class TargetFinder
+	{
+		private readonly List<ITargetable> _targets = new();
 
+		public void UpdateTargets(IEnumerable<ITargetable> list, TeamMask hitMask)
+		{
+			_targets.Clear();
+
+			foreach (var t in list)
+			{
+				if (!t.IsAlive) continue;
+				if (!HitRules.CanHit(hitMask, t.Team)) continue;
+				_targets.Add(t);
+			}
+		}
+
+		public ITargetable FindBestTarget(
+			Vector3 origin,
+			Vector3 forward,
+			float maxAngleDeg,
+			float maxDistance)
+		{
+			var valid =
+				_targets
+					.Where(t =>
+						Vector3.Distance(origin, t.Transform.position) <= maxDistance &&
+						Vector3.Angle(forward, (t.Transform.position - origin)) <= maxAngleDeg)
+					.OrderBy(t => Vector3.Distance(origin, t.Transform.position))
+					.ToList();
+
+			return valid.FirstOrDefault();
+		}
+
+		// упреждение
+		public Vector3 Predict(ITargetable t, Vector3 firePos, float projSpeed)
+		{
+			Vector3 tp = t.Transform.position;
+			Vector3 vel = t.Velocity;
+
+			float dist = Vector3.Distance(tp, firePos);
+			float time = dist / projSpeed;
+
+			return tp + vel * time;
+		}
+
+		// проверка что наведено
+		public bool IsAimedAt(Transform pivot, Vector3 toAimDir, float toleranceDeg)
+		{
+			float angle = Vector3.Angle(pivot.forward, toAimDir);
+			//Debug.Log($"{pivot.root} angle {angle}");
+			return angle <= toleranceDeg;
+		}
+	}
+}
+
+
+// ---------- TurretAimSystem.cs ----------
+using UnityEngine;
+using UnityEngine.InputSystem;
+
+namespace Tanks
+{
+	public abstract class TurretAimSystem
+	{
+		public TankTurret Turret;
+
+		
+
+		public abstract void Init(TankBase tankBase);
+
+		public abstract void Update();
+	}
+}
+
+
+// ---------- WeaponBase.cs ----------
+using UnityEngine;
+
+namespace Tanks
+{
 	public abstract class WeaponBase : MonoBehaviour
 	{
 		private float _nextFireTime;
@@ -4034,20 +3799,40 @@ namespace Tanks
 		private int _ammo;
 		private bool _isReloading;
 		private float _reloadFinishTime;
-		
+		public TankBase Owner { get; set; }
+
+		public float NextFireTime => _nextFireTime;
+		public float ReloadFinishTime
+		{
+			get => _reloadFinishTime;
+			set => _reloadFinishTime = value;
+		}
+		public bool IsReloading => _isReloading;
+		public int Ammo => _ammo;
+
 		public void Init(WeaponSlot slot, Stats stats)
 		{
 			Model = new WeaponModel();
 			Model.InjectStat(stats);
 			Slot = slot;
-			_ammo = GetMaxAmmo(); 
+			_ammo = GetMaxAmmo();
 		}
 
-		public void TickWeapon(Transform target)
+		public void TryFire(ITargetable target)
 		{
-			if (target == null || Model == null)
+			if (!CanFire())
 				return;
 
+			if (target != null)
+				Shoot(target.Transform);
+			else
+				ShootWithoutTarget();
+
+			AfterShot();
+		}
+
+		private bool CanFire()
+		{
 			if (_isReloading)
 			{
 				if (Time.time >= _reloadFinishTime)
@@ -4055,60 +3840,60 @@ namespace Tanks
 					_isReloading = false;
 					_ammo = GetMaxAmmo();
 				}
-				return;
-			}
-
-			if (_ammo <= 0)
-			{
-				StartReload();
-				return;
+				else
+				{
+					return false;
+				}
 			}
 
 			if (Time.time < _nextFireTime)
-				return;
+				return false;
 
-			Shoot(target);
+			if (_ammo <= 0)
+				return false;
 
+			return true;
+		}
+
+		private void AfterShot()
+		{
 			_ammo--;
 			_nextFireTime = Time.time + 1f / Model.Stats.GetStat(StatType.FireRate).Current;
 
 			if (_ammo <= 0)
 				StartReload();
 		}
+
 		private int GetMaxAmmo()
 		{
-			return Mathf.RoundToInt(Model.Stats.GetStat(StatType.AmmoCount).Maximum);
+			if (Model.Stats.TryGetStat(StatType.AmmoCount, out var a))
+				return Mathf.RoundToInt(a.Maximum);
+
+			return 0;
 		}
+
 		private void StartReload()
 		{
 			_isReloading = true;
 			_reloadFinishTime = Time.time + Model.Stats.GetStat(StatType.ReloadTime).Maximum;
 		}
-		
-		public void TickWeaponPosition(Vector2 aimPoint)
-		{
-			if (Model == null)
-				return;
 
-			Vector2 dir = aimPoint - (Vector2)Slot.transform.position;
-			RotateToTarget(dir);
-		}
-
-		protected virtual void RotateToTarget(Vector2 direction)
-		{
-			if (!Slot.IsTurret)
-				return;
-
-			float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
-			Quaternion rot = Quaternion.Euler(0, 0, angle);
-			transform.rotation = Quaternion.Lerp(transform.rotation, rot, Time.deltaTime * 10f);
-		}
-
+		// стрельба по конкретной цели
 		protected abstract void Shoot(Transform target);
+
+		// стрельба "вперёд", когда цели нет
+		protected virtual void ShootWithoutTarget()
+		{
+			var t = FirePoint ? FirePoint : transform;
+			Shoot(t);
+		}
 
 		protected float RollDamage()
 		{
-			float dmg = Random.Range(Model.Stats.GetStat(StatType.MinDamage).Current, Model.Stats.GetStat(StatType.MaxDamage).Current);
+			var dmg = Random.Range(
+				Model.Stats.GetStat(StatType.MinDamage).Current,
+				Model.Stats.GetStat(StatType.MaxDamage).Current
+			);
 
 			if (Random.value < Model.Stats.GetStat(StatType.CritChance).Current)
 				dmg *= Model.Stats.GetStat(StatType.CritMultiplier).Current;
@@ -4116,9 +3901,59 @@ namespace Tanks
 			return dmg;
 		}
 	}
-
 }
 
+
+
+// ---------- WeaponBuilder.cs ----------
+using System;
+using System.Collections.Generic;
+using System.IO;
+using Unity.VisualScripting;
+using UnityEngine;
+
+namespace Tanks
+{
+	public static class WeaponBuilder
+	{
+		public static WeaponBase Build(string weaponId, WeaponSlot slot)
+		{
+			var data = JsonUtility.FromJson<WeaponLoadData>(File.ReadAllText(ItemGenerator.OutputPath + "/" + weaponId + ".json"));
+			var weaponBase = GameObject.Instantiate(Resources.Load($"Weapons/{data.Prefab}") as GameObject, slot.MountPoint, false);
+			var stats = new Stats();
+			foreach (var statData in data.Stats)
+			{
+				stats.AddStat(new Stat(Enum.Parse<StatType>(statData.Name), statData.Value));
+			}
+			weaponBase.GetComponent<WeaponBase>().Init(slot, stats);
+			return null;
+		}
+	}
+
+	[System.Serializable]
+	public class WeaponLoadData
+	{
+		public string ItemId;
+		public string TemplateId;
+		public string Name;
+		public string Rarity;
+		public string Slot;
+		public string DamageType;
+		public string Size;
+		public string Icon;
+		public string Prefab;
+		public List<StatData> Stats = new List<StatData>();
+		public List<string> Effects = new List<string>();
+	}
+
+	[System.Serializable]
+	public class StatData
+	{
+		public string Name;
+		public float Value;
+	}
+	
+}
 
 
 // ---------- WeaponModel.cs ----------
@@ -4130,7 +3965,7 @@ namespace Tanks
 	{
 		public Stats Stats { get; set; }
 		private readonly List<IOnHitEffect> _effects = new();
-
+		public bool IsAutoFire = true;
 		public void AddEffect(IOnHitEffect effect) => _effects.Add(effect);
 		public IReadOnlyList<IOnHitEffect> Effects => _effects;
 
@@ -4151,6 +3986,65 @@ namespace Tanks
 }
 
 
+// ---------- WeaponRotator.cs ----------
+using UnityEngine;
+
+namespace Tanks
+{
+	public static class WeaponRotator
+	{
+		/// <summary>
+		/// Универсальный 3D ротатор с ограничением сектора относительно baseTransform
+		/// </summary>
+		public static void Rotate(
+			Transform rotatingTransform,
+			Transform baseTransform,
+			Vector3 worldDirection,
+			float rotationSpeedDeg,
+			float maxAngleDeg)
+		{
+			if (!rotatingTransform)
+				return;
+
+			// Работает в плоскости XZ
+			worldDirection.y = 0;
+			if (worldDirection.sqrMagnitude < 0.0001f)
+				return;
+
+			worldDirection.Normalize();
+
+			// Куда хотим повернуть
+			Quaternion desiredWorldRot = Quaternion.LookRotation(worldDirection, Vector3.up);
+
+			// База (корпус, башня, что угодно)
+			Quaternion baseRot = baseTransform ? baseTransform.rotation : Quaternion.identity;
+
+			// Переводим desired в ЛОКАЛЬНОЕ пространство базы
+			Quaternion localDesired = Quaternion.Inverse(baseRot) * desiredWorldRot;
+
+			float localYaw = Mathf.DeltaAngle(0f, localDesired.eulerAngles.y);
+
+			// Если есть сектор — ограничиваем
+			if (maxAngleDeg < 359f)
+			{
+				float half = maxAngleDeg * 0.5f;
+				localYaw = Mathf.Clamp(localYaw, -half, half);
+			}
+
+			// Возвращаем в мир
+			Quaternion finalRot = baseRot * Quaternion.Euler(0, localYaw, 0);
+
+			// Плавное доворачивание
+			rotatingTransform.rotation = Quaternion.RotateTowards(
+				rotatingTransform.rotation,
+				finalRot,
+				rotationSpeedDeg * Time.deltaTime
+			);
+		}
+	}
+}
+
+
 // ---------- WeaponSize.cs ----------
 namespace Tanks
 {
@@ -4164,373 +4058,629 @@ namespace Tanks
 
 
 // ---------- WeaponSlot.cs ----------
-using System;
-
-namespace Tanks
-{
-	using UnityEngine;
-
-	public class WeaponSlot : MonoBehaviour
-	{
-		public float AllowedAngle = 45f;
-		public bool IsTurret = false;
-		public WeaponBase MountedWeapon;
-		public WeaponTargeting WeaponTargeting;
-		public SideType Side;
-		public TeamMask HitMask;
-		public WeaponSize SlotSize;
-
-		public void Init(SideType sideType)
-		{
-			Side = sideType;
-
-			HitMask = sideType switch
-			{
-				SideType.Player => TeamMask.Enemy,
-				SideType.Enemy => TeamMask.Player,
-				SideType.Ally => TeamMask.Enemy | TeamMask.Player, 
-				_ => TeamMask.All
-			};
-
-			if (transform.childCount > 0)
-			{
-				MountedWeapon = transform.GetComponentInChildren<WeaponBase>();
-				WeaponTargeting = transform.GetComponentInChildren<WeaponTargeting>();
-			}
-
-			if (MountedWeapon)
-			{
-				Stats stats = new Stats();
-				stats.AddStat(new Stat(StatType.FireRange, 5));
-				stats.AddStat(new Stat(StatType.FireRate, 3f));
-				stats.AddStat(new Stat(StatType.ProjectileSpeed, 3));
-				stats.AddStat(new Stat(StatType.MinDamage, 5));
-				stats.AddStat(new Stat(StatType.MaxDamage, 10));
-				stats.AddStat(new Stat(StatType.Accuracy, 0.05f));
-				stats.AddStat(new Stat(StatType.CritChance, 0.1f));
-				stats.AddStat(new Stat(StatType.CritMultiplier, 1.2f));
-				stats.AddStat(new Stat(StatType.AmmoCount, 10));
-				stats.AddStat(new Stat(StatType.ReloadTime, 5f));
-				stats.AddStat(new Stat(StatType.ArmorPierce, 0f));
-				MountedWeapon.Init(this, stats);
-			}
-				
-		}
-
-		public bool IsTargetWithinSector(Vector2 dir)
-		{
-			Vector2 forward = transform.forward;
-			var angle = Vector3.Angle(forward, dir);
-			return angle <= AllowedAngle;
-		}
-	}
-}
-
-
-// ---------- WeaponTargeting.cs ----------
 using UnityEngine;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Tanks
 {
-    public class WeaponTargeting : MonoBehaviour
+    public enum ActivateSlotWeaponType
     {
-        public WeaponBase Weapon;
-        public WeaponSlot Slot;
+        Auto,
+        LMB,
+        RMB
+    }
+    public class WeaponSlot : MonoBehaviour
+    {
+        [Header("Slot config")]
+        public WeaponSize SlotSize;
 
-        public TargetSize PriorityType = TargetSize.Small;
+        public ActivateSlotWeaponType ActivateSlotWeaponType;
+        public TankBase Owner;
+        public Transform MountPoint;
+        [Tooltip("Максимальный угол отклонения от слота FORWARD (для логики, не для вращения!)")]
+        [SerializeField] private float _allowedAngle = 180f;
+        public float AllowedAngle => _allowedAngle;
 
-        private readonly List<ITargetable> allTargets = new();
-        private ITargetable currentTarget;
-        private const float MaxSpreadAngle = 25f;
+        [Header("Runtime")]
+        public WeaponBase MountedWeapon;
 
-        private void Start()
+        private void Awake()
         {
-            if (!Slot)
-                Slot = GetComponentInParent<WeaponSlot>();
+            if (!Owner)
+                Owner = GetComponentInParent<TankBase>();
+            MountedWeapon = WeaponBuilder.Build("item_1765113613959_pya1", this);
+            if (MountedWeapon)
+                InitWeapon(MountedWeapon);
         }
 
-        // Вызывается WeaponController каждый кадр
-        public void UpdateTargetList(IEnumerable<ITargetable> targets)
+        /// <summary>
+        /// Временная заглушка — создание статы пушки.
+        /// Потом будет заменено на загрузку из JSON.
+        /// </summary>
+        private void InitWeapon(WeaponBase weapon)
         {
-            allTargets.Clear();
-
-            foreach (var t in targets)
-            {
-                // 1) жив ли?
-                if (!t.IsAlive) 
-                    continue;
-
-                // 2) принадлежит ли к той команде, по которой можно стрелять?
-                if (!HitRules.CanHit(Slot.HitMask, (t as TankBase).Team))
-                    continue;
-
-                allTargets.Add(t);
-            }
+            weapon.Slot = this;
+            weapon.Owner = Owner;
+            
         }
 
-        private void Update()
+        public void AttachWeapon(WeaponBase weapon)
         {
-            if (Slot == null || Weapon == null)
-                return;
+            MountedWeapon = weapon;
+            if (!weapon) return;
 
-            SelectTargetIfNeeded();
+            weapon.transform.SetParent(transform, false);
 
-            if (currentTarget == null)
-                return;
-
-            Vector2 aim = GetAimPoint(currentTarget);
-
-            Weapon.TickWeaponPosition(aim);
-            Weapon.TickWeapon(currentTarget.Transform);
+            InitWeapon(weapon);
         }
 
-        private void SelectTargetIfNeeded()
+        public void DetachWeapon()
         {
-            if (currentTarget == null ||
-                !currentTarget.IsAlive ||
-                !IsTargetInRange(currentTarget) ||
-                !IsTargetInSector(currentTarget))
-            {
-                currentTarget = FindBestTarget();
-            }
-        }
+            if (!MountedWeapon) return;
 
-        private ITargetable FindBestTarget()
-        {
-            Vector2 pos = Slot.transform.position;
-
-            var inRange = allTargets
-                .Where(t => IsTargetInRange(t))
-                .Where(t => IsTargetInSector(t))
-                .ToList();
-
-            if (inRange.Count == 0)
-                return null;
-
-            // Сначала по приоритетному размеру
-            var priority = inRange
-                .Where(t => t.Size == PriorityType)
-                .OrderBy(t => Vector2.Distance(pos, t.Transform.position))
-                .FirstOrDefault();
-
-            if (priority != null)
-                return priority;
-
-            // Иначе ближайшая цель
-            return inRange
-                .OrderBy(t => Vector2.Distance(pos, t.Transform.position))
-                .FirstOrDefault();
-        }
-
-        private bool IsTargetInRange(ITargetable t)
-        {
-            float dist = Vector2.Distance(Slot.transform.position, t.Transform.position);
-            return dist <= Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
-        }
-
-        private bool IsTargetInSector(ITargetable t)
-        {
-            Vector2 dir = (t.Transform.position - Slot.transform.position).normalized;
-            return Slot.IsTargetWithinSector(dir);
-        }
-
-        private Vector2 GetAimPoint(ITargetable t)
-        {
-            Vector2 pos = Slot.transform.position;
-            Vector2 targetPos = t.Transform.position;
-            Vector2 vel = t.Velocity;
-
-            float speed = Weapon.Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
-            Vector2 dir;
-
-            if (speed > 0.01f)
-            {
-                float dist = Vector2.Distance(pos, targetPos);
-                float time = dist / speed;
-
-                Vector2 predicted = targetPos + vel * time;
-                dir = (predicted - pos).normalized;
-            }
-            else
-            {
-                dir = (targetPos - pos).normalized;
-            }
-
-            dir = ApplyAccuracy(dir);
-
-            return pos + dir * 100f;
-        }
-
-        private Vector2 ApplyAccuracy(Vector2 dir)
-        {
-            float acc = Weapon.Model.Stats.GetStat(StatType.Accuracy).Current; // 0..1
-            float spread = (1f - acc) * MaxSpreadAngle;
-
-            if (spread <= 0.01f)
-                return dir;
-
-            float angle = UnityEngine.Random.Range(-spread, spread) * Mathf.Deg2Rad;
-
-            float cos = Mathf.Cos(angle);
-            float sin = Mathf.Sin(angle);
-
-            return new Vector2(
-                dir.x * cos - dir.y * sin,
-                dir.x * sin + dir.y * cos
-            );
+            MountedWeapon.Slot = null;
+            MountedWeapon.Owner = null;
+            MountedWeapon = null;
         }
     }
 }
 
 
 
-// ---------- ShieldController.cs ----------
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
+// ---------- WeaponTargeting.cs ----------
+using System;
+using Tanks;
 using UnityEngine;
-using UnityEngine.EventSystems;
+
+public class WeaponTargeting : MonoBehaviour
+{
+	public TankTurret Turret;        // null → фиксированное оружие
+	public WeaponBase Weapon;
+	public float AimTolerance = 3f;
+
+	private readonly TargetFinder _finder = new();
+	private TankBase _owner;
+	private PlayerInputSystem _input;
+
+	private void Awake()
+	{
+		_owner = GetComponentInParent<TankBase>();
+		_input = GetComponentInParent<PlayerInputSystem>();
+		if (_input == null)
+			_input = FindObjectOfType<PlayerInputSystem>();
+	}
+
+	private void Update()
+	{
+		if (!_owner || !Weapon || Weapon.Slot == null || Weapon.Model == null)
+			return;
+
+		var slot = Weapon.Slot;
+		var activateType = slot.ActivateSlotWeaponType;
+
+		_finder.UpdateTargets(Battle.Instance.AllTanks, _owner.HitMask);
+
+		var range = Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
+
+		var origin = Turret ? Turret.Pivot.position : Weapon.transform.position;
+		var forward = Turret ? Turret.Pivot.forward : Weapon.transform.forward;
+		var maxAngle = Turret ? Turret.MaxAngle : slot.AllowedAngle;
+
+		var target = _finder.FindBestTarget(origin, forward, maxAngle, range);
+
+		// направление стрельбы
+		var dir = forward;
+		if (target != null)
+		{
+			var projectileSpeed = Weapon.Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
+			var predicted = _finder.Predict(
+				target,
+				Weapon.FirePoint.position,
+				projectileSpeed
+			);
+			dir = predicted - origin;
+		}
+
+		// вращаем башню
+		if (Turret)
+			Turret.RotateTowards(dir);
+
+		switch (activateType)
+		{
+			case ActivateSlotWeaponType.Auto:
+				// авто-режим: только по цели и только когда наведено
+				if (target != null &&
+				    _finder.IsAimedAt(Turret ? Turret.Pivot : Weapon.transform, dir, AimTolerance))
+				{
+					Weapon.TryFire(target);
+				}
+				break;
+
+			case ActivateSlotWeaponType.LMB:
+				// кнопочный режим: можно стрелять даже без цели
+				if (_input != null && _input.FireLMB)
+				{
+					Weapon.TryFire(target); // target может быть null → стрельба вперёд
+				}
+				break;
+
+			case ActivateSlotWeaponType.RMB:
+				if (_input != null && _input.FireRMB)
+				{
+					Weapon.TryFire(target);
+				}
+				break;
+
+			default:
+				throw new ArgumentOutOfRangeException();
+		}
+	}
+}
+
+
+
+// ---------- PlayerTankController.cs ----------
+using UnityEngine;
 
 namespace Tanks
 {
-    public class ShieldController : MonoBehaviour
+	[RequireComponent(typeof(TankMovement))]
+	public class PlayerTankController : MonoBehaviour
+	{
+		private TankMovement _movement;
+		private PlayerInputSystem _hw;
+		private PlayerInputUI _ui;
+
+		private void Awake()
+		{
+			_movement = GetComponent<TankMovement>();
+			_hw = FindObjectOfType<PlayerInputSystem>();
+			_ui = FindObjectOfType<PlayerInputUI>();
+		}
+
+		private void Update()
+		{
+			Vector2 hardware = _hw ? _hw.Steering : Vector2.zero;
+			Vector2 ui = _ui ? _ui.SteeringUI : Vector2.zero;
+
+			Vector2 sum = hardware + ui;
+
+			_movement.SetInput(sum.y, sum.x);
+		}
+	}
+}
+
+
+// ---------- TankCollisionKinematic.cs ----------
+using UnityEngine;
+
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
+namespace Tanks
+{
+	public class TankCollisionKinematic : MonoBehaviour
+	{
+		[Header("Box Collision")]
+		public Vector3 halfSize = new Vector3(1f, 0.5f, 2f);
+
+		[Header("Layers")]
+		public LayerMask staticObstacleMask; // стены, здания
+		public LayerMask tankMask;           // другие танки
+
+		[HideInInspector] public Vector3 debugNextPos;
+		[HideInInspector] public bool debugHasCollision;
+
+		private Transform _tr;
+		[SerializeField] private float _castOffset = 0.1f;
+
+		private void Awake()
+		{
+			_tr = transform;
+		}
+
+		/// <summary>
+		/// Пытаемся переместиться из currentPos в desiredPos.
+		/// Возвращает true, если было столкновение.
+		/// </summary>
+		public bool Resolve(Vector3 currentPos, Vector3 desiredPos, out Vector3 resolvedPos)
+		{
+			debugNextPos = desiredPos;
+
+			var move = desiredPos - currentPos;
+			var distance = move.magnitude;
+
+			if (distance < 0.0001f)
+			{
+				resolvedPos = currentPos;
+				debugHasCollision = false;
+				return false;
+			}
+
+			var dir = move.normalized;
+			var rot = _tr.rotation;
+
+			var mask = staticObstacleMask | tankMask;
+
+			// ==================================================
+			// 1) ОСНОВНОЙ BoxCast
+			// ==================================================
+			if (Physics.BoxCast(
+				    currentPos,
+				    halfSize,
+				    dir,
+				    out var hit,
+				    rot,
+				    distance + _castOffset,
+				    mask))
+			{
+				if (!IsSelf(hit.collider))
+				{
+					bool hitTank = IsTank(hit.collider);
+
+					// ==========================================
+					// ТАНК ↔ ТАНК (мягкое столкновение)
+					// ==========================================
+					if (hitTank)
+					{
+						// Разрыв симметрии: уступает тот, у кого InstanceID меньше
+						if (GetInstanceID() < hit.collider.GetInstanceID())
+						{
+							resolvedPos = currentPos;
+							debugHasCollision = true;
+							return true;
+						}
+
+						// Пробуем скользить
+						var slideDir = Vector3.ProjectOnPlane(dir, hit.normal).normalized;
+						var slidePos = currentPos + slideDir * distance;
+
+						resolvedPos = slidePos;
+						debugHasCollision = true;
+						return true;
+					}
+
+					// ==========================================
+					// СТАТИЧЕСКОЕ ПРЕПЯТСТВИЕ (жёсткое)
+					// ==========================================
+					var hardSlideDir = Vector3.ProjectOnPlane(dir, hit.normal).normalized;
+					var hardSlidePos = currentPos + hardSlideDir * distance;
+
+					if (Physics.BoxCast(
+						    currentPos,
+						    halfSize,
+						    hardSlideDir,
+						    out var slideHit,
+						    rot,
+						    distance + _castOffset,
+						    staticObstacleMask))
+					{
+						if (!IsSelf(slideHit.collider))
+						{
+							// даже скользить нельзя
+							resolvedPos = currentPos;
+							debugHasCollision = true;
+							return true;
+						}
+					}
+
+					resolvedPos = hardSlidePos;
+					debugHasCollision = true;
+					return true;
+				}
+			}
+
+			// ==================================================
+			// 2) OverlapBox — ТОЛЬКО статические препятствия
+			// ==================================================
+			var cols = Physics.OverlapBox(desiredPos, halfSize, rot, staticObstacleMask);
+			for (var i = 0; i < cols.Length; i++)
+			{
+				if (!IsSelf(cols[i]))
+				{
+					resolvedPos = currentPos;
+					debugHasCollision = true;
+					return true;
+				}
+			}
+
+			// чистое движение
+			resolvedPos = desiredPos;
+			debugHasCollision = false;
+			return false;
+		}
+
+		// ==================================================
+		// ROTATION
+		// ==================================================
+		public bool RotationBlocked(Vector3 pos, Quaternion newRot)
+		{
+			var mask = staticObstacleMask | tankMask;
+
+			var cols = Physics.OverlapBox(pos, halfSize, newRot, mask);
+			foreach (var col in cols)
+			{
+				if (!IsSelf(col))
+					return true; // вращение приведёт к проникновению
+			}
+
+			return false;
+		}
+		public void PrepareForRotation()
+		{
+			var hits = Physics.OverlapBox(
+				transform.position,
+				halfSize,
+				transform.rotation,
+				tankMask
+			);
+
+			foreach (var col in hits)
+			{
+				if (IsSelf(col))
+					continue;
+
+				var delta = transform.position - col.transform.position;
+				delta.y = 0f;
+
+				if (delta.sqrMagnitude < 0.0001f)
+					delta = transform.right;
+
+				// микро-раздвижение
+				transform.position += delta.normalized * 0.02f;
+			}
+		}
+		public void ResolveTankOverlap()
+		{
+			var hits = Physics.OverlapBox(
+				transform.position,
+				halfSize,
+				transform.rotation,
+				tankMask
+			);
+
+			foreach (var col in hits)
+			{
+				if (IsSelf(col))
+					continue;
+
+				// вектор от другого танка
+				var otherTr = col.transform;
+				var delta = transform.position - otherTr.position;
+				delta.y = 0f;
+
+				if (delta.sqrMagnitude < 0.0001f)
+					delta = transform.right;
+
+				var dir = delta.normalized;
+
+				// минимальная дистанция между центрами
+				var minDist =
+					halfSize.z + otherTr.GetComponent<TankCollisionKinematic>().halfSize.z;
+
+				var currentDist = delta.magnitude;
+
+				var push = minDist - currentDist;
+				if (push > 0f)
+				{
+					// 🔥 ВАЖНО: раздвигаем ОБА танка
+					transform.position += dir * (push * 0.5f);
+					otherTr.position -= dir * (push * 0.5f);
+				}
+			}
+		}
+
+		// ==================================================
+		// HELPERS
+		// ==================================================
+		private bool IsSelf(Collider col)
+		{
+			var t = col.transform;
+			return t == _tr || t.IsChildOf(_tr);
+		}
+
+		private bool IsTank(Collider col)
+		{
+			return (tankMask.value & (1 << col.gameObject.layer)) != 0;
+		}
+
+#if UNITY_EDITOR
+		private void OnDrawGizmos()
+		{
+			var pos = Application.isPlaying && _tr ? _tr.position : transform.position;
+			var rot = Application.isPlaying && _tr ? _tr.rotation : transform.rotation;
+
+			var color = debugHasCollision ? Color.red : Color.green;
+			DrawBox(pos, rot, halfSize, color);
+
+			if (Application.isPlaying)
+			{
+				DrawBox(debugNextPos, rot, halfSize, Color.yellow);
+			}
+		}
+
+		private void DrawBox(Vector3 pos, Quaternion rot, Vector3 sizeHalf, Color color)
+		{
+			Handles.color = color;
+			var m = Matrix4x4.TRS(pos, rot, Vector3.one);
+			using (new Handles.DrawingScope(m))
+			{
+				Handles.DrawWireCube(Vector3.zero, sizeHalf * 2f);
+			}
+		}
+#endif
+	}
+}
+
+
+
+// ---------- TankMovement.cs ----------
+using UnityEngine;
+
+namespace Tanks
+{
+    public class TankMovement : MonoBehaviour
     {
-        public List<ShieldSector> Sectors = new();
-        public List<ShieldSectorVisual> Visuals = new();
-        public TankBase _tank;
+        [Header("Runtime Debug")]
+        public float currentSpeed;      // текущая линейная скорость
+        public float currentTurnSpeed;  // скорость поворота корпуса
+        public Vector3 velocity;        // вектор движения
+
+        private TankBase _tank;
+        private PlayerInputSystem _hw;
+        private PlayerInputUI _ui;
+        private TankCollisionKinematic _collision;
+
+        private float _inputForward;    // W/S (-1..1)
+        private float _inputTurn;       // A/D (-1..1)
 
         private void Awake()
         {
             _tank = GetComponent<TankBase>();
-            StartCoroutine(Update1Sec());
+            _collision = GetComponent<TankCollisionKinematic>();
+
+            _hw = FindObjectOfType<PlayerInputSystem>();
+            _ui = FindObjectOfType<PlayerInputUI>();
         }
 
-        private IEnumerator Update1Sec()
-        {
-            while (gameObject.activeSelf)
-            {
-                yield return new WaitForSeconds(1f);
-                foreach (var s in Sectors)
-                    s.Tick();
-            }
-        }
         private void Update()
         {
-            UpdateVisuals();
+            HandleRotation();
+            HandleMovement();
         }
-
-        public void AddSector(ShieldSector sector)
+        public void SetInput(float forward, float turn)
         {
-            Sectors.Add(sector);
-            RegisterVisual(sector);
+            _inputForward = Mathf.Clamp(forward, -1f, 1f);
+            _inputTurn = Mathf.Clamp(turn, -1f, 1f);
         }
-
-        public void RegisterVisual(ShieldSector sector)
+        // =====================================================================
+        // ROTATION
+        // =====================================================================
+        private void HandleRotation()
         {
-            sector.Visual.Init();
-            sector.Visual.SetSectorAngles(sector.StartAngle, sector.EndAngle);
-            sector.Visual.SetCharge(sector.ShieldHP.Current / sector.ShieldHP.Maximum);
-        }
-        
+            float turnStat = _tank.GetStat(StatType.TurnSpeed).Current;
+            float turnSpeed = turnStat * _inputTurn;
 
-        public void OnShieldHit(ShieldSide side, CalculatedDamage calculatedDamage)
-        {
-            var sector = Sectors.FirstOrDefault(s => s.Side == side);
+            if (Mathf.Abs(turnSpeed) < 0.001f)
+                return;
 
-            // если сектора нет — прямой урон
-            /*
-            if (sector == null)
+            Quaternion nextRot = transform.rotation * Quaternion.Euler(0f, turnSpeed * Time.deltaTime, 0f);
+
+            // Проверяем, что при таком повороте танк не войдёт в стену
+            if (_collision != null)
+                _collision.PrepareForRotation();
+
+            if (_collision != null &&
+                _collision.RotationBlocked(transform.position, nextRot))
             {
-                Ship.TakeDamage(proj.Damage, hitPoint, proj.SourceWeapon);
                 return;
             }
-            */
 
-            float dmg = calculatedDamage.FinalDamage;
-
-            // Уменьшаем HP щита
-            float leftover = sector.Absorb(dmg);
-
-            // визуал
-            var vis = sector.Visual;
-            vis.Hit(calculatedDamage.HitPoint);
-            GameEvent.UiUpdate();
+            transform.rotation = nextRot;
         }
-        
 
-        private void UpdateVisuals()
+        // =====================================================================
+        // MOVEMENT
+        // =====================================================================
+        private void HandleMovement()
         {
-            foreach (var se in Sectors)
+            float accel = _tank.GetStat(StatType.Acceleration).Current;
+            float brake = _tank.GetStat(StatType.BrakePower).Current;
+            float forwardMax = _tank.GetStat(StatType.MoveSpeed).Current;
+            float reverseMax = _tank.GetStat(StatType.MoveSpeedRear).Current;
+
+            float targetSpeed = 0f;
+
+            // желаемая скорость
+            if (_inputForward > 0.01f)
+                targetSpeed = forwardMax * _inputForward;
+            else if (_inputForward < -0.01f)
+                targetSpeed = reverseMax * _inputForward;
+            else
+                targetSpeed = 0f;
+
+            // разгон / торможение
+            currentSpeed = Mathf.MoveTowards(
+                currentSpeed,
+                targetSpeed,
+                (Mathf.Abs(targetSpeed) > Mathf.Abs(currentSpeed) ? accel : brake) * Time.deltaTime
+            );
+
+            // вектор движения
+            velocity = transform.forward * currentSpeed;
+
+            // кандидат на позицию
+            Vector3 currentPos = transform.position;
+            Vector3 nextPos = currentPos + velocity * Time.deltaTime;
+
+            // =====================================================================
+            // СТОЛКНОВЕНИЯ (BoxCast + Sliding)
+            // =====================================================================
+            Vector3 finalPos = nextPos;
+
+            if (_collision != null &&
+                _collision.Resolve(currentPos, nextPos, out Vector3 resolvedPos))
             {
-                var t = se.ShieldHP.Current / se.ShieldHP.Maximum;
-                se.Visual.SetCharge(t);
+                // 1) Полный стоп — фронтальное или угловое столкновение
+                if (resolvedPos == currentPos)
+                {
+                    currentSpeed = 0f;
+                    finalPos = currentPos;
+                }
+                // 2) Скольжение вдоль поверхности
+                else
+                {
+                    // НЕ сбрасываем currentSpeed,
+                    // потому что это не фронтальный удар, а боковое касание.
+                    finalPos = resolvedPos;
+                }
             }
+            else
+            {
+                // 3) Чистое движение без препятствий
+                finalPos = nextPos;
+            }
+
+            // =====================================================================
+            // ГРАНИЦЫ КАРТЫ (Clamp)
+            // =====================================================================
+            if (Battle.Instance != null)
+            {
+                Vector3 clamped = Battle.Instance.ClampPosition(finalPos);
+
+                if (Mathf.Abs(finalPos.x - clamped.x) > 0.001f ||
+                    Mathf.Abs(finalPos.z - clamped.z) > 0.001f)
+                {
+                    currentSpeed = 0f; // упёрлись в глобальную границу
+                }
+
+                finalPos = clamped;
+            }
+
+            // финальное перемещение
+            transform.position = finalPos;
+            _collision.ResolveTankOverlap();
         }
     }
 }
 
 
 
-// ---------- ShieldHitbox.cs ----------
-using UnityEngine;
-
-namespace Tanks
-{
-	public class ShieldHitbox : MonoBehaviour
-	{
-		public ShieldSide Side;
-		public ShieldController Controller;
-
-		private void OnTriggerEnter2D(Collider2D other)
-		{
-			if (!other.TryGetComponent<Projectile>(out var proj))
-				return;
-
-			if (!HitRules.CanHit(proj.HitMask, Controller._tank.Team))
-				return;
-
-			Vector2 hitPoint = proj.transform.position;
-			
-			Stat s;
-			proj.SourceWeapon.Model.Stats.TryGetStat(StatType.ArmorPierce, out s);
-			var calc = DamageCalculator.CalculateHit(
-				projectileDamage: proj.Damage,
-				armorPierce:  s?.Current ?? 0,
-				hitPoint:     hitPoint,
-				sourceWeapon: proj.SourceWeapon,
-				target:       Controller._tank,
-				wasShieldHit: true
-			);
-
-			GameEvent.TakeDamage(calc);
-			Controller.OnShieldHit(Side, calc); 
-			proj.DestroySelf();
-		}
-	}
-}
-
-
-// ---------- ShieldSector.cs ----------
+// ---------- Shield.cs ----------
 using UnityEngine;
 
 namespace Tanks
 {
 	[System.Serializable]
-	public class ShieldSector
+	public class Shield
 	{
-		public ShieldSide Side;
-
-		public float StartAngle;
-		public float EndAngle;
 		public float MaxHP;
 		public float Regen;
 		public float RestoreDelayTime;
 		public Stat ShieldHP;
 		public Stat ShieldRegen;
 		public Stat RestoreDelay;
-		public Collider2D Collider;
+		public Collider Collider;
 		public bool IsRestoring;
 		public float CurrentRestoreTime;
 		public float DamageResist = 0f;
@@ -4542,24 +4692,16 @@ namespace Tanks
 			ShieldHP = new Stat(StatType.Shield, MaxHP);
 			ShieldRegen = new Stat(StatType.ShieldRegen, Regen);
 			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, RestoreDelayTime);
+			Visual.Init();
+			Visual.SetCharge(ShieldHP.Current / ShieldHP.Maximum);
 		}
 		public void InitFromConfig(float hp, float regen, float restoreDelay)
 		{
 			ShieldHP = new Stat(StatType.Shield, hp);
 			ShieldRegen = new Stat(StatType.ShieldRegen, regen);
 			RestoreDelay = new Stat(StatType.ShieldRestoreDelay, restoreDelay);
-		}
-
-		public bool ContainsAngle(float angle)
-		{
-			if (StartAngle <= EndAngle)
-			{
-				return angle >= StartAngle && angle <= EndAngle;
-			}
-			else
-			{
-				return angle >= StartAngle || angle <= EndAngle;
-			}
+			Visual.Init();
+			Visual.SetCharge(ShieldHP.Current / ShieldHP.Maximum);
 		}
 
 		public float Absorb(float damage)
@@ -4613,20 +4755,125 @@ namespace Tanks
 }
 
 
+// ---------- ShieldController.cs ----------
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.EventSystems;
+
+namespace Tanks
+{
+    public class ShieldController : MonoBehaviour
+    {
+
+        public Shield TankShield;
+        public TankBase _tank;
+
+        private void Awake()
+        {
+            _tank = GetComponent<TankBase>();
+            StartCoroutine(Update1Sec());
+        }
+
+        private IEnumerator Update1Sec()
+        {
+            while (gameObject.activeSelf)
+            {
+                yield return new WaitForSeconds(1f);
+                TankShield.Tick();
+            }
+        }
+        private void Update()
+        {
+            UpdateVisuals();
+        }
+        
+        
+
+        public void OnShieldHit(CalculatedDamage calculatedDamage)
+        {
+   
+            // если сектора нет — прямой урон
+            /*
+            if (sector == null)
+            {
+                Ship.TakeDamage(proj.Damage, hitPoint, proj.SourceWeapon);
+                return;
+            }
+            */
+
+            float dmg = calculatedDamage.FinalDamage;
+
+            // Уменьшаем HP щита
+            float leftover = TankShield.Absorb(dmg);
+
+            // визуал
+            var vis = TankShield.Visual;
+            vis.Hit(calculatedDamage.HitPoint);
+            GameEvent.UiUpdate();
+        }
+        
+
+        private void UpdateVisuals()
+        {
+            var t = TankShield.ShieldHP.Current / TankShield.ShieldHP.Maximum;
+            TankShield.Visual.SetCharge(t);
+        }
+    }
+}
+
+
+// ---------- ShieldHitbox.cs ----------
+using UnityEngine;
+
+namespace Tanks
+{
+	public class ShieldHitbox : MonoBehaviour
+	{
+	
+		public ShieldController Controller;
+
+		private void OnTriggerEnter(Collider other)
+		{
+			if (!other.TryGetComponent<Projectile>(out var proj))
+				return;
+
+			if (!HitRules.CanHit(proj.HitMask, Controller._tank.Team))
+				return;
+
+			Vector2 hitPoint = proj.transform.position;
+			
+			Stat s;
+			proj.SourceWeapon.Model.Stats.TryGetStat(StatType.ArmorPierce, out s);
+			var calc = DamageCalculator.CalculateHit(
+				projectileDamage: proj.Damage,
+				armorPierce:  s?.Current ?? 0,
+				hitPoint:     hitPoint,
+				sourceWeapon: proj.SourceWeapon,
+				target:       Controller._tank,
+				wasShieldHit: true
+			);
+
+			GameEvent.TakeDamage(calc);
+			Controller.OnShieldHit(calc); 
+			proj.DestroySelf();
+		}
+	}
+}
+
+
 // ---------- ShieldSectorVisual.cs ----------
-using Tanks;
 using UnityEngine;
 
 public class ShieldSectorVisual : MonoBehaviour
 {
-	[SerializeField] private SpriteRenderer sprite;
-	public ShieldSide Side;
-	private Material mat;
+	[SerializeField] private Renderer rnd;
+
+	private Material _mat;
 
 	int idCharge;
-	int idStart;
-	int idEnd;
-	int idHitPoint;
+	int idHitPos;
 	int idHitStrength;
 	int idHitTime;
 
@@ -4635,13 +4882,11 @@ public class ShieldSectorVisual : MonoBehaviour
 
 	public void Init()
 	{
-		mat = Instantiate(sprite.material);
-		sprite.material = mat;
+		_mat = Instantiate(rnd.material);
+		rnd.material = _mat;
 
 		idCharge = Shader.PropertyToID("_Charge");
-		idStart = Shader.PropertyToID("_SectorStart");
-		idEnd = Shader.PropertyToID("_SectorEnd");
-		idHitPoint = Shader.PropertyToID("_HitPoint");
+		idHitPos = Shader.PropertyToID("_HitPos");
 		idHitStrength = Shader.PropertyToID("_HitStrength");
 		idHitTime = Shader.PropertyToID("_HitTime");
 	}
@@ -4651,46 +4896,23 @@ public class ShieldSectorVisual : MonoBehaviour
 		if (hitStrength > 0)
 		{
 			hitTime += Time.deltaTime;
-			hitStrength = Mathf.MoveTowards(hitStrength, 0, Time.deltaTime * 3f);
+			hitStrength = Mathf.MoveTowards(hitStrength, 0, Time.deltaTime * 2f);
 		}
 
-		mat.SetFloat(idHitStrength, hitStrength);
-		mat.SetFloat(idHitTime, hitTime);
-	}
-
-	public void SetSectorAngles(float start, float end)
-	{
-		mat.SetFloat(idStart, start);
-		mat.SetFloat(idEnd, end);
+		_mat.SetFloat(idHitStrength, hitStrength);
+		_mat.SetFloat(idHitTime, hitTime);
 	}
 
 	public void SetCharge(float t)
 	{
-		mat.SetFloat(idCharge, t);
+		_mat.SetFloat(idCharge, t);
 	}
 
-	public void Hit(Vector2 worldPos)
+	public void Hit(Vector3 worldPos)
 	{
-		Vector2 local = transform.InverseTransformPoint(worldPos);
-		Vector2 uv = local * 0.5f + new Vector2(0.5f, 0.5f);
-
-		mat.SetVector(idHitPoint, uv);
+		_mat.SetVector(idHitPos, worldPos);
 		hitStrength = 1f;
-		hitTime = 0;
-	}
-}
-
-
-// ---------- ShieldSide.cs ----------
-namespace Tanks
-{
-	public enum ShieldSide
-	{
-		Front,
-		Left,
-		Right,
-		Rear,
-		Omni
+		hitTime = 0f;
 	}
 }
 
@@ -4742,7 +4964,6 @@ namespace Tanks
 {
 	public class PlayerTankStatsContainerUi : MonoBehaviour
 	{
-		public List<ShieldUi> ShieldUis = new List<ShieldUi>();
 		private ShieldController _shieldController;
 		[SerializeField] private Image _hpBar;
 		private static readonly int Fill = Shader.PropertyToID("_Fill");
@@ -4759,20 +4980,9 @@ namespace Tanks
 
 			if (_shieldController)
 			{
-				foreach (var sector in _shieldController.Sectors)
-				{
-					var ui = ShieldUis.Find(x => x.Side == sector.Side);
-					ui.Image.material.SetFloat(Fill, sector.ShieldHP.Amount);
-				}
 			}
 		}
 		
-		[System.Serializable]
-		public class ShieldUi
-		{
-			public ShieldSide Side;
-			public Image Image;
-		}
 	}
 	
 }
@@ -5282,7 +5492,6 @@ namespace Tanks.HitEffect
         }
     }
 }
-
 
 
 // ---------- SlowEffect.cs ----------
