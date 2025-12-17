@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public class BattleCamera : MonoBehaviour
 	{
@@ -8,7 +8,7 @@ namespace Tanks
 		public float followSmooth = 0.2f;
 		public float moveOffsetStrength = 2f;
 		private Vector3 _velocity;
-		private PlayerTank _player;
+		private PlayerShip _player;
 
 		private float _fixedY;   // высота камеры
 

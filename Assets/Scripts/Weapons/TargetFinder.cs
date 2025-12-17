@@ -2,7 +2,7 @@
 using System.Linq;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public class TargetFinder
 	{

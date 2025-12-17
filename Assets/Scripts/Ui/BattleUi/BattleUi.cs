@@ -1,16 +1,18 @@
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
+using UnityEngine.Serialization;
 
-namespace Tanks
+namespace Ships
 {
 	public class BattleUi : MonoBehaviour
 	{
-		[SerializeField] private PlayerTankStatsContainerUi _playerTankStatsContainer;
+		[FormerlySerializedAs("_playerTankStatsContainer")]
+		[SerializeField] private PlayerShipStatsContainerUi _playerShipStatsContainer;
 		[SerializeField] private float _updateRatio = 0.01f;
 		private void Awake()
 		{
-			_playerTankStatsContainer = GetComponentInChildren<PlayerTankStatsContainerUi>();
+			_playerShipStatsContainer = GetComponentInChildren<PlayerShipStatsContainerUi>();
 		}
 
 		private void Start()
@@ -25,8 +27,8 @@ namespace Tanks
 
 		private void OnUpdate()
 		{
-			if (_playerTankStatsContainer)
-				_playerTankStatsContainer.OnUpdate();
+			if (_playerShipStatsContainer)
+				_playerShipStatsContainer.OnUpdate();
 		}
 	}
 }

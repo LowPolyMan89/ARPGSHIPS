@@ -1,8 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
-	public class TankTurret : MonoBehaviour
+	public class ShipTurret : MonoBehaviour
 	{
 		[Header("Rotation")]
 		public Transform Pivot;          // Что вращаем (Turret top)

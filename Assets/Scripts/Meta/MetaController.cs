@@ -1,6 +1,6 @@
+﻿
 
-
-namespace Tanks
+namespace Ships
 {
 	using UnityEngine;
 
@@ -12,9 +12,9 @@ namespace Tanks
 
 		[SerializeField] private MetaVisual _metaVisual;
 
-		private TankFitView _tankFitView;
+		private ShipFitView _tankFitView;
 		private InventoryView _inventoryView;
-		public TankFitView TankFitView => _tankFitView;
+		public ShipFitView ShipFitView => _tankFitView;
 		public MetaVisual MetaVisual => _metaVisual;
 
 		private void Awake()
@@ -26,7 +26,7 @@ namespace Tanks
 			State = MetaSaveSystem.Load();
 
 			_inventoryView = new InventoryView();
-			_tankFitView = new TankFitView();
+			_tankFitView = new ShipFitView();
 
 			_inventoryView.Init(State);
 			_tankFitView.Init(State, _inventoryView);

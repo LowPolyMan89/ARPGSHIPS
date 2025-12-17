@@ -1,7 +1,7 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public sealed class Stats
 	{

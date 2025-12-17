@@ -4,16 +4,17 @@
 using UnityEditor;
 #endif
 
-namespace Tanks
+namespace Ships
 {
-	public class TankCollisionKinematic : MonoBehaviour
+	public class ShipCollisionKinematic : MonoBehaviour
 	{
 		[Header("Box Collision")]
 		public Vector3 halfSize = new Vector3(1f, 0.5f, 2f);
 
 		[Header("Layers")]
 		public LayerMask staticObstacleMask; // стены, здания
-		public LayerMask tankMask;           // другие танки
+		[UnityEngine.Serialization.FormerlySerializedAs("tankMask")]
+		public LayerMask shipMask;           // другие корабли
 
 		[HideInInspector] public Vector3 debugNextPos;
 		[HideInInspector] public bool debugHasCollision;
@@ -47,7 +48,7 @@ namespace Tanks
 			var dir = move.normalized;
 			var rot = _tr.rotation;
 
-			var mask = staticObstacleMask | tankMask;
+			var mask = staticObstacleMask | shipMask;
 
 			// ==================================================
 			// 1) ОСНОВНОЙ BoxCast
@@ -63,12 +64,12 @@ namespace Tanks
 			{
 				if (!IsSelf(hit.collider))
 				{
-					bool hitTank = IsTank(hit.collider);
+					var hitShip = IsShip(hit.collider);
 
 					// ==========================================
 					// ТАНК ↔ ТАНК (мягкое столкновение)
 					// ==========================================
-					if (hitTank)
+					if (hitShip)
 					{
 						// Разрыв симметрии: уступает тот, у кого InstanceID меньше
 						if (GetInstanceID() < hit.collider.GetInstanceID())
@@ -142,7 +143,7 @@ namespace Tanks
 		// ==================================================
 		public bool RotationBlocked(Vector3 pos, Quaternion newRot)
 		{
-			var mask = staticObstacleMask | tankMask;
+			var mask = staticObstacleMask | shipMask;
 
 			var cols = Physics.OverlapBox(pos, halfSize, newRot, mask);
 			foreach (var col in cols)
@@ -159,7 +160,7 @@ namespace Tanks
 				transform.position,
 				halfSize,
 				transform.rotation,
-				tankMask
+				shipMask
 			);
 
 			foreach (var col in hits)
@@ -177,13 +178,13 @@ namespace Tanks
 				transform.position += delta.normalized * 0.02f;
 			}
 		}
-		public void ResolveTankOverlap()
+		public void ResolveShipOverlap()
 		{
 			var hits = Physics.OverlapBox(
 				transform.position,
 				halfSize,
 				transform.rotation,
-				tankMask
+				shipMask
 			);
 
 			foreach (var col in hits)
@@ -191,7 +192,7 @@ namespace Tanks
 				if (IsSelf(col))
 					continue;
 
-				// вектор от другого танка
+				// вектор от другого корабля
 				var otherTr = col.transform;
 				var delta = transform.position - otherTr.position;
 				delta.y = 0f;
@@ -203,14 +204,14 @@ namespace Tanks
 
 				// минимальная дистанция между центрами
 				var minDist =
-					halfSize.z + otherTr.GetComponent<TankCollisionKinematic>().halfSize.z;
+					halfSize.z + otherTr.GetComponent<ShipCollisionKinematic>().halfSize.z;
 
 				var currentDist = delta.magnitude;
 
 				var push = minDist - currentDist;
 				if (push > 0f)
 				{
-					// 🔥 ВАЖНО: раздвигаем ОБА танка
+					// ВАЖНО: раздвигаем оба корабля
 					transform.position += dir * (push * 0.5f);
 					otherTr.position -= dir * (push * 0.5f);
 				}
@@ -226,9 +227,9 @@ namespace Tanks
 			return t == _tr || t.IsChildOf(_tr);
 		}
 
-		private bool IsTank(Collider col)
+		private bool IsShip(Collider col)
 		{
-			return (tankMask.value & (1 << col.gameObject.layer)) != 0;
+			return (shipMask.value & (1 << col.gameObject.layer)) != 0;
 		}
 
 #if UNITY_EDITOR

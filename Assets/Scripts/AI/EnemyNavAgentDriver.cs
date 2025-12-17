@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.AI;
 
-namespace Tanks
+namespace Ships
 {
 	[RequireComponent(typeof(NavMeshAgent))]
 	public sealed class EnemyNavAgentDriver : MonoBehaviour

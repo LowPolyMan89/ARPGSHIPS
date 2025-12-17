@@ -1,9 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.IO;
-using Tanks.HitEffect;
+using Ships.HitEffect;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public static class EffectStatUtils
 	{

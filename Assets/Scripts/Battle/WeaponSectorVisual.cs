@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
     [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
     public class WeaponSectorVisual : MonoBehaviour

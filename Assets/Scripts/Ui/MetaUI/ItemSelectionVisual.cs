@@ -1,9 +1,9 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Tanks
+namespace Ships
 {
 	public class ItemSelectionVisual : MonoBehaviour
 	{

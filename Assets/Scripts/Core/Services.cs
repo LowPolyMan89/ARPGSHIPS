@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public static class Services
 	{

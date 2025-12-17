@@ -1,11 +1,11 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-namespace Tanks
+namespace Ships
 {
 	public static class ItemGenerator
 	{
@@ -105,7 +105,7 @@ namespace Tanks
 			var files = LoadWeaponFiles();
 			if (files.Count == 0) return null;
 
-			List<(string template, string rarity, int weight)> pool = new();
+			var pool = new List<(string template, string rarity, int weight)>();
 
 			foreach (var file in files)
 			{
@@ -123,12 +123,12 @@ namespace Tanks
 		private static (string template, string rarity) PickGlobal(
 			List<(string template, string rarity, int weight)> entries)
 		{
-			int total = entries.Sum(e => e.weight);
+			var total = entries.Sum(e => e.weight);
 			if (total <= 0)
 				return (entries[0].template, entries[0].rarity);
 
-			int roll = Random.Range(0, total);
-			int accum = 0;
+			var roll = Random.Range(0, total);
+			var accum = 0;
 
 			foreach (var e in entries)
 			{
@@ -147,7 +147,7 @@ namespace Tanks
 
 			var template = JsonUtility.FromJson<WeaponTemplate>(json);
 
-			string rarity = forcedRarity == "Random"
+			var rarity = forcedRarity == "Random"
 				? PickRandomRarity(template)
 				: forcedRarity;
 
@@ -172,12 +172,12 @@ namespace Tanks
 				Icon = template.Icon
 			};
 
-			List<StatValue> stats = new();
+			var stats = new List<StatValue>();
 			if (rarityData?.Stats?.Entries != null)
 			{
 				foreach (var s in rarityData.Stats.Entries)
 				{
-					float v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
+					var v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
 					stats.Add(new StatValue { Name = s.Name, Value = v });
 				}
 			}
@@ -197,12 +197,12 @@ namespace Tanks
 
 		private static string PickRandomRarity(WeaponTemplate tpl)
 		{
-			int total = tpl.Rarities.Sum(r => r.DropChance);
+			var total = tpl.Rarities.Sum(r => r.DropChance);
 			if (total <= 0)
 				return tpl.Rarities[0].Rarity;
 
-			int roll = Random.Range(0, total);
-			int accum = 0;
+			var roll = Random.Range(0, total);
+			var accum = 0;
 
 			foreach (var r in tpl.Rarities)
 			{
@@ -228,12 +228,12 @@ namespace Tanks
 
 			var effects = new List<EffectValue>();
 
-			int count = Random.Range(1, rarity.MaxEffectCount + 1);
+			var count = Random.Range(1, rarity.MaxEffectCount + 1);
 			var used = new HashSet<int>();
 
 			while (effects.Count < count && used.Count < tpl.AvailableEffects.Length)
 			{
-				int i = Random.Range(0, tpl.AvailableEffects.Length);
+				var i = Random.Range(0, tpl.AvailableEffects.Length);
 				if (!used.Add(i))
 					continue;
 
@@ -256,7 +256,7 @@ namespace Tanks
 
 				foreach (var s in effectRef.Stats.Entries)
 				{
-					float value = Random.Range(s.Min, s.Max);
+					var value = Random.Range(s.Min, s.Max);
 					if (Mathf.Abs(value) > 10f)
 						value = Mathf.Round(value);
 					else

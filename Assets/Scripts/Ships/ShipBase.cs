@@ -1,23 +1,24 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEngine;
+using UnityEngine.Serialization;
 
-namespace Tanks
+namespace Ships
 {
-	public abstract class TankBase : MonoBehaviour, ITargetable
+	public abstract class ShipBase : MonoBehaviour, ITargetable
 	{
 		public List<ActiveEffectInstance> ActiveEffects = new();
-		public TankVisual _visual;
+		public ShipVisual _visual;
 		public SideType SideType;
 		[SerializeField] private TeamMask _team;
 		public TeamMask HitMask;
-		public Stats TankStats;
+		[FormerlySerializedAs("TankStats")] public Stats ShipStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
-		public TankTurret Turret;
+		public ShipTurret Turret;
 		public TurretAimSystem AimSystem;
 		public HashSet<string> RunningDotEffects = new();
 		public Transform Transform => transform;
@@ -33,7 +34,7 @@ namespace Tanks
 		{
 			get
 			{
-				if (TankStats.TryGetStat(StatType.HitPoint, out var hp))
+				if (ShipStats.TryGetStat(StatType.HitPoint, out var hp))
 					return hp.Current > 0;
 				return true;
 			}
@@ -41,7 +42,7 @@ namespace Tanks
 
 		public virtual void LoadShipFromConfig(string fileName)
 		{
-			TankStats = new Stats();
+			ShipStats = new Stats();
 			var data = HullLoader.Load(fileName);
 			var fields = typeof(StatContainer).GetFields(
 				BindingFlags.Public | BindingFlags.Instance);
@@ -52,12 +53,12 @@ namespace Tanks
 				if (!Enum.TryParse(fieldName, out StatType statType))
 					continue;
 				var value = (float)f.GetValue(data.stats);
-				TankStats.AddStat(new Stat(statType, value));
+				ShipStats.AddStat(new Stat(statType, value));
 			}
 			
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
-				controller.TankShield.InitFromConfig(
+				controller.ShipShield.InitFromConfig(
 					hp: data.Shield.Hp,
 					regen: data.Shield.Regen,
 					restoreDelay: data.Shield.RegenDelay
@@ -65,11 +66,11 @@ namespace Tanks
 			}
 		}
 		
-		public void LoadTankFromPrefab()
+		public void LoadShipFromPrefab()
 		{
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
-				controller.TankShield.InitFromPrefab();
+				controller.ShipShield.InitFromPrefab();
 			}
 		}
 		
@@ -115,14 +116,14 @@ namespace Tanks
 			}
 			else
 			{
-				_visual = new TankVisual();
+				_visual = new ShipVisual();
 				_visual.Load();
 			}
-			Battle.Instance.AllTanks.Add(this);
+			Battle.Instance.AllShips.Add(this);
 			StartCoroutine(TickEffects());
 			// отправляем визуализаторам данные статов
 			StatVisuals.Clear();
-			foreach (var kvp in TankStats.All)
+			foreach (var kvp in ShipStats.All)
 			{
 				StatVisuals.Add(new StatVisual { Name = kvp.Key });
 			}
@@ -211,7 +212,7 @@ namespace Tanks
 				yield return new WaitForSeconds(1f);
 
 				// 1) Тик модификаторов статов
-				TankStats.Tick();
+				ShipStats.Tick();
 
 				// 2) Тик эффектов
 				for (int i = ActiveEffects.Count - 1; i >= 0; i--)
@@ -235,7 +236,7 @@ namespace Tanks
 			if (!IsAlive)
 			{
 				if (SideType == SideType.Enemy)
-					Battle.Instance.AllTanks.Remove(this);
+					Battle.Instance.AllShips.Remove(this);
 
 				Destroy(gameObject);
 				return;
@@ -247,7 +248,7 @@ namespace Tanks
 			_lastPos = pos;
 
 			// обновляем визуальное состояние статов
-			foreach (var kvp in TankStats.All)
+			foreach (var kvp in ShipStats.All)
 			{
 				var statType = kvp.Key;
 				var stat = kvp.Value;
@@ -291,12 +292,12 @@ namespace Tanks
 
 		public bool TryGetStat(StatType name, out IStat stat)
 		{
-			bool result = TankStats.TryGetStat(name, out var s);
+			bool result = ShipStats.TryGetStat(name, out var s);
 			stat = s;
 			return result;
 		}
 
-		public IStat GetStat(StatType name) => TankStats.GetStat(name);
-		public IEnumerable<IStat> GetAllStats() => TankStats.All.Values;
+		public IStat GetStat(StatType name) => ShipStats.GetStat(name);
+		public IEnumerable<IStat> GetAllStats() => ShipStats.All.Values;
 	}
 }

@@ -1,7 +1,7 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Tanks
+namespace Ships
 {
 	public class InventoryView
 	{
@@ -44,8 +44,8 @@ namespace Tanks
 
 			int slotIndex = int.Parse(_currentSlotId);
 
-			MetaController.Instance.TankFitView.EquipItemToSlot(
-				_state.Fit.TankId,
+			MetaController.Instance.ShipFitView.EquipItemToSlot(
+				_state.Fit.ShipId,
 				slotIndex,
 				item.ItemId,
 				_currentIsWeapon

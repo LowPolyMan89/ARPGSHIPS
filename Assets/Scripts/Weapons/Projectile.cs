@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public class Projectile : MonoBehaviour
 	{
@@ -9,7 +9,7 @@ namespace Tanks
 		private float _pierce;
 
 		public WeaponBase SourceWeapon { get; private set; }
-		public TankBase Owner { get; private set; }
+		public ShipBase Owner { get; private set; }
 		public TeamMask HitMask { get; private set; }
 
 		[SerializeField] 

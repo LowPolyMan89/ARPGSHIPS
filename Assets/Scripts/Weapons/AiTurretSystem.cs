@@ -1,10 +1,10 @@
 ﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public class AiTurretSystem : MonoBehaviour
 	{
-		public TankTurret Turret;
+		public ShipTurret Turret;
 		public TeamMask HitMask;
 		[SerializeField] private LayerMask _obstacle;
 		public float Range = 30f;
@@ -16,7 +16,7 @@ namespace Tanks
 		private void Update()
 		{
 			// обновляем список целей
-			finder.UpdateTargets(Battle.Instance.AllTanks, HitMask);
+			finder.UpdateTargets(Battle.Instance.AllShips, HitMask);
 
 			// выбираем лучшую цель
 			var target = finder.FindBestTarget(

@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public interface IPlayerInput
 	{

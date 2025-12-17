@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public abstract class WeaponBase : MonoBehaviour
 	{
@@ -12,7 +12,7 @@ namespace Tanks
 		private int _ammo;
 		private bool _isReloading;
 		private float _reloadFinishTime;
-		public TankBase Owner { get; set; }
+		public ShipBase Owner { get; set; }
 
 		public float NextFireTime => _nextFireTime;
 		public float ReloadFinishTime
@@ -115,3 +115,4 @@ namespace Tanks
 		}
 	}
 }
+

@@ -1,20 +1,21 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.Serialization;
 
-namespace Tanks
+namespace Ships
 {
     public class ShieldController : MonoBehaviour
     {
 
-        public Shield TankShield;
-        public TankBase _tank;
+        [FormerlySerializedAs("TankShield")] public Shield ShipShield;
+        [FormerlySerializedAs("_tank")] public ShipBase _ship;
 
         private void Awake()
         {
-            _tank = GetComponent<TankBase>();
+            _ship = GetComponent<ShipBase>();
             StartCoroutine(Update1Sec());
         }
 
@@ -23,7 +24,7 @@ namespace Tanks
             while (gameObject.activeSelf)
             {
                 yield return new WaitForSeconds(1f);
-                TankShield.Tick();
+                ShipShield.Tick();
             }
         }
         private void Update()
@@ -45,13 +46,13 @@ namespace Tanks
             }
             */
 
-            float dmg = calculatedDamage.FinalDamage;
+            var dmg = calculatedDamage.FinalDamage;
 
             // Уменьшаем HP щита
-            float leftover = TankShield.Absorb(dmg);
+            var leftover = ShipShield.Absorb(dmg);
 
             // визуал
-            var vis = TankShield.Visual;
+            var vis = ShipShield.Visual;
             vis.Hit(calculatedDamage.HitPoint);
             GameEvent.UiUpdate();
         }
@@ -59,8 +60,8 @@ namespace Tanks
 
         private void UpdateVisuals()
         {
-            var t = TankShield.ShieldHP.Current / TankShield.ShieldHP.Maximum;
-            TankShield.Visual.SetCharge(t);
+            var t = ShipShield.ShieldHP.Current / ShipShield.ShieldHP.Maximum;
+            ShipShield.Visual.SetCharge(t);
         }
     }
 }

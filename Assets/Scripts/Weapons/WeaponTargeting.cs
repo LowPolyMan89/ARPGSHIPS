@@ -1,20 +1,20 @@
-using System;
-using Tanks;
+﻿using System;
+using Ships;
 using UnityEngine;
 
 public class WeaponTargeting : MonoBehaviour
 {
-	public TankTurret Turret;        // null → фиксированное оружие
+	public ShipTurret Turret;        // null → фиксированное оружие
 	public WeaponBase Weapon;
 	public float AimTolerance = 3f;
 
 	private readonly TargetFinder _finder = new();
-	private TankBase _owner;
+	private ShipBase _owner;
 	private PlayerInputSystem _input;
 
 	private void Awake()
 	{
-		_owner = GetComponentInParent<TankBase>();
+		_owner = GetComponentInParent<ShipBase>();
 		_input = GetComponentInParent<PlayerInputSystem>();
 		if (_input == null)
 			_input = FindObjectOfType<PlayerInputSystem>();
@@ -28,7 +28,7 @@ public class WeaponTargeting : MonoBehaviour
 		var slot = Weapon.Slot;
 		var activateType = slot.ActivateSlotWeaponType;
 
-		_finder.UpdateTargets(Battle.Instance.AllTanks, _owner.HitMask);
+		_finder.UpdateTargets(Battle.Instance.AllShips, _owner.HitMask);
 
 		var range = Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
 
@@ -86,3 +86,4 @@ public class WeaponTargeting : MonoBehaviour
 		}
 	}
 }
+

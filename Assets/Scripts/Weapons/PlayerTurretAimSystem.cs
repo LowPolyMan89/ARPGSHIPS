@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Tanks
+namespace Ships
 {
 	public class PlayerTurretAimSystem : TurretAimSystem
 	{
@@ -10,7 +10,7 @@ namespace Tanks
 		/// <summary>
 		/// Возвращает точку на земле (XZ), куда смотрит курсор.
 		/// </summary>
-		public override void Init(TankBase tankBase)
+		public override void Init(ShipBase shipBase)
 		{
 			_cam = Camera.main;
 		}
@@ -20,22 +20,22 @@ namespace Tanks
 			if (Turret == null)
 				return;
 
-			Vector3? worldPos = GetMouseWorldPoint();
+			var worldPos = GetMouseWorldPoint();
 			if (worldPos == null)
 				return;
 
-			Vector3 dir = worldPos.Value - Turret.transform.position;
+			var dir = worldPos.Value - Turret.transform.position;
 			Turret.RotateTowards(dir);
 		}
 
 		private Vector3? GetMouseWorldPoint()
 		{
-			Vector2 mousePos = Mouse.current.position.ReadValue();
-			Ray ray = _cam.ScreenPointToRay(mousePos);
+			var mousePos = Mouse.current.position.ReadValue();
+			var ray = _cam.ScreenPointToRay(mousePos);
 
-			Plane ground = new Plane(Vector3.up, Vector3.zero);
+			var ground = new Plane(Vector3.up, Vector3.zero);
 
-			if (ground.Raycast(ray, out float dist))
+			if (ground.Raycast(ray, out var dist))
 				return ray.GetPoint(dist);
 
 			return null;

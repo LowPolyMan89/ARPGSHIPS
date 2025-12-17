@@ -1,8 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEditor;
 using System.Collections.Generic;
 using System.IO;
-using Tanks;
+using Ships;
 
 public class LootTableTesterWindow : EditorWindow
 {

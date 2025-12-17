@@ -131,7 +131,7 @@ GameObject:
   - component: {fileID: 67256594}
   - component: {fileID: 67256593}
   m_Layer: 0
-  m_Name: tank_01
+  m_Name: ship_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -451,7 +451,7 @@ GameObject:
   - component: {fileID: 213928902}
   - component: {fileID: 213928901}
   m_Layer: 0
-  m_Name: tank_01
+  m_Name: ship_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1172,7 +1172,7 @@ MonoBehaviour:
   staticObstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  tankMask:
+  shipMask:
     serializedVersion: 2
     m_Bits: 128
   debugNextPos: {x: 0, y: 0, z: 0}
@@ -1250,7 +1250,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad98e4c140994c5ca57c01c14fb57f0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.ShieldController
-  TankShield:
+  ShipShield:
     MaxHP: 100
     Regen: 1
     RestoreDelayTime: 5
@@ -1865,7 +1865,7 @@ MonoBehaviour:
   MaxBounds: {x: 500, y: 50, z: 500}
   Player: {fileID: 1527701722}
   CameraController: {fileID: 0}
-  AllTanks: []
+  AllShips: []
   PlayerSpawnPosition: {fileID: 1638103010}
 --- !u!4 &721324430
 Transform:
@@ -2212,7 +2212,7 @@ GameObject:
   - component: {fileID: 855677315}
   - component: {fileID: 855677314}
   m_Layer: 0
-  m_Name: tank_01
+  m_Name: ship_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -2502,7 +2502,7 @@ MonoBehaviour:
   staticObstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  tankMask:
+  shipMask:
     serializedVersion: 2
     m_Bits: 128
   debugNextPos: {x: 0, y: 0, z: 0}
@@ -2580,7 +2580,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad98e4c140994c5ca57c01c14fb57f0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.ShieldController
-  TankShield:
+  ShipShield:
     MaxHP: 100
     Regen: 1
     RestoreDelayTime: 5
@@ -2878,7 +2878,7 @@ MonoBehaviour:
   staticObstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  tankMask:
+  shipMask:
     serializedVersion: 2
     m_Bits: 128
   debugNextPos: {x: 0, y: 0, z: 0}
@@ -2956,7 +2956,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad98e4c140994c5ca57c01c14fb57f0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.ShieldController
-  TankShield:
+  ShipShield:
     MaxHP: 100
     Regen: 1
     RestoreDelayTime: 5
@@ -4127,7 +4127,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad98e4c140994c5ca57c01c14fb57f0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.ShieldController
-  TankShield:
+  ShipShield:
     MaxHP: 100
     Regen: 1
     RestoreDelayTime: 5
@@ -4171,7 +4171,7 @@ MonoBehaviour:
   staticObstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  tankMask:
+  shipMask:
     serializedVersion: 2
     m_Bits: 128
   debugNextPos: {x: 0, y: 0, z: 0}
@@ -4380,7 +4380,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad98e4c140994c5ca57c01c14fb57f0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.ShieldController
-  TankShield:
+  ShipShield:
     MaxHP: 0
     Regen: 0
     RestoreDelayTime: 0
@@ -4428,7 +4428,7 @@ MonoBehaviour:
   staticObstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  tankMask:
+  shipMask:
     serializedVersion: 2
     m_Bits: 128
   debugNextPos: {x: 0, y: 0, z: 0}
@@ -4923,7 +4923,7 @@ MonoBehaviour:
   staticObstacleMask:
     serializedVersion: 2
     m_Bits: 64
-  tankMask:
+  shipMask:
     serializedVersion: 2
     m_Bits: 128
   debugNextPos: {x: 0, y: 0, z: 0}
@@ -5001,7 +5001,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ad98e4c140994c5ca57c01c14fb57f0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.ShieldController
-  TankShield:
+  ShipShield:
     MaxHP: 100
     Regen: 1
     RestoreDelayTime: 5
@@ -5041,7 +5041,7 @@ GameObject:
   - component: {fileID: 1708370532}
   - component: {fileID: 1708370531}
   m_Layer: 0
-  m_Name: tank_01
+  m_Name: ship_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -5231,7 +5231,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7ee8df88447e4649930b04b5ffa2f3fb, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.BattleUi
-  _playerTankStatsContainer: {fileID: 0}
+  _playerShipStatsContainer: {fileID: 0}
   _updateRatio: 0.01
 --- !u!1 &1788080860
 GameObject:
@@ -5314,7 +5314,7 @@ GameObject:
   - component: {fileID: 1894670247}
   - component: {fileID: 1894670246}
   m_Layer: 0
-  m_Name: tank_01
+  m_Name: ship_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -6222,7 +6222,7 @@ GameObject:
   - component: {fileID: 3469287837099517647}
   - component: {fileID: 1711813855521706501}
   m_Layer: 0
-  m_Name: tank_01
+  m_Name: ship_01
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

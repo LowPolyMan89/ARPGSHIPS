@@ -1,32 +1,33 @@
-namespace Tanks
+﻿namespace Ships
 {
 	using UnityEngine;
+	using UnityEngine.Serialization;
 
 	public class BattleLoader : MonoBehaviour
 	{
-		public GameObject PlayerTankPrefab;
+		[FormerlySerializedAs("PlayerTankPrefab")] public GameObject PlayerShipPrefab;
 
 		private void Start()
 		{
-			LoadPlayerTankFromFit();
+			LoadPlayerShipFromFit();
 		}
 
-		private void LoadPlayerTankFromFit()
+		private void LoadPlayerShipFromFit()
 		{
 			var fit = MetaBattleBridge.LastFit;
 			if (fit == null) return;
 
-			var hull = HullLoader.Load(fit.SelectedTankId);
-			var go = Instantiate(PlayerTankPrefab, Vector3.zero, Quaternion.identity);
-			var tank = go.GetComponent<PlayerTank>();
+			var hull = HullLoader.Load(fit.SelectedShipId);
+			var go = Instantiate(PlayerShipPrefab, Vector3.zero, Quaternion.identity);
+			var ship = go.GetComponent<PlayerShip>();
 
-			tank.LoadShipFromConfig(fit.SelectedTankId);
-			tank.Init();
+			ship.LoadShipFromConfig(fit.SelectedShipId);
+			ship.Init();
 
-			InstallFit(tank, fit.Fit);
+			InstallFit(ship, fit.Fit);
 		}
 
-		private void InstallFit(PlayerTank tank, TankFitModel fit)
+		private void InstallFit(PlayerShip ship, ShipFitModel fit)
 		{
 		}
 

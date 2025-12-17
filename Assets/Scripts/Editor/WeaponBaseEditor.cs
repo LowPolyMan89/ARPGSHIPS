@@ -1,7 +1,7 @@
 ﻿using UnityEditor;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	[CustomEditor(typeof(WeaponBase), true)]
 	public class WeaponBaseEditor : UnityEditor.Editor

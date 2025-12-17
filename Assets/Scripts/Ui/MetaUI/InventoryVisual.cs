@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public class InventoryVisual : MonoBehaviour
 	{

@@ -1,7 +1,7 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public class StatInfoElementVisual : MonoBehaviour
 	{

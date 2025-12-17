@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
-namespace Tanks
+namespace Ships
 {
 	public class InventoryItemVisual : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 	{

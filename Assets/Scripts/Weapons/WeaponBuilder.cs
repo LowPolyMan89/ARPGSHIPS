@@ -4,7 +4,7 @@ using System.IO;
 using Unity.VisualScripting;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public static class WeaponBuilder
 	{

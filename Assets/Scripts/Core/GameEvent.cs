@@ -1,6 +1,6 @@
-using System;
+﻿using System;
 
-namespace Tanks
+namespace Ships
 {
 	public static class GameEvent
 	{

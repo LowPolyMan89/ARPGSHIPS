@@ -1,4 +1,4 @@
-Shader "Tanks/Shield3D"
+Shader "Ships/Shield3D"
 {
 	Properties
 	{

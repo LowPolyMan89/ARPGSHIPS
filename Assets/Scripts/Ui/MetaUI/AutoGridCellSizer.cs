@@ -1,4 +1,4 @@
-namespace Tanks
+﻿namespace Ships
 {
 	using UnityEngine;
 	using UnityEngine.UI;

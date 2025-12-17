@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	[RequireComponent(typeof(EnemyNavAgentDriver))]
 	public sealed class EnemyCombatPositionAI : MonoBehaviour
@@ -20,7 +20,7 @@ namespace Tanks
 		[SerializeField] private LayerMask _obstacleMask;
 
 		private EnemyNavAgentDriver _nav;
-		private TankBase _tank;
+		private ShipBase _tank;
 		private Transform _target;
 
 		private Vector3 _combatPos;
@@ -31,7 +31,7 @@ namespace Tanks
 		private void Awake()
 		{
 			_nav = GetComponent<EnemyNavAgentDriver>();
-			_tank = GetComponent<TankBase>();
+			_tank = GetComponent<ShipBase>();
 		}
 
 		private void Update()
@@ -164,3 +164,4 @@ namespace Tanks
 		}
 	}
 }
+

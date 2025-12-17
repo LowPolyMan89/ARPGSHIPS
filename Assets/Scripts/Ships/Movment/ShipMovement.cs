@@ -1,26 +1,26 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
-    public class TankMovement : MonoBehaviour
+    public class ShipMovement : MonoBehaviour
     {
         [Header("Runtime Debug")]
         public float currentSpeed;      // текущая линейная скорость
         public float currentTurnSpeed;  // скорость поворота корпуса
         public Vector3 velocity;        // вектор движения
 
-        private TankBase _tank;
+        private ShipBase _tank;
         private PlayerInputSystem _hw;
         private PlayerInputUI _ui;
-        private TankCollisionKinematic _collision;
+        private ShipCollisionKinematic _collision;
 
         private float _inputForward;    // W/S (-1..1)
         private float _inputTurn;       // A/D (-1..1)
 
         private void Awake()
         {
-            _tank = GetComponent<TankBase>();
-            _collision = GetComponent<TankCollisionKinematic>();
+            _tank = GetComponent<ShipBase>();
+            _collision = GetComponent<ShipCollisionKinematic>();
 
             _hw = FindObjectOfType<PlayerInputSystem>();
             _ui = FindObjectOfType<PlayerInputUI>();
@@ -142,7 +142,9 @@ namespace Tanks
 
             // финальное перемещение
             transform.position = finalPos;
-            _collision.ResolveTankOverlap();
+            _collision.ResolveShipOverlap();
         }
     }
 }
+
+

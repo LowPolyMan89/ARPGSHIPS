@@ -1,13 +1,13 @@
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Net.Mime;
 using UnityEngine;
 using UnityEngine.UI;
 
-namespace Tanks
+namespace Ships
 {
-	public class PlayerTankStatsContainerUi : MonoBehaviour
+	public class PlayerShipStatsContainerUi : MonoBehaviour
 	{
 		private ShieldController _shieldController;
 		[SerializeField] private Image _hpBar;
@@ -15,12 +15,12 @@ namespace Tanks
 
 		public void OnUpdate()
 		{
-			var tank = Battle.Instance.Player;
-			if (tank)
+			var ship = Battle.Instance.Player;
+			if (ship)
 			{
 				if (!_shieldController)
-					_shieldController = tank.GetComponent<ShieldController>();
-				_hpBar.material.SetFloat(Fill, tank.TankStats.GetStat(StatType.HitPoint).Amount);
+					_shieldController = ship.GetComponent<ShieldController>();
+				_hpBar.material.SetFloat(Fill, ship.ShipStats.GetStat(StatType.HitPoint).Amount);
 			}
 
 			if (_shieldController)

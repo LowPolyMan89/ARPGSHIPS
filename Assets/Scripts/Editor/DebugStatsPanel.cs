@@ -1,16 +1,16 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
 
-using Tanks;
-using Tanks.HitEffect;
+using Ships;
+using Ships.HitEffect;
 
 public class DebugStatsPanel : EditorWindow
 {
-    private TankBase targetTank;
+    private ShipBase targetShip;
 
     private Vector2 scrollStats;
     private Vector2 scrollEffects;
@@ -54,7 +54,7 @@ public class DebugStatsPanel : EditorWindow
 
         EditorGUILayout.Space(8);
 
-        if (targetTank != null)
+        if (targetShip != null)
         {
             DrawStats();
             EditorGUILayout.Space(12);
@@ -68,8 +68,8 @@ public class DebugStatsPanel : EditorWindow
 
     private void DrawTargetSelector()
     {
-        EditorGUILayout.LabelField("Target Tank", EditorStyles.boldLabel);
-        targetTank = (TankBase)EditorGUILayout.ObjectField(targetTank, typeof(TankBase), true);
+        EditorGUILayout.LabelField("Target Ship", EditorStyles.boldLabel);
+        targetShip = (ShipBase)EditorGUILayout.ObjectField(targetShip, typeof(ShipBase), true);
 
         if (GUILayout.Button("Refresh Effect List"))
         {
@@ -82,7 +82,7 @@ public class DebugStatsPanel : EditorWindow
         EditorGUILayout.LabelField("Stats", EditorStyles.boldLabel);
         scrollStats = EditorGUILayout.BeginScrollView(scrollStats, GUILayout.Height(250));
 
-        foreach (var statPair in targetTank.TankStats.All)
+        foreach (var statPair in targetShip.ShipStats.All)
         {
             var stat = statPair.Value;
 
@@ -114,7 +114,7 @@ public class DebugStatsPanel : EditorWindow
 
             EditorGUILayout.LabelField("Active Effects", EditorStyles.boldLabel);
 
-            foreach (var e in targetTank.ActiveEffects)
+            foreach (var e in targetShip.ActiveEffects)
             {
                 EditorGUILayout.BeginVertical("box");
                 EditorGUILayout.LabelField($"{e.EffectId}  x{e.Stacks}", EditorStyles.boldLabel);
@@ -195,9 +195,9 @@ public class DebugStatsPanel : EditorWindow
             if (GUILayout.Button("Apply To Target"))
             {
                 var effect = (IOnHitEffect)ctor.Invoke(args);
-                effect.Apply(targetTank, damage: 0, sourceWeapon: null);
+                effect.Apply(targetShip, damage: 0, sourceWeapon: null);
 
-                Debug.Log($"[Debug Panel] Applied {type.Name} to {targetTank.name}");
+                Debug.Log($"[Debug Panel] Applied {type.Name} to {targetShip.name}");
             }
 
             EditorGUILayout.EndVertical();
@@ -206,3 +206,5 @@ public class DebugStatsPanel : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 }
+
+

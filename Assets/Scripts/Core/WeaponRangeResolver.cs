@@ -1,14 +1,14 @@
 ﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	public static class WeaponRangeResolver
 	{
-		public static float GetMinFireRange(TankBase tank)
+		public static float GetMinFireRange(ShipBase ship)
 		{
-			float minRange = float.MaxValue;
+			var minRange = float.MaxValue;
 
-			var weapons = tank.GetComponentsInChildren<WeaponBase>(true);
+			var weapons = ship.GetComponentsInChildren<WeaponBase>(true);
 			foreach (var weapon in weapons)
 			{
 				if (weapon.Model == null)

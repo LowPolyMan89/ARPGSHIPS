@@ -1,6 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
     public enum ActivateSlotWeaponType
     {
@@ -15,7 +15,7 @@ namespace Tanks
         public WeaponSize SlotSize;
 
         public ActivateSlotWeaponType ActivateSlotWeaponType;
-        public TankBase Owner;
+        public ShipBase Owner;
         public Transform MountPoint;
         [Tooltip("Максимальный угол отклонения от слота FORWARD (для логики, не для вращения!)")]
         [SerializeField] private float _allowedAngle = 180f;
@@ -27,7 +27,7 @@ namespace Tanks
         private void Awake()
         {
             if (!Owner)
-                Owner = GetComponentInParent<TankBase>();
+                Owner = GetComponentInParent<ShipBase>();
             MountedWeapon = WeaponBuilder.Build("1", this);
             if (MountedWeapon)
                 InitWeapon(MountedWeapon);
@@ -64,3 +64,4 @@ namespace Tanks
         }
     }
 }
+

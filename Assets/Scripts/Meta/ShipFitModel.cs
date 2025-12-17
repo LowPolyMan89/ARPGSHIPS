@@ -1,19 +1,19 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Tanks
+namespace Ships
 {
 	[Serializable]
-	public class TankFitModel
+	public class ShipFitModel
 	{
-		public string TankId;
-		public List<SelectedTankWeapon> SelectedShipWeapons = new ();
+		public string ShipId;
+		public List<SelectedShipWeapon> SelectedShipWeapons = new ();
 		public List<SelectedHullModule> SelectedHullModules = new ();
 		public List<SelectedWeaponModule> SelectedWeaponModules = new ();
 		public List<SelectedActiveModule> SelectedActiveModules = new ();
 		
 		[System.Serializable]
-		public class SelectedTankWeapon
+		public class SelectedShipWeapon
 		{
 			public string Id;
 			public int SlotIndex;
@@ -40,3 +40,4 @@ namespace Tanks
 	}
 
 }
+

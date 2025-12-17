@@ -1,4 +1,4 @@
-namespace Tanks
+﻿namespace Ships
 {
 	public static class MetaBattleBridge
 	{

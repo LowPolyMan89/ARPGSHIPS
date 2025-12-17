@@ -1,4 +1,4 @@
-namespace Tanks
+﻿namespace Ships
 {
 	/// <summary>
 	/// Тип изменения величины.

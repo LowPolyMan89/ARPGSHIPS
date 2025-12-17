@@ -1,9 +1,9 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 
-namespace Tanks
+namespace Ships
 {
-	public class PlayerTank : TankBase
+	public class PlayerShip : ShipBase
 	{
 		private void Awake()
 		{

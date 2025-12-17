@@ -1,7 +1,8 @@
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine.Serialization;
 
-namespace Tanks
+namespace Ships
 {
 	public class Battle : MonoBehaviour
 	{
@@ -12,9 +13,9 @@ namespace Tanks
 		public Vector3 MaxBounds = new Vector3(500, 10, 500);
 
 		[Header("Runtime")]
-		public PlayerTank Player;
+		public PlayerShip Player;
 		public BattleCamera CameraController;
-		public List<TankBase> AllTanks = new();
+		[FormerlySerializedAs("AllTanks")] public List<ShipBase> AllShips = new();
 		public Transform PlayerSpawnPosition;
 
 		private void Awake()

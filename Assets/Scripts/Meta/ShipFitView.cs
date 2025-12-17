@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 
-namespace Tanks
+namespace Ships
 {
-	public class TankFitView
+	public class ShipFitView
 	{
 		private MetaState _state;
 		private InventoryView _inventory;
@@ -63,7 +63,7 @@ namespace Tanks
 					UnequipItem(InventoryUtils.FindByItemId(inv, existing.Id));
 
 				_state.Fit.SelectedShipWeapons.RemoveAll(x => x.SlotIndex == slotIndex);
-				_state.Fit.SelectedShipWeapons.Add(new TankFitModel.SelectedTankWeapon
+				_state.Fit.SelectedShipWeapons.Add(new ShipFitModel.SelectedShipWeapon
 				{
 					Id = item.ItemId,
 					SlotIndex = slotIndex
@@ -93,3 +93,4 @@ namespace Tanks
 		}
 	}
 }
+

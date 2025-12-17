@@ -1,15 +1,15 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Tanks
+namespace Ships
 {
 	public abstract class TurretAimSystem
 	{
-		public TankTurret Turret;
+		public ShipTurret Turret;
 
 		
 
-		public abstract void Init(TankBase tankBase);
+		public abstract void Init(ShipBase shipBase);
 
 		public abstract void Update();
 	}

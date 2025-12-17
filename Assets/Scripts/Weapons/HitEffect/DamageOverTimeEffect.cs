@@ -1,7 +1,7 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 
-namespace Tanks.HitEffect
+namespace Ships.HitEffect
 {
     public class DamageOverTimeEffect : IStackableEffect
     {
@@ -33,39 +33,39 @@ namespace Tanks.HitEffect
             if (Random.value > chance)
                 return;
 
-            if (target is not TankBase tankBase)
+            if (target is not ShipBase shipBase)
                 return;
 
             // 1) Стакаем/обновляем эффект на корабле
-            tankBase.AddOrStackEffect(this, duration);
+            shipBase.AddOrStackEffect(this, duration);
 
-            // 2) Если DoT уже работает — НЕ запускать второй
-            if (tankBase.RunningDotEffects.Contains(EffectId))
+            // 2) Если DoT уже работает - НЕ запускать второй
+            if (shipBase.RunningDotEffects.Contains(EffectId))
                 return;
 
             // 3) Иначе запускаем DoT
-            tankBase.RunningDotEffects.Add(EffectId);
-            tankBase.StartCoroutine(DoDamageOverTime(tankBase));
+            shipBase.RunningDotEffects.Add(EffectId);
+            shipBase.StartCoroutine(DoDamageOverTime(shipBase));
         }
 
-        private IEnumerator DoDamageOverTime(TankBase tank)
+        private IEnumerator DoDamageOverTime(ShipBase ship)
         {
             while (true)
             {
-                var eff = tank.GetEffect(EffectId);
+                var eff = ship.GetEffect(EffectId);
 
                 if (eff == null)
                 {
-                    Debug.Log($"[DOT END] {EffectId} on {tank.name}");
+                    Debug.Log($"[DOT END] {EffectId} on {ship.name}");
                     break;
                 }
 
-                if (tank.TryGetStat(StatType.HitPoint, out var hpStat))
+                if (ship.TryGetStat(StatType.HitPoint, out var hpStat))
                 {
                     hpStat.AddToCurrent(-damagePerTick);
 
                     Debug.Log(
-                        $"[DOT TICK] {EffectId} on {tank.name} " +
+                        $"[DOT TICK] {EffectId} on {ship.name} " +
                         $"| Damage={damagePerTick} " +
                         $"| Stacks={eff.Stacks} " +
                         $"| HP={hpStat.Current}"
@@ -75,7 +75,7 @@ namespace Tanks.HitEffect
                 yield return new WaitForSeconds(1f);
             }
 
-            tank.RunningDotEffects.Remove(EffectId);
+            ship.RunningDotEffects.Remove(EffectId);
         }
 
     }

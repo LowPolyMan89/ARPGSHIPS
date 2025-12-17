@@ -1,4 +1,4 @@
-using Tanks;
+﻿using Ships;
 using UnityEngine;
 
 public class PlayerInputSystem : MonoBehaviour, IPlayerInput
@@ -22,24 +22,25 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 		controls = new PlayerControls();
 
 		// --- движение ---
-		controls.Tank.Steering.performed += ctx =>
+		controls.Ship.Steering.performed += ctx =>
 			steering = ctx.ReadValue<Vector2>();
-		controls.Tank.Steering.canceled += _ =>
+		controls.Ship.Steering.canceled += _ =>
 			steering = Vector2.zero;
 
-		controls.Tank.Throttle.performed += ctx =>
+		controls.Ship.Throttle.performed += ctx =>
 			throttleAxis = ctx.ReadValue<float>();
-		controls.Tank.Throttle.canceled += _ =>
+		controls.Ship.Throttle.canceled += _ =>
 			throttleAxis = 0f;
 
 		// --- стрельба ---
-		controls.Tank.FireLMB.performed += _ => fireLMB = true;
-		controls.Tank.FireLMB.canceled += _ => fireLMB = false;
+		controls.Ship.FireLMB.performed += _ => fireLMB = true;
+		controls.Ship.FireLMB.canceled += _ => fireLMB = false;
 
-		controls.Tank.FireRMB.performed += _ => fireRMB = true;
-		controls.Tank.FireRMB.canceled += _ => fireRMB = false;
+		controls.Ship.FireRMB.performed += _ => fireRMB = true;
+		controls.Ship.FireRMB.canceled += _ => fireRMB = false;
 	}
 
 	private void OnEnable() => controls.Enable();
 	private void OnDisable() => controls.Disable();
 }
+

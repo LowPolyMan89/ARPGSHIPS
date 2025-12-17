@@ -1,8 +1,8 @@
-using System;
+﻿using System;
 using System.IO;
 using UnityEngine;
 
-namespace Tanks
+namespace Ships
 {
 	using System.IO;
 	using UnityEngine;
