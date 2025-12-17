@@ -25,6 +25,9 @@ public class WeaponTargeting : MonoBehaviour
 		if (!_owner || !Weapon || Weapon.Slot == null || Weapon.Model == null)
 			return;
 
+		var worldPlane = Battle.Instance != null ? Battle.Instance.Plane : Battle.WorldPlane.XZ;
+		var aimPlane = worldPlane == Battle.WorldPlane.XY ? WeaponRotator.AimPlane.XY : WeaponRotator.AimPlane.XZ;
+
 		var slot = Weapon.Slot;
 		var activateType = slot.ActivateSlotWeaponType;
 
@@ -33,10 +36,12 @@ public class WeaponTargeting : MonoBehaviour
 		var range = Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
 
 		var origin = Turret ? Turret.Pivot.position : Weapon.transform.position;
-		var forward = Turret ? Turret.Pivot.forward : Weapon.transform.forward;
+		var forward = Turret
+			? (worldPlane == Battle.WorldPlane.XY ? Turret.Pivot.up : Turret.Pivot.forward)
+			: (worldPlane == Battle.WorldPlane.XY ? Weapon.transform.up : Weapon.transform.forward);
 		var maxAngle = Turret ? Turret.MaxAngle : slot.AllowedAngle;
 
-		var target = _finder.FindBestTarget(origin, forward, maxAngle, range);
+		var target = _finder.FindBestTarget(origin, forward, maxAngle, range, worldPlane);
 
 		// направление стрельбы
 		var dir = forward;
@@ -51,6 +56,11 @@ public class WeaponTargeting : MonoBehaviour
 			dir = predicted - origin;
 		}
 
+		if (aimPlane == WeaponRotator.AimPlane.XY)
+			dir.z = 0f;
+		else
+			dir.y = 0f;
+
 		// вращаем башню
 		if (Turret)
 			Turret.RotateTowards(dir);
@@ -59,8 +69,12 @@ public class WeaponTargeting : MonoBehaviour
 		{
 			case ActivateSlotWeaponType.Auto:
 				// авто-режим: только по цели и только когда наведено
+				var currentForward = Turret
+					? (worldPlane == Battle.WorldPlane.XY ? Turret.Pivot.up : Turret.Pivot.forward)
+					: (worldPlane == Battle.WorldPlane.XY ? Weapon.transform.up : Weapon.transform.forward);
+
 				if (target != null &&
-				    _finder.IsAimedAt(Turret ? Turret.Pivot : Weapon.transform, dir, AimTolerance))
+				    _finder.IsAimedAt(currentForward, dir, AimTolerance))
 				{
 					Weapon.TryFire(target);
 				}
@@ -86,4 +100,3 @@ public class WeaponTargeting : MonoBehaviour
 		}
 	}
 }
-

@@ -18,12 +18,17 @@ namespace Ships
 
 		public void RotateTowards(Vector3 worldDirection)
 		{
+			var plane = Battle.Instance != null && Battle.Instance.Plane == Battle.WorldPlane.XY
+				? WeaponRotator.AimPlane.XY
+				: WeaponRotator.AimPlane.XZ;
+
 			WeaponRotator.Rotate(
 				rotatingTransform: Pivot,
 				baseTransform: BaseTransform,
 				worldDirection: worldDirection,
 				rotationSpeedDeg: RotationSpeed,
-				maxAngleDeg: MaxAngle
+				maxAngleDeg: MaxAngle,
+				aimPlane: plane
 			);
 		}
 	}

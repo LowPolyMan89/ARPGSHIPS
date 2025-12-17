@@ -24,14 +24,43 @@ namespace Ships
 			Vector3 origin,
 			Vector3 forward,
 			float maxAngleDeg,
-			float maxDistance)
+			float maxDistance,
+			Battle.WorldPlane plane = Battle.WorldPlane.XZ)
 		{
+			if (plane == Battle.WorldPlane.XY)
+			{
+				origin.z = 0f;
+				forward.z = 0f;
+			}
+			else
+			{
+				origin.y = 0f;
+				forward.y = 0f;
+			}
+
 			var valid =
 				_targets
 					.Where(t =>
-						Vector3.Distance(origin, t.Transform.position) <= maxDistance &&
-						Vector3.Angle(forward, (t.Transform.position - origin)) <= maxAngleDeg)
-					.OrderBy(t => Vector3.Distance(origin, t.Transform.position))
+					{
+						var pos = t.Transform.position;
+						if (plane == Battle.WorldPlane.XY)
+							pos.z = 0f;
+						else
+							pos.y = 0f;
+
+						var toTarget = pos - origin;
+						return toTarget.magnitude <= maxDistance &&
+						       Vector3.Angle(forward, toTarget) <= maxAngleDeg;
+					})
+					.OrderBy(t =>
+					{
+						var pos = t.Transform.position;
+						if (plane == Battle.WorldPlane.XY)
+							pos.z = 0f;
+						else
+							pos.y = 0f;
+						return Vector3.Distance(origin, pos);
+					})
 					.ToList();
 
 			return valid.FirstOrDefault();
@@ -52,7 +81,12 @@ namespace Ships
 		// проверка что наведено
 		public bool IsAimedAt(Transform pivot, Vector3 toAimDir, float toleranceDeg)
 		{
-			float angle = Vector3.Angle(pivot.forward, toAimDir);
+			return IsAimedAt(pivot.forward, toAimDir, toleranceDeg);
+		}
+
+		public bool IsAimedAt(Vector3 pivotDirection, Vector3 toAimDir, float toleranceDeg)
+		{
+			var angle = Vector3.Angle(pivotDirection, toAimDir);
 			//Debug.Log($"{pivot.root} angle {angle}");
 			return angle <= toleranceDeg;
 		}

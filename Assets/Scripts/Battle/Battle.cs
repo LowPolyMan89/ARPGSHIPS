@@ -6,6 +6,12 @@ namespace Ships
 {
 	public class Battle : MonoBehaviour
 	{
+		public enum WorldPlane
+		{
+			XZ = 0,
+			XY = 1
+		}
+
 		public static Battle Instance;
 
 		[Header("Battlefield Bounds (3D)")]
@@ -13,6 +19,7 @@ namespace Ships
 		public Vector3 MaxBounds = new Vector3(500, 10, 500);
 
 		[Header("Runtime")]
+		public WorldPlane Plane = WorldPlane.XY;
 		public PlayerShip Player;
 		public BattleCamera CameraController;
 		[FormerlySerializedAs("AllTanks")] public List<ShipBase> AllShips = new();
@@ -31,6 +38,15 @@ namespace Ships
 		/// </summary>
 		public Vector3 ClampPosition(Vector3 pos)
 		{
+			if (Plane == WorldPlane.XY)
+			{
+				return new Vector3(
+					Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x),
+					Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y),
+					pos.z
+				);
+			}
+
 			return new Vector3(
 				Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x),
 				Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y),
@@ -43,6 +59,12 @@ namespace Ships
 		/// </summary>
 		public bool IsInside(Vector3 pos)
 		{
+			if (Plane == WorldPlane.XY)
+			{
+				return pos.x >= MinBounds.x && pos.x <= MaxBounds.x &&
+				       pos.y >= MinBounds.y && pos.y <= MaxBounds.y;
+			}
+
 			return pos.x >= MinBounds.x && pos.x <= MaxBounds.x &&
 			       pos.y >= MinBounds.y && pos.y <= MaxBounds.y &&
 			       pos.z >= MinBounds.z && pos.z <= MaxBounds.z;

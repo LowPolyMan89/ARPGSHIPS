@@ -9,7 +9,7 @@
     "ShieldRegen": 3,
     "MoveSpeed": 6,
     "MoveSpeedRear" : 2,
-    "TurnSpeed": 80,
+    "TurnSpeed": 60,
     "Acceleration": 4,
     "BrakePower": 5
   },
