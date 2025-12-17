@@ -3,41 +3,33 @@ using System.Collections.Generic;
 
 namespace Ships
 {
+	// Grid type for ship fitting (meta).
+	public enum ShipGridType
+	{
+		WeaponGrid = 0,
+		ModuleGrid = 1
+	}
+
 	[Serializable]
 	public class ShipFitModel
 	{
 		public string ShipId;
-		public List<SelectedShipWeapon> SelectedShipWeapons = new ();
-		public List<SelectedHullModule> SelectedHullModules = new ();
-		public List<SelectedWeaponModule> SelectedWeaponModules = new ();
-		public List<SelectedActiveModule> SelectedActiveModules = new ();
-		
-		[System.Serializable]
-		public class SelectedShipWeapon
+
+		// Grid-based fit (meta).
+		public List<GridPlacement> GridPlacements = new();
+
+		[Serializable]
+		public class GridPlacement
 		{
-			public string Id;
-			public int SlotIndex;
+			public string GridId;
+			public ShipGridType GridType;
+			public string ItemId;
+
+			public int X;
+			public int Y;
+			public int Width = 1;
+			public int Height = 1;
 		}
-		[System.Serializable]
-		public class SelectedHullModule
-		{
-			public string Id;
-			public int SlotIndex;
-		}
-		[System.Serializable]
-		public class SelectedWeaponModule
-		{
-			public string Id;
-			public int SlotIndex;
-		}
-		[System.Serializable]
-		public class SelectedActiveModule
-		{
-			public string Id;
-			public int SlotIndex;
-		}
-		
 	}
 
 }
-

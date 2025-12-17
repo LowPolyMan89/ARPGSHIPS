@@ -1,96 +1,181 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
 
 namespace Ships
 {
 	public class ShipFitView
 	{
 		private MetaState _state;
-		private InventoryView _inventory;
 
-		// слот поменялся (для визуалов)
-		public event Action<string, bool> OnSlotChanged; // slotId, isWeapon
+		public event Action OnFitChanged;
 
-		public void Init(MetaState state, InventoryView inventory)
+		public void Init(MetaState state)
 		{
 			_state = state;
-			_inventory = inventory;
 		}
 
-		/// <summary>
-		/// Вызывается визуалом слота при клике.
-		/// </summary>
-		public void OnSlotClicked(string slotId, bool isWeaponSlot)
-		{
-			// вместо старого InventoryView.ShowInstallMenu(...)
-			// просто говорим InventoryView: "мы собираемся ставить в этот слот"
-			_inventory.BeginInstallToSlot(slotId, isWeaponSlot);
-		}
 		public void UnequipItem(InventoryItem item)
 		{
 			if (item == null || !item.IsEquipped)
 				return;
 
-			var fit = _state.Fit;
+			_state.Fit.GridPlacements.RemoveAll(x => x.ItemId == item.ItemId);
 
-			// убрать из фита
-			fit.SelectedShipWeapons.RemoveAll(x => x.Id == item.ItemId);
-			fit.SelectedHullModules.RemoveAll(x => x.Id == item.ItemId);
-			fit.SelectedWeaponModules.RemoveAll(x => x.Id == item.ItemId);
-			fit.SelectedActiveModules.RemoveAll(x => x.Id == item.ItemId);
-
-			// снять флаг
 			item.EquippedOnFitId = null;
-			item.EquippedSlotIndex = -1;
+			item.EquippedGridId = null;
+			item.EquippedGridX = -1;
+			item.EquippedGridY = -1;
 		}
-		public void EquipItemToSlot(string fitId, int slotIndex, string itemId, bool isWeapon)
+
+		public bool TryPlaceWeaponToGrid(string gridId, int gridWidth, int gridHeight, int x, int y, InventoryItem item)
 		{
-			var inv = _state.InventoryModel;
+			if (item == null)
+				return false;
 
-			// 1. получаем предмет
-			var item = InventoryUtils.FindByItemId(inv, itemId);
-
-			// 2. если предмет на другом фите → снимаем
-			if (item.IsEquipped && item.EquippedOnFitId != fitId)
-			{
+			if (item.IsEquipped && item.EquippedOnFitId != _state.Fit.ShipId)
 				UnequipItem(item);
-			}
 
-			// 3. если в слоте уже что-то есть → снять
-			if (isWeapon)
+			if (!TryResolveWeaponGridSize(item, out var w, out var h, out var allowed))
 			{
-				var existing = _state.Fit.SelectedShipWeapons.Find(x => x.SlotIndex == slotIndex);
-				if (existing != null)
-					UnequipItem(InventoryUtils.FindByItemId(inv, existing.Id));
-
-				_state.Fit.SelectedShipWeapons.RemoveAll(x => x.SlotIndex == slotIndex);
-				_state.Fit.SelectedShipWeapons.Add(new ShipFitModel.SelectedShipWeapon
-				{
-					Id = item.ItemId,
-					SlotIndex = slotIndex
-				});
+				Debug.LogWarning($"[ShipFitView] Can't resolve grid size for item '{item.ItemId}' (TemplateId='{item.TemplateId}')");
+				return false;
 			}
 
-			// 4. помечаем предмет
-			item.EquippedOnFitId = fitId;
-			item.EquippedSlotIndex = slotIndex;
+			if (allowed != null && allowed.Length > 0)
+			{
+				var ok = false;
+				for (var i = 0; i < allowed.Length; i++)
+				{
+					if (allowed[i] == ShipGridType.WeaponGrid)
+					{
+						ok = true;
+						break;
+					}
+				}
 
-			// 5. UI
-			OnSlotChanged?.Invoke(slotIndex.ToString(), isWeapon);
+				if (!ok)
+				{
+					Debug.LogWarning($"[ShipFitView] Item '{item.ItemId}' is not allowed in WeaponGrid");
+					return false;
+				}
+			}
+
+			var existing = _state.Fit.GridPlacements.FindAll(p => p.GridId == gridId);
+			if (!GridPlacementUtility.CanPlaceRect(gridWidth, gridHeight, existing, x, y, w, h, ignoreItemId: item.ItemId))
+			{
+				var reason = DescribePlacementFailure(gridWidth, gridHeight, existing, x, y, w, h, item.ItemId);
+				Debug.LogWarning(
+					$"[ShipFitView] Can't place '{item.ItemId}' (size {w}x{h}) to '{gridId}' {gridWidth}x{gridHeight} at ({x},{y}): {reason}");
+				return false;
+			}
+
+			_state.Fit.GridPlacements.RemoveAll(p => p.ItemId == item.ItemId);
+
+			_state.Fit.GridPlacements.Add(new ShipFitModel.GridPlacement
+			{
+				GridId = gridId,
+				GridType = ShipGridType.WeaponGrid,
+				ItemId = item.ItemId,
+				X = x,
+				Y = y,
+				Width = w,
+				Height = h
+			});
+
+			item.EquippedOnFitId = _state.Fit.ShipId;
+			item.EquippedGridId = gridId;
+			item.EquippedGridX = x;
+			item.EquippedGridY = y;
+
+			OnFitChanged?.Invoke();
 			MetaSaveSystem.Save(_state);
+			return true;
 		}
 
-		/// <summary>
-		/// Логика установки предмета в слот (если хочешь держать это во View).
-		/// </summary>
-		public void InstallItem(string slotId, string itemId, bool isWeapon)
+		private static string DescribePlacementFailure(
+			int gridWidth,
+			int gridHeight,
+			IReadOnlyList<ShipFitModel.GridPlacement> existing,
+			int x,
+			int y,
+			int width,
+			int height,
+			string ignoreItemId)
 		{
-			//if (isWeapon)
-				//_state.Fit.SetWeapon(slotId, itemId);
-			//else
-				//_state.Fit.SetModule(slotId, itemId);
+			if (width <= 0 || height <= 0)
+				return "invalid item size";
 
-			OnSlotChanged?.Invoke(slotId, isWeapon);
+			if (x < 0 || y < 0)
+				return "negative coordinates";
+
+			if (x + width > gridWidth || y + height > gridHeight)
+				return "out of bounds";
+
+			for (var i = 0; i < existing.Count; i++)
+			{
+				var p = existing[i];
+				if (!string.IsNullOrEmpty(ignoreItemId) && p.ItemId == ignoreItemId)
+					continue;
+
+				var aRight = x + width;
+				var aTop = y + height;
+				var bRight = p.X + p.Width;
+				var bTop = p.Y + p.Height;
+				var overlap = x < bRight && aRight > p.X && y < bTop && aTop > p.Y;
+				if (overlap)
+					return $"overlaps '{p.ItemId}' at ({p.X},{p.Y}) size {p.Width}x{p.Height}";
+			}
+
+			return "unknown";
+		}
+
+		private static bool TryResolveWeaponGridSize(InventoryItem item, out int width, out int height, out ShipGridType[] allowedGridTypes)
+		{
+			width = 1;
+			height = 1;
+			allowedGridTypes = null;
+
+			// 1) Prefer generated runtime item (persistentDataPath/Inventory/{ItemId}.json)
+			if (!string.IsNullOrEmpty(item.ItemId))
+			{
+				var generatedPath = Path.Combine(ItemGenerator.OutputPath, item.ItemId + ".json");
+				if (File.Exists(generatedPath))
+				{
+					var json = File.ReadAllText(generatedPath);
+					var weapon = JsonUtility.FromJson<GeneratedWeaponItem>(json);
+					if (weapon != null)
+					{
+						width = weapon.GridWidth > 0 ? weapon.GridWidth : 1;
+						height = weapon.GridHeight > 0 ? weapon.GridHeight : 1;
+						allowedGridTypes = weapon.AllowedGridTypes;
+						return true;
+					}
+				}
+			}
+
+			// 2) Fallback to template in StreamingAssets/Configs/Weapons/{TemplateId}.json
+			if (string.IsNullOrEmpty(item.TemplateId))
+				return false;
+
+			var templateId = item.TemplateId.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+				? item.TemplateId
+				: item.TemplateId + ".json";
+
+			var templatePath = Path.Combine(ItemGenerator.WeaponConfigsPath, templateId);
+			if (!File.Exists(templatePath))
+				return false;
+
+			var templateJson = File.ReadAllText(templatePath);
+			var template = JsonUtility.FromJson<WeaponTemplate>(templateJson);
+			if (template == null)
+				return false;
+
+			width = template.GridWidth > 0 ? template.GridWidth : 1;
+			height = template.GridHeight > 0 ? template.GridHeight : 1;
+			allowedGridTypes = template.AllowedGridTypes;
+			return true;
 		}
 	}
 }
-

@@ -6,30 +6,19 @@ namespace Ships
 	public class ShipFitVisual : MonoBehaviour
 	{
 		private ShipFitView _view;
-		public List<ShipFitSlotVisual> WeaponSlots = new();  // 4 UI слота
-		public List<ShipFitSlotVisual> ActiveSlots = new();  // 4 UI слота
-		public List<ShipFitSlotVisual> PassiveSlots = new(); // 4 UI слота
-		public List<ShipFitSlotVisual> HullSlots = new();    // 4 UI слота
+
+		[Header("Grid UI")]
+		public List<ShipGridVisual> Grids = new();
 
 		public void Init(ShipFitView view)
 		{
 			_view = view;
-		}
 
-		public void OnWeaponSlotClicked(string slotId)
-		{
-			_view.OnSlotClicked(slotId, isWeaponSlot: true);
-		}
-
-		public void UpdateSlotIcon(string slotId, Sprite icon)
-		{
-			// Находит UI-элемент, обновляет спрайт
-		}
-
-		public void UpdateSlot(string arg1, bool arg2)
-		{
-			
+			foreach (var grid in Grids)
+			{
+				if (grid != null)
+					grid.Init(view);
+			}
 		}
 	}
-
 }

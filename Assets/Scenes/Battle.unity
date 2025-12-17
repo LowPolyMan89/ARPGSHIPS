@@ -546,7 +546,7 @@ SpriteRenderer:
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 2
-  m_Size: {x: 2.56, y: 2.56}
+  m_Size: {x: 200, y: 200}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -562,7 +562,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 274.84766, y: 274.84766, z: 107.36237}
+  m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -1242,7 +1242,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Ships.WeaponSlot
   ObstacleLayers:
-    serializedVersion: 2
     m_Bits: 64
   SlotSize: 1
   ActivateSlotWeaponType: 1
@@ -1516,7 +1515,6 @@ MonoBehaviour:
   HitMask: 2
   size: 1
   StatVisuals: []
-  Turret: {fileID: 411599096}
 --- !u!114 &1527701723
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1532,11 +1530,12 @@ MonoBehaviour:
   currentSpeed: 0
   currentTurnSpeed: 0
   velocity: {x: 0, y: 0, z: 0}
-  Mode: 1
+  Mode: 2
   railDirection: {x: 0, y: 1}
-  autoForward: 1
+  autoForward: 0
   railSpeedMultiplier: 1
   strafeSpeedMultiplier: 1
+  velocityAlignRate: 8
 --- !u!114 &1527701724
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2077,7 +2076,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 1870225390}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -2194,11 +2193,11 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.3
+  near clip plane: 0
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 10
+  orthographic size: 25
   m_Depth: -1
   m_CullingMask:
     serializedVersion: 2
@@ -2242,8 +2241,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
   m_RenderShadows: 0
-  m_RequiresDepthTextureOption: 2
-  m_RequiresOpaqueTextureOption: 2
+  m_RequiresDepthTextureOption: 0
+  m_RequiresOpaqueTextureOption: 0
   m_CameraType: 0
   m_Cameras: []
   m_RendererIndex: -1

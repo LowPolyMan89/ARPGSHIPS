@@ -18,8 +18,6 @@ namespace Ships
 		[FormerlySerializedAs("TankStats")] public Stats ShipStats;
 		[SerializeField] private TargetSize size = TargetSize.Medium;
 		public List<StatVisual> StatVisuals = new();
-		public ShipTurret Turret;
-		public TurretAimSystem AimSystem;
 		public HashSet<string> RunningDotEffects = new();
 		public Transform Transform => transform;
 		public TargetSize Size => size;
@@ -279,10 +277,7 @@ namespace Ships
 				}
 			}
 
-			if (AimSystem != null && AimSystem.Turret != null)
-			{
-				AimSystem.Update();
-			}
+
 		}
 
 

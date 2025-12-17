@@ -43,7 +43,7 @@ namespace Ships
 
 		private void OnItemClicked(InventoryItem item)
 		{
-			_view.InstallFromInventory(item);
+			_view.SelectItem(item);
 		}
 
 		private void OnItemSelected(InventoryItem item)

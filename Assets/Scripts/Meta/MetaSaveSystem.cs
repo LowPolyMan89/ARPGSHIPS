@@ -1,4 +1,5 @@
 ﻿using System.IO;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Ships
@@ -24,6 +25,7 @@ namespace Ships
 
 			// подтягиваем сгенерённые предметы с диска, но без дублей
 			LoadGeneratedItems(meta);
+			CleanupMissingGeneratedItems(meta);
 
 			return meta;
 		}
@@ -52,6 +54,39 @@ namespace Ships
 					TemplateId = gen.TemplateId
 				});
 			}
+		}
+
+		private static void CleanupMissingGeneratedItems(MetaState state)
+		{
+			if (state == null)
+				return;
+
+			var folder = ItemGenerator.OutputPath;
+			if (!Directory.Exists(folder))
+				return;
+
+			var inv = state.InventoryModel.InventoryUniqueItems;
+			var removedIds = new HashSet<string>();
+
+			for (var i = inv.Count - 1; i >= 0; i--)
+			{
+				var item = inv[i];
+				if (item == null || string.IsNullOrEmpty(item.ItemId))
+					continue;
+
+				var path = Path.Combine(folder, item.ItemId + ".json");
+				if (File.Exists(path))
+					continue;
+
+				removedIds.Add(item.ItemId);
+				inv.RemoveAt(i);
+			}
+
+			if (removedIds.Count == 0)
+				return;
+
+			if (state.Fit?.GridPlacements != null)
+				state.Fit.GridPlacements.RemoveAll(p => p != null && removedIds.Contains(p.ItemId));
 		}
 	}
 }

@@ -15,10 +15,18 @@ namespace Ships
 			var spd = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
 			var ap  = Model.Stats.GetStat(StatType.ArmorPierce).Current;
 
-			var proj = Instantiate(ProjectilePrefab, FirePoint.position, FirePoint.rotation);
+			var fp = FirePoint != null ? FirePoint : transform;
+			var plane = Battle.Instance != null ? Battle.Instance.Plane : Battle.WorldPlane.XY;
+			var dir = plane == Battle.WorldPlane.XY ? fp.up : fp.forward;
+			if (plane == Battle.WorldPlane.XY)
+				dir.z = 0f;
+			else
+				dir.y = 0f;
+
+			var proj = Instantiate(ProjectilePrefab, fp.position, fp.rotation);
 
 			proj.Init(
-				direction: FirePoint.forward,   // ВАЖНО: 3D НАПРАВЛЕНИЕ
+				direction: dir,
 				dmg,
 				spd,
 				ap,

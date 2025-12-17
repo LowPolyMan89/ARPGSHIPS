@@ -1,102 +1,70 @@
-﻿using System;
-using Ships;
-using UnityEngine;
+﻿using UnityEngine;
 
-public class WeaponTargeting : MonoBehaviour
+namespace Ships
 {
-	public ShipTurret Turret;        // null → фиксированное оружие
-	public WeaponBase Weapon;
-	public float AimTolerance = 3f;
-
-	private readonly TargetFinder _finder = new();
-	private ShipBase _owner;
-	private PlayerInputSystem _input;
-
-	private void Awake()
+	public class WeaponTargeting : MonoBehaviour
 	{
-		_owner = GetComponentInParent<ShipBase>();
-		_input = GetComponentInParent<PlayerInputSystem>();
-		if (_input == null)
-			_input = FindObjectOfType<PlayerInputSystem>();
-	}
+		public WeaponBase Weapon;
+		public float AimTolerance = 3f;
+		public float RotationSpeedDeg = 720f;
 
-	private void Update()
-	{
-		if (!_owner || !Weapon || Weapon.Slot == null || Weapon.Model == null)
-			return;
+		private readonly TargetFinder _finder = new();
+		private ShipBase _owner;
 
-		var worldPlane = Battle.Instance != null ? Battle.Instance.Plane : Battle.WorldPlane.XZ;
-		var aimPlane = worldPlane == Battle.WorldPlane.XY ? WeaponRotator.AimPlane.XY : WeaponRotator.AimPlane.XZ;
-
-		var slot = Weapon.Slot;
-		var activateType = slot.ActivateSlotWeaponType;
-
-		_finder.UpdateTargets(Battle.Instance.AllShips, _owner.HitMask);
-
-		var range = Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
-
-		var origin = Turret ? Turret.Pivot.position : Weapon.transform.position;
-		var forward = Turret
-			? (worldPlane == Battle.WorldPlane.XY ? Turret.Pivot.up : Turret.Pivot.forward)
-			: (worldPlane == Battle.WorldPlane.XY ? Weapon.transform.up : Weapon.transform.forward);
-		var maxAngle = Turret ? Turret.MaxAngle : slot.AllowedAngle;
-
-		var target = _finder.FindBestTarget(origin, forward, maxAngle, range, worldPlane);
-
-		// направление стрельбы
-		var dir = forward;
-		if (target != null)
+		private void Awake()
 		{
-			var projectileSpeed = Weapon.Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
-			var predicted = _finder.Predict(
-				target,
-				Weapon.FirePoint.position,
-				projectileSpeed
-			);
-			dir = predicted - origin;
+			_owner = GetComponentInParent<ShipBase>();
 		}
 
-		if (aimPlane == WeaponRotator.AimPlane.XY)
-			dir.z = 0f;
-		else
-			dir.y = 0f;
-
-		// вращаем башню
-		if (Turret)
-			Turret.RotateTowards(dir);
-
-		switch (activateType)
+		private void Update()
 		{
-			case ActivateSlotWeaponType.Auto:
-				// авто-режим: только по цели и только когда наведено
-				var currentForward = Turret
-					? (worldPlane == Battle.WorldPlane.XY ? Turret.Pivot.up : Turret.Pivot.forward)
-					: (worldPlane == Battle.WorldPlane.XY ? Weapon.transform.up : Weapon.transform.forward);
+			if (_owner == null || Weapon == null || Weapon.Model == null)
+				return;
 
-				if (target != null &&
-				    _finder.IsAimedAt(currentForward, dir, AimTolerance))
-				{
-					Weapon.TryFire(target);
-				}
-				break;
+			if (Battle.Instance == null)
+				return;
 
-			case ActivateSlotWeaponType.LMB:
-				// кнопочный режим: можно стрелять даже без цели
-				if (_input != null && _input.FireLMB)
-				{
-					Weapon.TryFire(target); // target может быть null → стрельба вперёд
-				}
-				break;
+			var plane = Battle.Instance.Plane;
+			var aimPlane = plane == Battle.WorldPlane.XY ? WeaponRotator.AimPlane.XY : WeaponRotator.AimPlane.XZ;
 
-			case ActivateSlotWeaponType.RMB:
-				if (_input != null && _input.FireRMB)
-				{
-					Weapon.TryFire(target);
-				}
-				break;
+			_finder.UpdateTargets(Battle.Instance.AllShips, _owner.HitMask);
 
-			default:
-				throw new ArgumentOutOfRangeException();
+			var baseTransform = Weapon.BaseTransform != null ? Weapon.BaseTransform : Weapon.transform;
+			var rotatingTransform = Weapon.TurretTransform != null ? Weapon.TurretTransform : Weapon.transform;
+
+			var range = Weapon.Model.Stats.GetStat(StatType.FireRange).Current;
+			var firePoint = Weapon.FirePoint != null ? Weapon.FirePoint.position : baseTransform.position;
+			var origin = firePoint;
+			var baseForward = plane == Battle.WorldPlane.XY ? baseTransform.up : baseTransform.forward;
+			var maxAngle = Weapon.FireArcDeg <= 0 ? 360f : Weapon.FireArcDeg;
+
+			var target = _finder.FindBestTarget(origin, baseForward, maxAngle, range, plane);
+			if (target == null)
+				return;
+
+			var projectileSpeed = Weapon.Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
+			var predicted = _finder.Predict(target, firePoint, projectileSpeed);
+			var dir = predicted - origin;
+
+			if (aimPlane == WeaponRotator.AimPlane.XY)
+				dir.z = 0f;
+			else
+				dir.y = 0f;
+
+			WeaponRotator.Rotate(
+				rotatingTransform: rotatingTransform,
+				baseTransform: baseTransform,
+				worldDirection: dir,
+				rotationSpeedDeg: RotationSpeedDeg,
+				maxAngleDeg: maxAngle,
+				aimPlane: aimPlane
+			);
+
+			var currentForward = plane == Battle.WorldPlane.XY ? rotatingTransform.up : rotatingTransform.forward;
+			if (_finder.IsAimedAt(currentForward, dir, AimTolerance))
+			{
+				Weapon.TryFire(target);
+			}
 		}
 	}
 }

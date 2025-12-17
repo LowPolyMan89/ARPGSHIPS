@@ -9,9 +9,6 @@ namespace Ships
 		{
 			LoadShipFromConfig("hull_test_frigate");
 			Init();
-			AimSystem = new PlayerTurretAimSystem();
-			AimSystem.Init(this);
-			AimSystem.Turret = Turret;
 		}
 	}
 }

@@ -8,7 +8,7 @@ namespace Ships
 {
 	public static class WeaponBuilder
 	{
-		public static WeaponBase Build(string weaponId, WeaponSlot slot)
+		public static WeaponBase Build(string weaponId, Transform mountPoint, ShipBase owner)
 		{
 			var path = Path.Combine(ItemGenerator.OutputPath, weaponId + ".json");
 			var json = File.ReadAllText(path);
@@ -16,7 +16,7 @@ namespace Ships
 			var data = JsonUtility.FromJson<WeaponLoadData>(json);
 
 			var prefab = Resources.Load<GameObject>($"Weapons/{data.Prefab}");
-			var go = GameObject.Instantiate(prefab, slot.MountPoint, false);
+			var go = GameObject.Instantiate(prefab, mountPoint, false);
 
 			var weapon = go.GetComponent<WeaponBase>();
 
@@ -28,7 +28,9 @@ namespace Ships
 				stats.AddStat(new Stat(statType, s.Value));
 			}
 
-			weapon.Init(slot, stats);
+			weapon.Init(stats);
+			weapon.FireArcDeg = data.FireArcDeg <= 0 ? 360f : data.FireArcDeg;
+			weapon.Owner = owner;
 
 			// ---------- Effects ----------
 			if (data.Effects != null)
@@ -57,6 +59,11 @@ namespace Ships
 		public string Size;
 		public string Icon;
 		public string Prefab;
+
+		public int GridWidth = 1;
+		public int GridHeight = 1;
+		public ShipGridType[] AllowedGridTypes;
+		public float FireArcDeg = 360f;
 
 		public List<StatData> Stats = new();
 		public List<EffectValue> Effects = new();

@@ -6,6 +6,12 @@
   "DamageType": "Kinetic",
   "Size": "S",
   "Prefab": "weapon_p_small_bolter_1",
+  "GridWidth": 2,
+  "GridHeight": 2,
+  "AllowedGridTypes":
+  [
+    "WeaponGrid"
+  ],
 
   "AvailableEffects": [
     {

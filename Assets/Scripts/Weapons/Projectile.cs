@@ -12,27 +12,26 @@ namespace Ships
 		public ShipBase Owner { get; private set; }
 		public TeamMask HitMask { get; private set; }
 
-		[SerializeField] 
-		private Vector3 _moveDir;
+		[SerializeField] private Vector3 _moveDir;
 
 		public float Damage => _damage;
 
 		public void Init(Vector3 direction, float dmg, float spd, float armorPierce, WeaponBase source)
 		{
-			_moveDir   = direction.normalized;
-			_speed     = spd;
-			_damage    = dmg;
-			_pierce    = armorPierce;
+			_moveDir = direction.normalized;
+			_speed = spd;
+			_damage = dmg;
+			_pierce = armorPierce;
 
 			SourceWeapon = source;
-			Owner        = source.Slot.Owner;
-			HitMask      = Owner.HitMask;   // ← КОРРЕКТНО!
+			Owner = source != null ? source.Owner : null;
+			HitMask = Owner != null ? Owner.HitMask : default;
 		}
 
 		private void Update()
 		{
 			transform.position += _moveDir * _speed * Time.deltaTime;
-			if (!Battle.Instance.IsInside(transform.position))
+			if (Battle.Instance != null && !Battle.Instance.IsInside(transform.position))
 			{
 				Destroy(gameObject);
 			}
@@ -40,14 +39,9 @@ namespace Ships
 
 		private void OnTriggerEnter(Collider other)
 		{
-			if (Services.IsInLayerMask(other.gameObject, SourceWeapon.Slot.ObstacleLayers))
-			{
-				Destroy(gameObject);
-			}
 			if (!other.TryGetComponent<ITargetable>(out var t))
 				return;
 
-			// команда владельца решает, можно ли наносить урон
 			if (!HitRules.CanHit(HitMask, t.Team))
 				return;
 

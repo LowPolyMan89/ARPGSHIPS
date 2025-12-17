@@ -169,7 +169,11 @@ namespace Ships
 				Slot = template.Slot,
 				DamageType = template.DamageType,
 				Size = template.Size,
-				Icon = template.Icon
+				Icon = template.Icon,
+				GridWidth = template.GridWidth <= 0 ? 1 : template.GridWidth,
+				GridHeight = template.GridHeight <= 0 ? 1 : template.GridHeight,
+				AllowedGridTypes = template.AllowedGridTypes,
+				FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg
 			};
 
 			var stats = new List<StatValue>();
@@ -297,6 +301,10 @@ namespace Ships
 		public string Slot;
 		public string DamageType;
 		public string Size;
+		public int GridWidth = 1;
+		public int GridHeight = 1;
+		public ShipGridType[] AllowedGridTypes;
+		public float FireArcDeg = 360f;
 		public string Prefab;
 		public EffectTemplateRef[] AvailableEffects;
 
@@ -325,6 +333,11 @@ namespace Ships
 		public string Size;
 		public string Icon;
 		public string Prefab;
+
+		public int GridWidth = 1;
+		public int GridHeight = 1;
+		public ShipGridType[] AllowedGridTypes;
+		public float FireArcDeg = 360f;
 
 		public StatValue[] Stats;
 		public List<EffectValue> Effects;

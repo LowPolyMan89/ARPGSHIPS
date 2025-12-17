@@ -6,13 +6,23 @@ namespace Ships
 	{
 		private float _nextFireTime;
 
-		public WeaponSlot Slot;
 		public WeaponModel Model;
+
+		[Header("Prefab Parts")]
+		[Tooltip("Неподвижная часть оружия (база). Если не задано, используется root.")]
+		public Transform BaseTransform;
+		[Tooltip("Вращающаяся часть (турель). Если не задано, используется root.")]
+		public Transform TurretTransform;
+
 		public Transform FirePoint;
 		private int _ammo;
 		private bool _isReloading;
 		private float _reloadFinishTime;
 		public ShipBase Owner { get; set; }
+
+		[Header("Firing")]
+		[Tooltip("Разрешённый сектор стрельбы (в градусах). 360 = без ограничения.")]
+		public float FireArcDeg = 360f;
 
 		public float NextFireTime => _nextFireTime;
 		public float ReloadFinishTime
@@ -23,11 +33,46 @@ namespace Ships
 		public bool IsReloading => _isReloading;
 		public int Ammo => _ammo;
 
-		public void Init(WeaponSlot slot, Stats stats)
+		protected virtual void Awake()
+		{
+			WirePrefabParts();
+		}
+
+		private void WirePrefabParts()
+		{
+			if (BaseTransform == null)
+				BaseTransform = transform;
+
+			if (TurretTransform == null)
+				TurretTransform = FindDeepChild(transform, "WeaponTurret") ?? transform;
+
+			if (FirePoint == null)
+				FirePoint = FindDeepChild(transform, "WeaponFirepoint") ?? FindDeepChild(transform, "WeaponFirePoint");
+		}
+
+		private static Transform FindDeepChild(Transform parent, string name)
+		{
+			if (parent == null)
+				return null;
+
+			for (var i = 0; i < parent.childCount; i++)
+			{
+				var child = parent.GetChild(i);
+				if (child.name == name)
+					return child;
+
+				var result = FindDeepChild(child, name);
+				if (result != null)
+					return result;
+			}
+
+			return null;
+		}
+
+		public void Init(Stats stats)
 		{
 			Model = new WeaponModel();
 			Model.InjectStat(stats);
-			Slot = slot;
 			_ammo = GetMaxAmmo();
 		}
 
@@ -36,7 +81,7 @@ namespace Ships
 			if (!CanFire())
 				return;
 
-			if (target != null && LineOfSightUtility.HasLOS(transform.position, target.Transform.position, Slot.ObstacleLayers))
+			if (target != null && LineOfSightUtility.HasLOS(transform.position, target.Transform.position, default))
 				Shoot(target.Transform);
 			else
 				ShootWithoutTarget();
@@ -115,4 +160,3 @@ namespace Ships
 		}
 	}
 }
-

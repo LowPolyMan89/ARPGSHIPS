@@ -25,11 +25,17 @@ namespace Ships
 				Destroy(gameObject);
 			State = MetaSaveSystem.Load();
 
+			// Ensure current fit knows which ship it belongs to (grid placement uses this).
+			if (string.IsNullOrEmpty(State.SelectedShipId))
+				State.SelectedShipId = "hull_test_frigate";
+			if (string.IsNullOrEmpty(State.Fit.ShipId))
+				State.Fit.ShipId = State.SelectedShipId;
+
 			_inventoryView = new InventoryView();
 			_tankFitView = new ShipFitView();
 
 			_inventoryView.Init(State);
-			_tankFitView.Init(State, _inventoryView);
+			_tankFitView.Init(State);
 			
 			if (State.InventoryModel.InventoryUniqueItems.Count == 0)
 			{
