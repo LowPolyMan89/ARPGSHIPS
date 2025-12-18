@@ -35,6 +35,10 @@ namespace Ships
 
 			foreach (var item in inventory.InventoryUniqueItems)
 			{
+				// Hide items that are already equipped in a grid.
+				if (item.IsEquipped && !string.IsNullOrEmpty(item.EquippedGridId))
+					continue;
+
 				Debug.Log($"Load item: {item.ItemId}");
 				var visual = Instantiate(ItemPrefab, ListRoot);
 				visual.Init(item, _view);

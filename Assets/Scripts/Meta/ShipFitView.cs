@@ -27,6 +27,8 @@ namespace Ships
 			item.EquippedGridId = null;
 			item.EquippedGridX = -1;
 			item.EquippedGridY = -1;
+
+			GameEvent.InventoryUpdated(_state.InventoryModel);
 		}
 
 		public bool TryPlaceWeaponToGrid(string gridId, int gridWidth, int gridHeight, int x, int y, InventoryItem item)
@@ -91,6 +93,7 @@ namespace Ships
 
 			OnFitChanged?.Invoke();
 			MetaSaveSystem.Save(_state);
+			GameEvent.InventoryUpdated(_state.InventoryModel);
 			return true;
 		}
 

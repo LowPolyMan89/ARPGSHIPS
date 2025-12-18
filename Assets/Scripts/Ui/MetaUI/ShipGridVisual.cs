@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 namespace Ships
 {
@@ -179,5 +182,63 @@ namespace Ships
 			if (!placed)
 				Debug.Log($"[ShipGridVisual] Can't place item '{item.ItemId}' to grid '{GridId}' at ({x},{y})");
 		}
+
+#if UNITY_EDITOR
+		private readonly Vector3[] _corners = new Vector3[4];
+
+		private void OnValidate()
+		{
+			if (Application.isPlaying)
+				return;
+
+			// Keep rect size in sync with grid settings so gizmos match what will be built at runtime.
+			if (!GridRoot)
+				GridRoot = (RectTransform)transform;
+
+			if (GridRoot != null)
+				GridRoot.sizeDelta = new Vector2(Width * CellSize, Height * CellSize);
+		}
+
+		private void OnDrawGizmosSelected()
+		{
+			if (!GridRoot)
+				GridRoot = (RectTransform)transform;
+
+			if (GridRoot == null)
+				return;
+
+			// Ensure rect matches current settings for the preview.
+			GridRoot.sizeDelta = new Vector2(Width * CellSize, Height * CellSize);
+
+			GridRoot.GetWorldCorners(_corners);
+
+			var bottomLeft = _corners[0];
+			var topLeft = _corners[1];
+			var topRight = _corners[2];
+			var bottomRight = _corners[3];
+
+			var rightStep = (bottomRight - bottomLeft) / Mathf.Max(1, Width);
+			var upStep = (topLeft - bottomLeft) / Mathf.Max(1, Height);
+
+			Handles.color = new Color(0.1f, 0.7f, 1f, 0.65f);
+
+			for (var x = 0; x <= Width; x++)
+			{
+				var from = bottomLeft + rightStep * x;
+				var to = topLeft + rightStep * x;
+				Handles.DrawLine(from, to);
+			}
+
+			for (var y = 0; y <= Height; y++)
+			{
+				var from = bottomLeft + upStep * y;
+				var to = bottomRight + upStep * y;
+				Handles.DrawLine(from, to);
+			}
+
+			Handles.color = new Color(0.1f, 0.7f, 1f, 0.9f);
+			Handles.DrawAAPolyLine(2f, bottomLeft, topLeft, topRight, bottomRight, bottomLeft);
+		}
+#endif
 	}
 }

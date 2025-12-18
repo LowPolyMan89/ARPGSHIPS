@@ -26,6 +26,11 @@ namespace Ships
 
 			if (Icon != null)
 			{
+				var state = MetaController.Instance != null ? MetaController.Instance.State : null;
+				var invItem = state != null ? InventoryUtils.FindByItemId(state.InventoryModel, placement.ItemId) : null;
+				var sprite = ResourceLoader.LoadItemIcon(invItem);
+				Icon.sprite = sprite;
+				Icon.enabled = sprite != null;
 				Icon.preserveAspect = true;
 			}
 		}
@@ -51,6 +56,7 @@ namespace Ships
 			}
 
 			MetaSaveSystem.Save(state);
+			GameEvent.InventoryUpdated(state.InventoryModel);
 			_grid.Refresh();
 		}
 

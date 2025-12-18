@@ -24,6 +24,7 @@ namespace Ships
 			_inventoryView = inventoryView;
 			_item = item;
 			_canvas = GetComponentInParent<Canvas>();
+			ApplyIcon();
 			Button.onClick.RemoveAllListeners();
 			Button.onClick.AddListener(ButtonClick);
 		}
@@ -101,6 +102,17 @@ namespace Ships
 			_dragIcon = null;
 		}
 
+		private void OnDisable()
+		{
+			// If the item visual is destroyed while dragging (e.g., equipped and removed from list),
+			// make sure the drag icon doesn't stay on screen.
+			if (_dragIcon != null)
+			{
+				Destroy(_dragIcon.gameObject);
+				_dragIcon = null;
+			}
+		}
+
 		private void UpdateActiveGrid(PointerEventData eventData)
 		{
 			if (EventSystem.current == null)
@@ -133,6 +145,17 @@ namespace Ships
 				return;
 
 			_dragIcon.sizeDelta = new Vector2(w * grid.CellSize, h * grid.CellSize);
+		}
+
+		private void ApplyIcon()
+		{
+			if (Icon == null)
+				return;
+
+			var sprite = ResourceLoader.LoadItemIcon(_item);
+			Icon.sprite = sprite;
+			Icon.enabled = sprite != null;
+			Icon.preserveAspect = true;
 		}
 
 		private static bool TryResolveWeaponGridSize(InventoryItem item, out int width, out int height)

@@ -15,8 +15,12 @@ namespace Ships
 
 			var data = JsonUtility.FromJson<WeaponLoadData>(json);
 
-			var prefab = Resources.Load<GameObject>($"Weapons/{data.Prefab}");
-			var go = GameObject.Instantiate(prefab, mountPoint, false);
+			var go = ResourceLoader.InstantiatePrefab(data.Slot, data.Prefab, mountPoint, false);
+			if (go == null)
+			{
+				Debug.LogError($"[WeaponBuilder] Failed to instantiate weapon prefab '{data.Prefab}' (Slot='{data.Slot}')");
+				return null;
+			}
 
 			var weapon = go.GetComponent<WeaponBase>();
 
