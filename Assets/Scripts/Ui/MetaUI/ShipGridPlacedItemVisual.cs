@@ -9,6 +9,7 @@ namespace Ships
 		[Header("UI")]
 		public Image Icon;
 
+		private InventoryItem _item;
 		private ShipFitModel.GridPlacement _placement;
 		private ShipGridVisual _grid;
 
@@ -24,11 +25,12 @@ namespace Ships
 			rt.anchoredPosition = new Vector2(placement.X * grid.CellSize, placement.Y * grid.CellSize);
 			rt.sizeDelta = new Vector2(placement.Width * grid.CellSize, placement.Height * grid.CellSize);
 
+			if (MetaController.Instance != null && MetaController.Instance.State != null)
+				_item = InventoryUtils.FindByItemId(MetaController.Instance.State.InventoryModel, placement.ItemId);
+
 			if (Icon != null)
 			{
-				var state = MetaController.Instance != null ? MetaController.Instance.State : null;
-				var invItem = state != null ? InventoryUtils.FindByItemId(state.InventoryModel, placement.ItemId) : null;
-				var sprite = ResourceLoader.LoadItemIcon(invItem);
+				var sprite = ResourceLoader.LoadItemIcon(_item);
 				Icon.sprite = sprite;
 				Icon.enabled = sprite != null;
 				Icon.preserveAspect = true;
@@ -71,12 +73,18 @@ namespace Ships
 		{
 			if (ShipMetaDragContext.DraggedInventoryItem != null)
 				ShipMetaDragContext.ActiveGrid = _grid;
+
+			if (_item != null && MetaController.Instance != null)
+				MetaController.Instance.MetaVisual.ShowItemInfoWindow(_item, eventData);
 		}
 
 		public void OnPointerExit(PointerEventData eventData)
 		{
 			if (ShipMetaDragContext.ActiveGrid == _grid)
 				ShipMetaDragContext.ActiveGrid = null;
+
+			if (MetaController.Instance != null)
+				MetaController.Instance.MetaVisual.HideItemInfoWindow();
 		}
 	}
 }
