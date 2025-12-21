@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEngine;
 
 namespace Ships
@@ -29,6 +30,70 @@ namespace Ships
 
 		private static readonly Dictionary<string, Sprite> IconCache = new(StringComparer.OrdinalIgnoreCase);
 		private static readonly Dictionary<string, GameObject> PrefabCache = new(StringComparer.OrdinalIgnoreCase);
+
+		public static string GetStreamingPath(params string[] segments) =>
+			CombinePath(Application.streamingAssetsPath, segments);
+
+		public static string GetPersistentPath(params string[] segments) =>
+			CombinePath(Application.persistentDataPath, segments);
+
+		public static IReadOnlyList<string> GetStreamingFiles(string relativeFolder, string searchPattern = "*.*")
+		{
+			var folder = GetStreamingPath(relativeFolder);
+			if (!Directory.Exists(folder))
+				return Array.Empty<string>();
+
+			return Directory.GetFiles(folder, searchPattern)
+				.Select(Path.GetFileName)
+				.Where(f => !string.IsNullOrEmpty(f))
+				.ToArray();
+		}
+
+		public static IReadOnlyList<string> GetPersistentFiles(string relativeFolder, string searchPattern = "*.*")
+		{
+			var folder = GetPersistentPath(relativeFolder);
+			if (!Directory.Exists(folder))
+				return Array.Empty<string>();
+
+			return Directory.GetFiles(folder, searchPattern)
+				.Select(Path.GetFileName)
+				.Where(f => !string.IsNullOrEmpty(f))
+				.ToArray();
+		}
+
+		public static bool StreamingFileExists(string relativePath) =>
+			File.Exists(GetStreamingPath(relativePath));
+
+		public static bool PersistentFileExists(string relativePath) =>
+			File.Exists(GetPersistentPath(relativePath));
+
+		public static bool TryReadStreamingText(string relativePath, out string content) =>
+			TryReadText(GetStreamingPath(relativePath), out content);
+
+		public static bool TryReadPersistentText(string relativePath, out string content) =>
+			TryReadText(GetPersistentPath(relativePath), out content);
+
+		public static bool TryLoadStreamingJson<T>(string relativePath, out T data) =>
+			TryLoadJson(GetStreamingPath(relativePath), out data);
+
+		public static bool TryLoadPersistentJson<T>(string relativePath, out T data) =>
+			TryLoadJson(GetPersistentPath(relativePath), out data);
+
+		public static void SavePersistentJson<T>(string relativePath, T data, bool prettyPrint = true)
+		{
+			var fullPath = GetPersistentPath(relativePath);
+			EnsureDirectoryForFile(fullPath);
+
+			var json = JsonUtility.ToJson(data, prettyPrint);
+			File.WriteAllText(fullPath, json);
+		}
+
+		public static void EnsurePersistentFolder(string relativeFolder)
+		{
+			var path = GetPersistentPath(relativeFolder);
+			if (!Directory.Exists(path))
+				Directory.CreateDirectory(path);
+		}
 
 		public static Sprite LoadItemIcon(InventoryItem item)
 		{
@@ -129,12 +194,8 @@ namespace Ships
 			if (item == null || string.IsNullOrEmpty(item.ItemId))
 				return null;
 
-			var generatedPath = Path.Combine(ItemGenerator.OutputPath, item.ItemId + ".json");
-			if (!File.Exists(generatedPath))
-				return null;
-
-			var json = File.ReadAllText(generatedPath);
-			return JsonUtility.FromJson<BasicItemMeta>(json);
+			var generatedPath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
+			return TryLoadPersistentJson(generatedPath, out BasicItemMeta meta) ? meta : null;
 		}
 
 		private static BasicItemMeta LoadTemplateMeta(InventoryItem item)
@@ -149,11 +210,8 @@ namespace Ships
 			foreach (var dir in GetTemplateDirectories())
 			{
 				var path = Path.Combine(dir, templateId);
-				if (!File.Exists(path))
-					continue;
-
-				var json = File.ReadAllText(path);
-				return JsonUtility.FromJson<BasicItemMeta>(json);
+				if (TryLoadJson(path, out BasicItemMeta meta))
+					return meta;
 			}
 
 			return null;
@@ -163,6 +221,67 @@ namespace Ships
 		{
 			yield return ItemGenerator.WeaponConfigsPath;
 			yield return ItemGenerator.ModulesConfigsPath;
+		}
+
+		private static bool TryReadText(string fullPath, out string content)
+		{
+			content = null;
+
+			if (string.IsNullOrEmpty(fullPath) || !File.Exists(fullPath))
+				return false;
+
+			try
+			{
+				content = File.ReadAllText(fullPath);
+				return true;
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError($"[ResourceLoader] Failed to read file '{fullPath}': {ex.Message}");
+				return false;
+			}
+		}
+
+		private static bool TryLoadJson<T>(string fullPath, out T data)
+		{
+			data = default;
+			if (!TryReadText(fullPath, out var json))
+				return false;
+
+			try
+			{
+				data = JsonUtility.FromJson<T>(json);
+				return data != null;
+			}
+			catch (Exception ex)
+			{
+				Debug.LogError($"[ResourceLoader] Failed to parse JSON at '{fullPath}': {ex.Message}");
+				return false;
+			}
+		}
+
+		private static void EnsureDirectoryForFile(string fullPath)
+		{
+			var dir = Path.GetDirectoryName(fullPath);
+			if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+				Directory.CreateDirectory(dir);
+		}
+
+		private static string CombinePath(string root, params string[] segments)
+		{
+			if (segments == null || segments.Length == 0)
+				return root;
+
+			var result = root;
+			for (var i = 0; i < segments.Length; i++)
+			{
+				if (string.IsNullOrEmpty(segments[i]))
+					continue;
+
+				result = Path.Combine(result, segments[i]);
+			}
+
+			return result;
 		}
 
 		private sealed class ItemAssetInfo

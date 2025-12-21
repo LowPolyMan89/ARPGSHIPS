@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using System.IO;
 using Ships.HitEffect;
+using System.IO;
 using UnityEngine;
 
 namespace Ships
@@ -69,12 +69,10 @@ namespace Ships
 		{
 			_effects = new Dictionary<string, EffectTemplate>();
 
-			var path = Path.Combine(Application.streamingAssetsPath, "Configs/Effects");
-
-			foreach (var file in Directory.GetFiles(path, "*.json"))
+			foreach (var file in ResourceLoader.GetStreamingFiles(PathConstant.EffectsConfigs, "*.json"))
 			{
-				var json = File.ReadAllText(file);
-				var collection = JsonUtility.FromJson<EffectTemplateCollection>(json);
+				if (!ResourceLoader.TryLoadStreamingJson(Path.Combine(PathConstant.EffectsConfigs, file), out EffectTemplateCollection collection))
+					continue;
 
 				foreach (var e in collection.Effects)
 					_effects[e.Name] = e;

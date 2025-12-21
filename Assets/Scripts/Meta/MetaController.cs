@@ -23,6 +23,8 @@ namespace Ships
 				Instance = this;
 			else
 				Destroy(gameObject);
+
+		    Localization.LoadLocalizationDataFromConfig();
 			State = MetaSaveSystem.Load();
 
 			// Ensure current fit knows which ship it belongs to (grid placement uses this).

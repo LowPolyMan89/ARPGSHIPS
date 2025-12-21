@@ -5,21 +5,17 @@ namespace Ships
 {
 	public static class LootLoader
 	{
-		private static readonly string LootPath =
-			Path.Combine(Application.streamingAssetsPath, "Configs/Loot/LootTables");
-
 		public static LootTable Load(string id)
 		{
-			var file = Path.Combine(LootPath, id + ".json");
+			var relativePath = Path.Combine(PathConstant.LootTables, id + ".json");
 
-			if (!File.Exists(file))
+			if (!ResourceLoader.TryLoadStreamingJson(relativePath, out LootTable table))
 			{
-				Debug.LogError("LootTable not found: " + file);
+				Debug.LogError("LootTable not found: " + ResourceLoader.GetStreamingPath(relativePath));
 				return null;
 			}
 
-			var json = File.ReadAllText(file);
-			return JsonUtility.FromJson<LootTable>(json);
+			return table;
 		}
 	}
 }

@@ -46,15 +46,7 @@ public class LootTableTesterWindow : EditorWindow
     {
         _lootTables.Clear();
 
-        string lootPath = Path.Combine(
-            Application.streamingAssetsPath,
-            "Configs/Loot/LootTables"
-        );
-
-        if (!Directory.Exists(lootPath))
-            return;
-
-        foreach (var file in Directory.GetFiles(lootPath, "*.json"))
+        foreach (var file in ResourceLoader.GetStreamingFiles(PathConstant.LootTables, "*.json"))
             _lootTables.Add(Path.GetFileNameWithoutExtension(file));
     }
 

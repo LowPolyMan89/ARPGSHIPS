@@ -200,14 +200,8 @@ public class ItemGeneratorWindow : EditorWindow
     {
         var result = new List<string>();
 
-        string path = Path.Combine(Application.streamingAssetsPath, "Configs/Loot/LootTables");
-
-        if (!Directory.Exists(path))
-            return result;
-
-        var files = Directory.GetFiles(path, "*.json");
-        foreach (var f in files)
-            result.Add(Path.GetFileNameWithoutExtension(f));
+        foreach (var file in ResourceLoader.GetStreamingFiles(PathConstant.LootTables, "*.json"))
+            result.Add(Path.GetFileNameWithoutExtension(file));
 
         result.Insert(0, "None"); // выбор "без таблицы"
 

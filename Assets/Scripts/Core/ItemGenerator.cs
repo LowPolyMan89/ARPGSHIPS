@@ -10,16 +10,16 @@ namespace Ships
 	public static class ItemGenerator
 	{
 		public static string WeaponConfigsPath =>
-			Path.Combine(Application.streamingAssetsPath, "Configs/Weapons");
+			ResourceLoader.GetStreamingPath(PathConstant.WeaponsConfigs);
 
 		public static string EffectsConfigsPath =>
-			Path.Combine(Application.streamingAssetsPath, "Configs/Effects");
+			ResourceLoader.GetStreamingPath(PathConstant.EffectsConfigs);
 
 		public static string ModulesConfigsPath =>
-			Path.Combine(Application.streamingAssetsPath, "Configs/Modules");
+			ResourceLoader.GetStreamingPath(PathConstant.ModulesConfigs);
 
 		public static string OutputPath =>
-			Path.Combine(Application.persistentDataPath, "Inventory");
+			ResourceLoader.GetPersistentPath(PathConstant.Inventory);
 
 		private static Dictionary<string, EffectTemplate> _effectsCache;
 
@@ -32,8 +32,8 @@ namespace Ships
 
 			foreach (var file in LoadEffectsFiles())
 			{
-				var json = File.ReadAllText(Path.Combine(EffectsConfigsPath, file));
-				var collection = JsonUtility.FromJson<EffectTemplateCollection>(json);
+				if (!ResourceLoader.TryLoadStreamingJson(Path.Combine(PathConstant.EffectsConfigs, file), out EffectTemplateCollection collection))
+					continue;
 
 				foreach (var e in collection.Effects)
 					_effectsCache[e.Name] = e;
@@ -42,31 +42,19 @@ namespace Ships
 
 		public static List<string> LoadWeaponFiles()
 		{
-			if (!Directory.Exists(WeaponConfigsPath))
-				return new List<string>();
-
-			return Directory.GetFiles(WeaponConfigsPath, "*.json")
-				.Select(Path.GetFileName)
+			return ResourceLoader.GetStreamingFiles(PathConstant.WeaponsConfigs, "*.json")
 				.ToList();
 		}
 
 		public static List<string> LoadEffectsFiles()
 		{
-			if (!Directory.Exists(EffectsConfigsPath))
-				return new List<string>();
-
-			return Directory.GetFiles(EffectsConfigsPath, "*.json")
-				.Select(Path.GetFileName)
+			return ResourceLoader.GetStreamingFiles(PathConstant.EffectsConfigs, "*.json")
 				.ToList();
 		}
 
 		public static List<string> LoadModuleFiles()
 		{
-			if (!Directory.Exists(ModulesConfigsPath))
-				return new List<string>();
-
-			return Directory.GetFiles(ModulesConfigsPath, "*.json")
-				.Select(Path.GetFileName)
+			return ResourceLoader.GetStreamingFiles(PathConstant.ModulesConfigs, "*.json")
 				.ToList();
 		}
 
@@ -109,8 +97,8 @@ namespace Ships
 
 			foreach (var file in files)
 			{
-				var json = File.ReadAllText(Path.Combine(WeaponConfigsPath, file));
-				var template = JsonUtility.FromJson<WeaponTemplate>(json);
+				if (!ResourceLoader.TryLoadStreamingJson(Path.Combine(PathConstant.WeaponsConfigs, file), out WeaponTemplate template))
+					continue;
 
 				foreach (var r in template.Rarities)
 					pool.Add((template.Id, r.Rarity, r.DropChance));
@@ -142,10 +130,11 @@ namespace Ships
 
 		public static GeneratedWeaponItem GenerateWeapon(string templateFile, string forcedRarity)
 		{
-			var fullPath = Path.Combine(WeaponConfigsPath, templateFile);
-			var json = File.ReadAllText(fullPath);
-
-			var template = JsonUtility.FromJson<WeaponTemplate>(json);
+			if (!ResourceLoader.TryLoadStreamingJson(Path.Combine(PathConstant.WeaponsConfigs, templateFile), out WeaponTemplate template))
+			{
+				Debug.LogError($"[ItemGenerator] Weapon template not found or invalid: {templateFile}");
+				return null;
+			}
 
 			var rarity = forcedRarity == "Random"
 				? PickRandomRarity(template)
@@ -281,14 +270,9 @@ namespace Ships
 
 		private static void SaveItem(GeneratedWeaponItem item)
 		{
-			if (!Directory.Exists(OutputPath))
-				Directory.CreateDirectory(OutputPath);
-
-			var json = JsonUtility.ToJson(item, true);
-			var path = Path.Combine(OutputPath, item.ItemId + ".json");
-
-			File.WriteAllText(path, json);
-			Debug.Log("Saved item at " + path);
+			var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
+			ResourceLoader.SavePersistentJson(relativePath, item, true);
+			Debug.Log("Saved item at " + ResourceLoader.GetPersistentPath(relativePath));
 		}
 	}
 

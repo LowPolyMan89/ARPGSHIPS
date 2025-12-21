@@ -265,11 +265,10 @@ namespace Ships
 
 			if (!string.IsNullOrEmpty(item.ItemId))
 			{
-				var generatedPath = Path.Combine(ItemGenerator.OutputPath, item.ItemId + ".json");
-				if (File.Exists(generatedPath))
+				var generatedPath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
+				if (ResourceLoader.TryLoadPersistentJson(generatedPath, out GeneratedWeaponItem loadedWeapon))
 				{
-					var json = File.ReadAllText(generatedPath);
-					weapon = JsonUtility.FromJson<GeneratedWeaponItem>(json);
+					weapon = loadedWeapon;
 				}
 			}
 
@@ -279,11 +278,10 @@ namespace Ships
 
 			if (!string.IsNullOrEmpty(templateId))
 			{
-				var templatePath = Path.Combine(ItemGenerator.WeaponConfigsPath, templateId);
-				if (File.Exists(templatePath))
+				var templatePath = Path.Combine(PathConstant.WeaponsConfigs, templateId);
+				if (ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate loadedTemplate))
 				{
-					var templateJson = File.ReadAllText(templatePath);
-					template = JsonUtility.FromJson<WeaponTemplate>(templateJson);
+					template = loadedTemplate;
 				}
 			}
 

@@ -10,10 +10,12 @@ namespace Ships
 	{
 		public static WeaponBase Build(string weaponId, Transform mountPoint, ShipBase owner)
 		{
-			var path = Path.Combine(ItemGenerator.OutputPath, weaponId + ".json");
-			var json = File.ReadAllText(path);
-
-			var data = JsonUtility.FromJson<WeaponLoadData>(json);
+			var relativePath = Path.Combine(PathConstant.Inventory, weaponId + ".json");
+			if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
+			{
+				Debug.LogError($"[WeaponBuilder] Weapon data not found: {relativePath}");
+				return null;
+			}
 
 			var go = ResourceLoader.InstantiatePrefab(data.Slot, data.Prefab, mountPoint, false);
 			if (go == null)

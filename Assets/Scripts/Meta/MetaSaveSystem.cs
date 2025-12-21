@@ -1,27 +1,20 @@
-﻿using System.IO;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 
 namespace Ships
 {
 	public static class MetaSaveSystem
 	{
-		private static readonly string _path =
-			Path.Combine(Application.persistentDataPath, "meta.json");
-
 		public static void Save(MetaState state)
 		{
-			var json = JsonUtility.ToJson(state, true);
-			File.WriteAllText(_path, json);
+			ResourceLoader.SavePersistentJson(PathConstant.MetaFile, state, true);
 		}
 
 		public static MetaState Load()
 		{
-			if (!File.Exists(_path))
-				return new MetaState();
-
-			var json = File.ReadAllText(_path);
-			var meta = JsonUtility.FromJson<MetaState>(json);
+			if (!ResourceLoader.TryLoadPersistentJson(PathConstant.MetaFile, out MetaState meta))
+				meta = new MetaState();
 
 			// подтягиваем сгенерённые предметы с диска, но без дублей
 			LoadGeneratedItems(meta);
@@ -32,18 +25,15 @@ namespace Ships
 
 		private static void LoadGeneratedItems(MetaState state)
 		{
-			var folder = ItemGenerator.OutputPath;
-			if (!Directory.Exists(folder))
-				return;
-
 			var inventory = state.InventoryModel.InventoryUniqueItems;
 
-			foreach (var file in Directory.GetFiles(folder, "*.json"))
+			foreach (var file in ResourceLoader.GetPersistentFiles(PathConstant.Inventory, "*.json"))
 			{
-				var json = File.ReadAllText(file);
-				var gen = JsonUtility.FromJson<GeneratedWeaponItem>(json);
+				var relativePath = Path.Combine(PathConstant.Inventory, file);
+				if (!ResourceLoader.TryLoadPersistentJson(relativePath, out GeneratedWeaponItem gen))
+					continue;
 
-				// если такой ItemId уже есть в профиле — пропускаем
+				// если такой ItemId уже есть в профиле - пропускаем
 				var exists = inventory.Exists(i => i.ItemId == gen.ItemId);
 				if (exists)
 					continue;
@@ -61,10 +51,6 @@ namespace Ships
 			if (state == null)
 				return;
 
-			var folder = ItemGenerator.OutputPath;
-			if (!Directory.Exists(folder))
-				return;
-
 			var inv = state.InventoryModel.InventoryUniqueItems;
 			var removedIds = new HashSet<string>();
 
@@ -74,8 +60,8 @@ namespace Ships
 				if (item == null || string.IsNullOrEmpty(item.ItemId))
 					continue;
 
-				var path = Path.Combine(folder, item.ItemId + ".json");
-				if (File.Exists(path))
+				var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
+				if (ResourceLoader.PersistentFileExists(relativePath))
 					continue;
 
 				removedIds.Add(item.ItemId);

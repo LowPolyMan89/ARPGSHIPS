@@ -143,18 +143,13 @@ namespace Ships
 			// 1) Prefer generated runtime item (persistentDataPath/Inventory/{ItemId}.json)
 			if (!string.IsNullOrEmpty(item.ItemId))
 			{
-				var generatedPath = Path.Combine(ItemGenerator.OutputPath, item.ItemId + ".json");
-				if (File.Exists(generatedPath))
+				var generatedPath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
+				if (ResourceLoader.TryLoadPersistentJson(generatedPath, out GeneratedWeaponItem weapon))
 				{
-					var json = File.ReadAllText(generatedPath);
-					var weapon = JsonUtility.FromJson<GeneratedWeaponItem>(json);
-					if (weapon != null)
-					{
-						width = weapon.GridWidth > 0 ? weapon.GridWidth : 1;
-						height = weapon.GridHeight > 0 ? weapon.GridHeight : 1;
-						allowedGridTypes = weapon.AllowedGridTypes;
-						return true;
-					}
+					width = weapon.GridWidth > 0 ? weapon.GridWidth : 1;
+					height = weapon.GridHeight > 0 ? weapon.GridHeight : 1;
+					allowedGridTypes = weapon.AllowedGridTypes;
+					return true;
 				}
 			}
 
@@ -166,13 +161,8 @@ namespace Ships
 				? item.TemplateId
 				: item.TemplateId + ".json";
 
-			var templatePath = Path.Combine(ItemGenerator.WeaponConfigsPath, templateId);
-			if (!File.Exists(templatePath))
-				return false;
-
-			var templateJson = File.ReadAllText(templatePath);
-			var template = JsonUtility.FromJson<WeaponTemplate>(templateJson);
-			if (template == null)
+			var templatePath = Path.Combine(PathConstant.WeaponsConfigs, templateId);
+			if (!ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template))
 				return false;
 
 			width = template.GridWidth > 0 ? template.GridWidth : 1;
