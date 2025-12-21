@@ -148,7 +148,7 @@ namespace Ships
 				{
 					width = weapon.GridWidth > 0 ? weapon.GridWidth : 1;
 					height = weapon.GridHeight > 0 ? weapon.GridHeight : 1;
-					allowedGridTypes = weapon.AllowedGridTypes;
+					allowedGridTypes = weapon.AllowedGridTypeValues;
 					return true;
 				}
 			}
@@ -167,7 +167,7 @@ namespace Ships
 
 			width = template.GridWidth > 0 ? template.GridWidth : 1;
 			height = template.GridHeight > 0 ? template.GridHeight : 1;
-			allowedGridTypes = template.AllowedGridTypes;
+			allowedGridTypes = EnumParsingHelpers.ParseGridTypes(template.AllowedGridTypes);
 			return true;
 		}
 	}

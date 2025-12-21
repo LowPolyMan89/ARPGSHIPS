@@ -12,7 +12,6 @@ namespace Ships
 		[SerializeField] private StatInfoElementVisual _mainStatElementVisualPrefab;
 		[SerializeField] private StatInfoElementVisual _effectStatElementVisualPrefab;
 		[SerializeField] private ItemVisualInfoPanel _selectedItemPanel;
-		[SerializeField] private ItemVisualInfoPanel _compareItemPanel;
 
 		private const float OffsetX = 20f;
 		private const float OffsetY = -20f;
@@ -25,18 +24,16 @@ namespace Ships
 		private static readonly Dictionary<string, WeaponStatDescriptor> WeaponStatMap =
 			new Dictionary<string, WeaponStatDescriptor>(System.StringComparer.OrdinalIgnoreCase)
 			{
-				{ "MinDamage", new WeaponStatDescriptor("MinDamage", "Урон", WeaponStatFormat.DamageRange, pairedWith: "MaxDamage") },
-				{ "FireRate", new WeaponStatDescriptor("FireRate", "Скорострельность", WeaponStatFormat.Value, unit: "в/м") },
-				{ "RotationSpeed", new WeaponStatDescriptor("RotationSpeed", "Угол поворота", WeaponStatFormat.Value) },
-				{ "CritChance", new WeaponStatDescriptor("CritChance", "Шанс крита", WeaponStatFormat.Percent) },
-				{ "CritMultiplier", new WeaponStatDescriptor("CritMultiplier", "Размер крита", WeaponStatFormat.Percent) },
-				{ "FireRange", new WeaponStatDescriptor("FireRange", "Радиус стрельбы", WeaponStatFormat.Value, unit: "м") },
+				{ "MinDamage", new WeaponStatDescriptor("MinDamage", "damage", WeaponStatFormat.DamageRange, pairedWith: "MaxDamage") },
+				{ "FireRate", new WeaponStatDescriptor("FireRate", "firerate", WeaponStatFormat.Value, unit: "r/m") },
+				{ "RotationSpeed", new WeaponStatDescriptor("RotationSpeed", "rotationspeed", WeaponStatFormat.Value) },
+				{ "CritChance", new WeaponStatDescriptor("CritChance", "critchance", WeaponStatFormat.Percent) },
+				{ "CritMultiplier", new WeaponStatDescriptor("CritMultiplier", "critmultiplier", WeaponStatFormat.Percent) },
+				{ "FireRange", new WeaponStatDescriptor("FireRange", "firerange", WeaponStatFormat.Value, unit: "m") },
 			};
-
 		private void Start()
 		{
 			_selectedItemPanel.PanelGameObject.SetActive(false);
-			_compareItemPanel.PanelGameObject.SetActive(false);
 		}
 
 		// ?? вызывается из инвентаря при наведении
@@ -59,7 +56,6 @@ namespace Ships
 			}
 
 			_selectedItemPanel.PanelGameObject.SetActive(false);
-			_compareItemPanel.PanelGameObject.SetActive(false);
 		}
 
 		private IEnumerator ShowWithDelay(InventoryItem item, PointerEventData eventData)
@@ -411,21 +407,23 @@ namespace Ships
 	public readonly struct WeaponStatDescriptor
 	{
 		public readonly string Name;
-		public readonly string Label;
+		public readonly string LocId;
 		public readonly WeaponStatFormat Format;
 		public readonly string Unit;
 		public readonly string PairedWith;
 
+		public string Label => Localization.GetLoc(LocId);
 		public bool HasUnit => !string.IsNullOrEmpty(Unit);
 		public bool HasPair => !string.IsNullOrEmpty(PairedWith);
 
-		public WeaponStatDescriptor(string name, string label, WeaponStatFormat format, string unit = null, string pairedWith = null)
+		public WeaponStatDescriptor(string name, string locId, WeaponStatFormat format, string unit = null, string pairedWith = null)
 		{
 			Name = name;
-			Label = label;
+			LocId = string.IsNullOrEmpty(locId) ? name : locId;
 			Format = format;
 			Unit = unit;
 			PairedWith = pairedWith;
 		}
 	}
 }
+

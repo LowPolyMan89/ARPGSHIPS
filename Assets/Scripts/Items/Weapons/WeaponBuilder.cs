@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Unity.VisualScripting;
 using UnityEngine;
+using TagType = Ships.Tags;
 
 namespace Ships
 {
@@ -54,7 +55,7 @@ namespace Ships
 	}
 
 	[Serializable]
-	public class WeaponLoadData
+	public class WeaponLoadData : ISerializationCallbackReceiver
 	{
 		public string ItemId;
 		public string TemplateId;
@@ -62,17 +63,32 @@ namespace Ships
 		public string Rarity;
 		public string Slot;
 		public string DamageType;
+		[SerializeField] public string[] Tags;
+		[NonSerialized] public TagType[] TagValues;
 		public string Size;
 		public string Icon;
 		public string Prefab;
 
 		public int GridWidth = 1;
 		public int GridHeight = 1;
-		public ShipGridType[] AllowedGridTypes;
+		[SerializeField] public string[] AllowedGridTypes;
+		[NonSerialized] public ShipGridType[] AllowedGridTypeValues;
 		public float FireArcDeg = 360f;
 
 		public List<StatData> Stats = new();
 		public List<EffectValue> Effects = new();
+
+		public void OnBeforeSerialize()
+		{
+			Tags = EnumParsingHelpers.NormalizeStrings(Tags);
+			AllowedGridTypes = EnumParsingHelpers.NormalizeStrings(AllowedGridTypes);
+		}
+
+		public void OnAfterDeserialize()
+		{
+			TagValues = EnumParsingHelpers.ParseTags(Tags);
+			AllowedGridTypeValues = EnumParsingHelpers.ParseGridTypes(AllowedGridTypes);
+		}
 	}
 
 	[System.Serializable]
@@ -81,5 +97,4 @@ namespace Ships
 		public string Name;
 		public float Value;
 	}
-	
 }

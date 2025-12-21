@@ -1,0 +1,9 @@
+{
+  "LocalizationElements": [
+    { "Id": "projectile", "Values": [ "Снаряд", "Projectile" ] },
+    { "Id": "ray", "Values": [ "Луч", "Ray" ] },
+    { "Id": "thermal", "Values": [ "Термический", "Thermal" ] },
+    { "Id": "kinetic", "Values": [ "Кинетический", "Kinetic" ] },
+    { "Id": "explosion", "Values": [ "Взрывной", "Explosion" ] }
+  ]
+}

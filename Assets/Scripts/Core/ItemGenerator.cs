@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
+using TagType = Ships.Tags;
 
 namespace Ships
 {
@@ -157,11 +158,14 @@ namespace Ships
 				Prefab = template.Prefab,
 				Slot = template.Slot,
 				DamageType = template.DamageType,
+				Tags = EnumParsingHelpers.NormalizeStrings(template.Tags),
+				TagValues = EnumParsingHelpers.ParseTags(template.Tags),
 				Size = template.Size,
 				Icon = template.Icon,
 				GridWidth = template.GridWidth <= 0 ? 1 : template.GridWidth,
 				GridHeight = template.GridHeight <= 0 ? 1 : template.GridHeight,
-				AllowedGridTypes = template.AllowedGridTypes,
+				AllowedGridTypes = EnumParsingHelpers.NormalizeStrings(template.AllowedGridTypes),
+				AllowedGridTypeValues = EnumParsingHelpers.ParseGridTypes(template.AllowedGridTypes),
 				FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg
 			};
 
@@ -284,10 +288,11 @@ namespace Ships
 		public string Icon;
 		public string Slot;
 		public string DamageType;
+		public string[] Tags;
 		public string Size;
 		public int GridWidth = 1;
 		public int GridHeight = 1;
-		public ShipGridType[] AllowedGridTypes;
+		public string[] AllowedGridTypes;
 		public float FireArcDeg = 360f;
 		public string Prefab;
 		public EffectTemplateRef[] AvailableEffects;
@@ -305,7 +310,7 @@ namespace Ships
 	}
 
 	[Serializable]
-	public class GeneratedWeaponItem : IGeneratedItem
+	public class GeneratedWeaponItem : IGeneratedItem, ISerializationCallbackReceiver
 	{
 		public string ItemId;
 		public string TemplateId;
@@ -314,13 +319,16 @@ namespace Ships
 
 		public string Slot;
 		public string DamageType;
+		[SerializeField] public string[] Tags;
+		[NonSerialized] public TagType[] TagValues;
+		[SerializeField] public string[] AllowedGridTypes;
+		[NonSerialized] public ShipGridType[] AllowedGridTypeValues;
 		public string Size;
 		public string Icon;
 		public string Prefab;
 
 		public int GridWidth = 1;
 		public int GridHeight = 1;
-		public ShipGridType[] AllowedGridTypes;
 		public float FireArcDeg = 360f;
 
 		public StatValue[] Stats;
@@ -329,6 +337,25 @@ namespace Ships
 		string IGeneratedItem.TemplateId => TemplateId;
 		string IGeneratedItem.Name => Name;
 		string IGeneratedItem.Rarity => Rarity;
+
+		public void OnBeforeSerialize()
+		{
+			Tags = EnumParsingHelpers.NormalizeStrings(Tags);
+			AllowedGridTypes = EnumParsingHelpers.NormalizeStrings(AllowedGridTypes);
+		}
+
+		public void OnAfterDeserialize()
+		{
+			if (Tags == null || Tags.Length == 0)
+				TagValues = Array.Empty<TagType>();
+			else
+				TagValues = EnumParsingHelpers.ParseTags(Tags);
+
+			if (AllowedGridTypes == null || AllowedGridTypes.Length == 0)
+				AllowedGridTypeValues = Array.Empty<ShipGridType>();
+			else
+				AllowedGridTypeValues = EnumParsingHelpers.ParseGridTypes(AllowedGridTypes);
+		}
 	}
 
 	[Serializable]
@@ -379,5 +406,74 @@ namespace Ships
 	{
 		public string Name;
 		public float Value;
+	}
+
+	internal static class EnumParsingHelpers
+	{
+		public static string[] NormalizeStrings(string[] source)
+		{
+			return source == null
+				? Array.Empty<string>()
+				: source
+					.Where(s => !string.IsNullOrEmpty(s))
+					.Distinct(StringComparer.OrdinalIgnoreCase)
+					.ToArray();
+		}
+
+		public static TagType[] ParseTags(string[] source)
+		{
+			if (source == null || source.Length == 0)
+				return Array.Empty<TagType>();
+
+			var parsed = new List<TagType>(source.Length);
+			for (var i = 0; i < source.Length; i++)
+			{
+				var tagName = source[i];
+				if (string.IsNullOrEmpty(tagName))
+					continue;
+
+				if (Enum.TryParse(tagName, true, out TagType tag))
+				{
+					parsed.Add(tag);
+					continue;
+				}
+
+				if (int.TryParse(tagName, out var numeric) &&
+				    Enum.IsDefined(typeof(TagType), numeric))
+				{
+					parsed.Add((TagType)numeric);
+				}
+			}
+
+			return parsed.Distinct().ToArray();
+		}
+
+		public static ShipGridType[] ParseGridTypes(string[] source)
+		{
+			if (source == null || source.Length == 0)
+				return Array.Empty<ShipGridType>();
+
+			var parsed = new List<ShipGridType>(source.Length);
+			for (var i = 0; i < source.Length; i++)
+			{
+				var typeName = source[i];
+				if (string.IsNullOrEmpty(typeName))
+					continue;
+
+				if (Enum.TryParse(typeName, true, out ShipGridType gridType))
+				{
+					parsed.Add(gridType);
+					continue;
+				}
+
+				if (int.TryParse(typeName, out var numeric) &&
+				    Enum.IsDefined(typeof(ShipGridType), numeric))
+				{
+					parsed.Add((ShipGridType)numeric);
+				}
+			}
+
+			return parsed.Distinct().ToArray();
+		}
 	}
 }

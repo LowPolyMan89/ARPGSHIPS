@@ -8,6 +8,10 @@
   "Prefab": "weapon_p_small_bolter_1",
   "GridWidth": 2,
   "GridHeight": 2,
+  "Tags": [
+    "Kinetic",
+    "Projectile"
+  ],
   "AllowedGridTypes":
   [
     "WeaponGrid"
