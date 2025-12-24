@@ -162,11 +162,15 @@ namespace Ships
 				TagValues = EnumParsingHelpers.ParseTags(template.Tags),
 				Size = template.Size,
 				Icon = template.Icon,
+				IconInventory = string.IsNullOrEmpty(template.IconInventory) ? template.Icon : template.IconInventory,
+				IconOnDrag = string.IsNullOrEmpty(template.IconOnDrag) ? template.Icon : template.IconOnDrag,
+				IconOnFit = string.IsNullOrEmpty(template.IconOnFit) ? template.Icon : template.IconOnFit,
 				GridWidth = template.GridWidth <= 0 ? 1 : template.GridWidth,
 				GridHeight = template.GridHeight <= 0 ? 1 : template.GridHeight,
 				AllowedGridTypes = EnumParsingHelpers.NormalizeStrings(template.AllowedGridTypes),
 				AllowedGridTypeValues = EnumParsingHelpers.ParseGridTypes(template.AllowedGridTypes),
-				FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg
+				FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg,
+				EnergyCost = template.EnergyCost
 			};
 
 			var stats = new List<StatValue>();
@@ -286,6 +290,9 @@ namespace Ships
 		public string Id;
 		public string Name;
 		public string Icon;
+		public string IconInventory;
+		public string IconOnDrag;
+		public string IconOnFit;
 		public string Slot;
 		public string DamageType;
 		public string[] Tags;
@@ -294,6 +301,7 @@ namespace Ships
 		public int GridHeight = 1;
 		public string[] AllowedGridTypes;
 		public float FireArcDeg = 360f;
+		public float EnergyCost = 0f;
 		public string Prefab;
 		public EffectTemplateRef[] AvailableEffects;
 
@@ -325,11 +333,15 @@ namespace Ships
 		[NonSerialized] public ShipGridType[] AllowedGridTypeValues;
 		public string Size;
 		public string Icon;
+		public string IconInventory;
+		public string IconOnDrag;
+		public string IconOnFit;
 		public string Prefab;
 
 		public int GridWidth = 1;
 		public int GridHeight = 1;
 		public float FireArcDeg = 360f;
+		public float EnergyCost = 0f;
 
 		public StatValue[] Stats;
 		public List<EffectValue> Effects;

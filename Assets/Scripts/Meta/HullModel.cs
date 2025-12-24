@@ -12,12 +12,12 @@ namespace Ships
 		public string id;
 		public string name;
 		public int cost;
-
+		public int Energy;
 		public StatContainer stats;
 		public ShieldModel Shield;
 
 		// Grid definitions for meta fitting + in-battle weapon/module placement.
-		public float gridCellSize = 0.25f;
+		public float gridCellSize = 0.40f;
 		public List<HullGridModel> grids;
 		public List<EffectModel> uniqueEffects;
 		public List<LevelModel> leveling;

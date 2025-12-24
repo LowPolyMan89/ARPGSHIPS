@@ -16,6 +16,7 @@ namespace Ships
         private void Awake()
         {
             _ship = GetComponent<ShipBase>();
+            ShipShield.Init();
             StartCoroutine(Update1Sec());
         }
 

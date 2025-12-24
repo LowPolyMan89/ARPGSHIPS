@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -131,6 +132,8 @@ namespace Ships
 				_selectedItemPanel.ItemImage.sprite = sprite;
 				_selectedItemPanel.ItemImage.enabled = sprite != null;
 			}
+
+			_selectedItemPanel.ItemName.text = item.TemplateId;
 
 			var statsDict = BuildStatsDictionary(weapon.Stats);
 			PopulateMainStats(statsDict, weapon.DamageType);
@@ -389,6 +392,7 @@ namespace Ships
 	public class ItemVisualInfoPanel
 	{
 		public GameObject PanelGameObject;
+		public TMP_Text ItemName;
 		public Image ItemImage;
 		public RectTransform MainStatRoot;
 		public RectTransform EffectStatRoot;

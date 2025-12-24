@@ -97,12 +97,18 @@ namespace Ships
 
 		public static Sprite LoadItemIcon(InventoryItem item)
 		{
+			return LoadItemIcon(item, ItemIconContext.Inventory);
+		}
+
+		public static Sprite LoadItemIcon(InventoryItem item, ItemIconContext context)
+		{
 			var info = ResolveItemAssetInfo(item);
-			if (string.IsNullOrEmpty(info.IconId))
+			var iconId = info.GetIconId(context);
+			if (string.IsNullOrEmpty(iconId))
 				return null;
 
 			var root = GetIconRoot(info.Slot);
-			var key = BuildPath(root, info.IconId);
+			var key = BuildPath(root, iconId);
 
 			if (IconCache.TryGetValue(key, out var cached))
 				return cached;
@@ -184,9 +190,22 @@ namespace Ships
 			return new ItemAssetInfo
 			{
 				Slot = !string.IsNullOrEmpty(meta?.Slot) ? meta.Slot : "Weapon",
-				IconId = meta?.Icon,
+				IconInventory = ResolveIcon(meta?.IconInventory, meta?.Icon),
+				IconOnDrag = ResolveIcon(meta?.IconOnDrag, meta?.Icon, meta?.IconInventory),
+				IconOnFit = ResolveIcon(meta?.IconOnFit, meta?.Icon, meta?.IconInventory, meta?.IconOnDrag),
 				PrefabId = meta?.Prefab
 			};
+		}
+
+		private static string ResolveIcon(params string[] values)
+		{
+			for (var i = 0; i < values.Length; i++)
+			{
+				if (!string.IsNullOrEmpty(values[i]))
+					return values[i];
+			}
+
+			return null;
 		}
 
 		private static BasicItemMeta LoadGeneratedMeta(InventoryItem item)
@@ -287,8 +306,20 @@ namespace Ships
 		private sealed class ItemAssetInfo
 		{
 			public string Slot;
-			public string IconId;
+			public string IconInventory;
+			public string IconOnDrag;
+			public string IconOnFit;
 			public string PrefabId;
+
+			public string GetIconId(ItemIconContext context)
+			{
+				return context switch
+				{
+					ItemIconContext.Drag => !string.IsNullOrEmpty(IconOnDrag) ? IconOnDrag : IconInventory,
+					ItemIconContext.Fit => !string.IsNullOrEmpty(IconOnFit) ? IconOnFit : (string.IsNullOrEmpty(IconOnDrag) ? IconInventory : IconOnDrag),
+					_ => IconInventory
+				};
+			}
 		}
 
 		[Serializable]
@@ -296,7 +327,17 @@ namespace Ships
 		{
 			public string Slot;
 			public string Icon;
+			public string IconInventory;
+			public string IconOnDrag;
+			public string IconOnFit;
 			public string Prefab;
 		}
+	}
+
+	public enum ItemIconContext
+	{
+		Inventory,
+		Drag,
+		Fit
 	}
 }

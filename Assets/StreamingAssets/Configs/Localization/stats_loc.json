@@ -29,6 +29,7 @@
     { "Id": "explosionresist", "Values": [ "Сопротивление взрыву", "Explosion Resist" ] },
     { "Id": "duration", "Values": [ "Длительность", "Duration" ] },
     { "Id": "value", "Values": [ "Значение", "Value" ] },
-    { "Id": "chance", "Values": [ "Шанс", "Chance" ] }
+    { "Id": "chance", "Values": [ "Шанс", "Chance" ] },
+    { "Id": "energy", "Values": [ "Энергия", "Energy" ] }
   ]
 }

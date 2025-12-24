@@ -163,6 +163,9 @@ namespace Ships
 			if (item == null)
 				return;
 
+			if (ShipMetaDragContext.DraggingFromFit)
+				return; // Drag logic for equipped items is handled by the drag source.
+
 			if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(
 				    GridRoot,
 				    eventData.position,

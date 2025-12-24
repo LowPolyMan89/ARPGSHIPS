@@ -1,11 +1,12 @@
-﻿using UnityEngine;
+using System.IO;
+using UnityEngine;
 
 namespace Ships
 {
 	public abstract class WeaponBase : MonoBehaviour
 	{
 		private float _nextFireTime;
-
+		public string WeaponTemplateId;
 		public WeaponModel Model;
 
 		[Header("Prefab Parts")]
@@ -36,6 +37,7 @@ namespace Ships
 		protected virtual void Awake()
 		{
 			WirePrefabParts();
+			TryInitFromTemplate();
 		}
 
 		private void WirePrefabParts()
@@ -74,6 +76,10 @@ namespace Ships
 			Model = new WeaponModel();
 			Model.InjectStat(stats);
 			_ammo = GetMaxAmmo();
+			if (!Owner)
+			{
+				Owner = GetComponentInParent<ShipBase>();
+			}
 		}
 
 		public void TryFire(ITargetable target)
@@ -157,6 +163,65 @@ namespace Ships
 				dmg *= Model.Stats.GetStat(StatType.CritMultiplier).Current;
 
 			return dmg;
+		}
+
+		private void TryInitFromTemplate()
+		{
+			if (Model?.Stats != null)
+				return;
+
+			if (string.IsNullOrEmpty(WeaponTemplateId))
+				return;
+
+			var templateFile = WeaponTemplateId.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase)
+				? WeaponTemplateId
+				: WeaponTemplateId + ".json";
+
+			var templatePath = Path.Combine(PathConstant.WeaponsConfigs, templateFile);
+			if (!ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template))
+			{
+				Debug.LogWarning($"[WeaponBase] Weapon template not found: {templatePath}");
+				return;
+			}
+
+			var stats = BuildStatsFromTemplate(template);
+			if (stats == null)
+				return;
+
+			Init(stats);
+			FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg;
+		}
+
+		private static Stats BuildStatsFromTemplate(WeaponTemplate template)
+		{
+			if (template == null || template.Rarities == null || template.Rarities.Length == 0)
+				return null;
+
+			var rarity = template.Rarities[0];
+			var statEntries = rarity?.Stats?.Entries;
+			if (statEntries == null || statEntries.Length == 0)
+				return null;
+
+			var stats = new Stats();
+			for (var i = 0; i < statEntries.Length; i++)
+			{
+				var entry = statEntries[i];
+				if (entry == null || string.IsNullOrEmpty(entry.Name))
+					continue;
+
+				if (!System.Enum.TryParse(entry.Name, true, out StatType statType))
+					continue;
+
+				var value = Random.Range(entry.Min, entry.Max);
+				if (Mathf.Abs(value) > 10f)
+					value = Mathf.Round(value);
+				else
+					value = (float)System.Math.Round(value, 2);
+
+				stats.AddStat(new Stat(statType, value));
+			}
+
+			return stats;
 		}
 	}
 }

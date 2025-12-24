@@ -9,8 +9,9 @@ namespace Ships.Mobs
 	{
 		private void Start()
 		{
-			LoadShipFromConfig("hull_test_frigate");
+			LoadShipFromConfig("pirate_ship_s_1");
 			LoadShipFromPrefab();
+			Init();
 		}
 	}
 }

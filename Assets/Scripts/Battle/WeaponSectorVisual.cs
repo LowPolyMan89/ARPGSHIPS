@@ -1,90 +1,105 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 namespace Ships
 {
-    [RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
-    public class WeaponSectorVisual : MonoBehaviour
-    {
-        [Header("Manual Settings (not from WeaponSlot)")]
-        public float Range = 20f;        // дальность сектора
-        public float Angle = 60f;        // угол сектора (в градусах)
-        public float InnerRadius = 0f;   // внутренняя дуга (обычно 0)
+	[RequireComponent(typeof(MeshFilter), typeof(MeshRenderer))]
+	public class WeaponSectorVisual : WeaponArcRenderer
+	{
+		[Header("Source")]
+		[SerializeField] private WeaponBase _weapon;
+		[SerializeField] private bool _useWeaponStats = true;
 
-        [Header("Quality")]
-        public int segments = 48;
+		[Header("Manual Settings (fallback)")]
+		public float Range = 20f;        // дальность сектора
+		public float Angle = 60f;        // угол сектора (в градусах)
+		public float InnerRadius = 0f;   // внутренняя дуга (обычно 0)
 
-        private Mesh _mesh;
+		[Header("Quality")]
+		public int segments = 48;
 
-        private void Awake()
-        {
-            _mesh = new Mesh();
-            _mesh.name = "WeaponSectorMesh3D";
-            GetComponent<MeshFilter>().mesh = _mesh;
-        }
+		private float _lastRange = -1f;
+		private float _lastArc = -1f;
+		private ArcSpace _lastSpace = ArcSpace.WorldXY;
 
-        private void LateUpdate()
-        {
-            GenerateArc(InnerRadius, Range, Angle);
-        }
+		protected override void Awake()
+		{
+			base.Awake();
+			_disableObjectOnHide = false; // keep object active to refresh when stats appear
 
-        private void GenerateArc(float innerR, float outerR, float angleDeg)
-        {
-            _mesh.Clear();
+			if (_weapon == null)
+				_weapon = GetComponentInParent<WeaponBase>();
 
-            int steps = Mathf.Max(4, segments);
-            int vertCount = (steps + 1) * 2;
+			var seg = Mathf.Max(4, segments);
+			_minSegments = seg;
+			_maxSegments = seg;
+		}
 
-            Vector3[] verts = new Vector3[vertCount];
-            Vector2[] uvs   = new Vector2[vertCount];
-            int[] tris      = new int[steps * 6];
+		private void LateUpdate()
+		{
+			var arcDeg = ResolveArc();
+			var radius = ResolveRange();
+			var space = ResolveSpace();
+			var scale = ResolveScale(space);
 
-            float halfAngle = angleDeg * 0.5f;
-            int v = 0;
+			if (arcDeg <= 0f || radius <= 0f || scale <= 0f)
+			{
+				ClearMesh();
+				return;
+			}
 
-            for (int i = 0; i <= steps; i++)
-            {
-                float t = i / (float)steps;
-                float angle = Mathf.Lerp(-halfAngle, halfAngle, t) * Mathf.Deg2Rad;
+			var radiusLocal = radius / scale;
+			var innerLocal = InnerRadius > 0f ? InnerRadius / scale : 0f;
 
-                // направление в XZ-плоскости
-                Vector3 dir = new Vector3(
-                    Mathf.Sin(angle),   // X
-                    0f,
-                    Mathf.Cos(angle)    // Z
-                );
+			if (Mathf.Approximately(arcDeg, _lastArc) &&
+			    Mathf.Approximately(radiusLocal, _lastRange) &&
+			    space == _lastSpace)
+			{
+				return;
+			}
 
-                verts[v]     = dir * innerR;
-                verts[v + 1] = dir * outerR;
+			RenderArc(arcDeg, radiusLocal, Vector3.zero, space, innerLocal);
 
-                uvs[v] = new Vector2(t, 0f);
-                uvs[v + 1] = new Vector2(t, 1f);
+			_lastArc = arcDeg;
+			_lastRange = radiusLocal;
+			_lastSpace = space;
+		}
 
-                v += 2;
-            }
+		private float ResolveArc()
+		{
+			if (_useWeaponStats && _weapon != null)
+				return _weapon.FireArcDeg <= 0f ? 360f : _weapon.FireArcDeg;
 
-            int ti = 0;
-            for (int i = 0; i < steps; i++)
-            {
-                int i0 = i * 2;
-                int i1 = i0 + 1;
-                int i2 = i0 + 2;
-                int i3 = i0 + 3;
+			return Angle;
+		}
 
-                tris[ti++] = i1;
-                tris[ti++] = i0;
-                tris[ti++] = i2;
+		private float ResolveRange()
+		{
+			if (_useWeaponStats && _weapon?.Model?.Stats != null)
+			{
+				if (_weapon.Model.Stats.TryGetStat(StatType.FireRange, out var stat))
+					return stat.Current;
 
-                tris[ti++] = i1;
-                tris[ti++] = i2;
-                tris[ti++] = i3;
-            }
+				return _weapon.Model.Stats.GetStat(StatType.FireRange).Current;
+			}
 
-            _mesh.vertices = verts;
-            _mesh.uv = uvs;
-            _mesh.triangles = tris;
+			return Range;
+		}
 
-            _mesh.RecalculateNormals();
-            _mesh.RecalculateBounds();
-        }
-    }
+		private ArcSpace ResolveSpace()
+		{
+			if (Battle.Instance != null && Battle.Instance.Plane == Battle.WorldPlane.XZ)
+				return ArcSpace.WorldXZ;
+
+			return ArcSpace.WorldXY;
+		}
+
+		private float ResolveScale(ArcSpace space)
+		{
+			var ls = transform.lossyScale;
+			if (space == ArcSpace.WorldXZ)
+				return Mathf.Max(Mathf.Abs(ls.x), Mathf.Abs(ls.z));
+
+			return Mathf.Max(Mathf.Abs(ls.x), Mathf.Abs(ls.y));
+		}
+	}
 }

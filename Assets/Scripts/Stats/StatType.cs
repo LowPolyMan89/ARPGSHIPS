@@ -14,6 +14,7 @@
 		ShieldRestoreDelay,
 		BackSpeed,
 		Armor,
+		Energy,
 
 		// Weapon
 		FireRate,

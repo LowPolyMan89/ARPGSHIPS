@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -18,13 +19,14 @@ namespace Ships
 		public Image Icon;
 		public Text CountLabel;
 		public Button Button;
-
+		[SerializeField] private TMP_Text _energyCostText;
 		public void Init(InventoryItem item, InventoryView inventoryView)
 		{
 			_inventoryView = inventoryView;
 			_item = item;
 			_canvas = GetComponentInParent<Canvas>();
 			ApplyIcon();
+			ApplyEnergyCost();
 			Button.onClick.RemoveAllListeners();
 			Button.onClick.AddListener(ButtonClick);
 		}
@@ -55,6 +57,8 @@ namespace Ships
 
 			ShipMetaDragContext.DraggedInventoryItem = _item;
 			ShipMetaDragContext.ActiveGrid = null;
+			ShipMetaDragContext.DraggingFromFit = false;
+			ShipMetaDragContext.DraggedPlacement = null;
 
 			if (_canvas == null || Icon == null)
 				return;
@@ -67,7 +71,7 @@ namespace Ships
 			_dragIcon.pivot = new Vector2(0, 0);
 			_dragIcon.sizeDelta = ((RectTransform)Icon.transform).rect.size;
 			var img = go.GetComponent<Image>();
-			img.sprite = Icon.sprite;
+			img.sprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Drag);
 			img.raycastTarget = false;
 			go.GetComponent<CanvasGroup>().blocksRaycasts = false;
 
@@ -97,6 +101,8 @@ namespace Ships
 		{
 			ShipMetaDragContext.DraggedInventoryItem = null;
 			ShipMetaDragContext.ActiveGrid = null;
+			ShipMetaDragContext.DraggingFromFit = false;
+			ShipMetaDragContext.DraggedPlacement = null;
 			if (_dragIcon != null)
 				Destroy(_dragIcon.gameObject);
 			_dragIcon = null;
@@ -152,10 +158,26 @@ namespace Ships
 			if (Icon == null)
 				return;
 
-			var sprite = ResourceLoader.LoadItemIcon(_item);
+			var sprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Inventory);
 			Icon.sprite = sprite;
 			Icon.enabled = sprite != null;
 			Icon.preserveAspect = true;
+		}
+
+		private void ApplyEnergyCost()
+		{
+			if (_energyCostText == null)
+				return;
+
+			var cost = EnergyCostResolver.ResolveEnergyCost(_item);
+			if (Mathf.Abs(cost) < 0.001f)
+			{
+				_energyCostText.gameObject.SetActive(false);
+				return;
+			}
+
+			_energyCostText.gameObject.SetActive(true);
+			_energyCostText.text = Mathf.RoundToInt(cost).ToString();
 		}
 
 		private static bool TryResolveWeaponGridSize(InventoryItem item, out int width, out int height)

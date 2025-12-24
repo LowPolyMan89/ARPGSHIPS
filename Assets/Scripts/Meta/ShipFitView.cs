@@ -2,18 +2,21 @@
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
+using Ships;
 
 namespace Ships
 {
 	public class ShipFitView
 	{
 		private MetaState _state;
+		private HullModel _hull;
 
 		public event Action OnFitChanged;
 
 		public void Init(MetaState state)
 		{
 			_state = state;
+			_hull = !string.IsNullOrEmpty(_state?.Fit?.ShipId) ? HullLoader.Load(_state.Fit.ShipId) : null;
 		}
 
 		public void UnequipItem(InventoryItem item)
@@ -29,6 +32,8 @@ namespace Ships
 			item.EquippedGridY = -1;
 
 			GameEvent.InventoryUpdated(_state.InventoryModel);
+			MetaSaveSystem.Save(_state);
+			OnFitChanged?.Invoke();
 		}
 
 		public bool TryPlaceWeaponToGrid(string gridId, int gridWidth, int gridHeight, int x, int y, InventoryItem item)
@@ -95,6 +100,43 @@ namespace Ships
 			MetaSaveSystem.Save(_state);
 			GameEvent.InventoryUpdated(_state.InventoryModel);
 			return true;
+		}
+
+		public void RaiseFitChanged()
+		{
+			OnFitChanged?.Invoke();
+		}
+
+		public EnergyBalance CalculateEnergy()
+		{
+			var baseEnergy = _hull != null ? _hull.Energy : 0f;
+			var used = 0f;
+			var bonus = 0f;
+
+			var placements = _state?.Fit?.GridPlacements;
+			if (placements != null)
+			{
+				for (var i = 0; i < placements.Count; i++)
+				{
+					var p = placements[i];
+					var invItem = InventoryUtils.FindByItemId(_state.InventoryModel, p.ItemId) ?? new InventoryItem { ItemId = p.ItemId };
+					var cost = EnergyCostResolver.ResolveEnergyCost(invItem);
+					if (cost > 0f)
+						used += cost;
+					else
+						bonus += -cost;
+				}
+			}
+
+			var available = Mathf.Max(0f, baseEnergy + bonus);
+
+			return new EnergyBalance
+			{
+				Base = baseEnergy,
+				Bonus = bonus,
+				Used = used,
+				Available = available
+			};
 		}
 
 		private static string DescribePlacementFailure(
@@ -170,5 +212,13 @@ namespace Ships
 			allowedGridTypes = EnumParsingHelpers.ParseGridTypes(template.AllowedGridTypes);
 			return true;
 		}
+	}
+
+	public struct EnergyBalance
+	{
+		public float Base;
+		public float Bonus;
+		public float Used;
+		public float Available;
 	}
 }

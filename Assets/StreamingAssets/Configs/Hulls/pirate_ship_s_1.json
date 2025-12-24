@@ -1,0 +1,25 @@
+﻿{
+  "id": "pirate_01",
+  "name": "pirate_01",
+  "cost": 0,
+  "Energy": 50,
+  "stats": {
+    "HitPoint": 150,
+    "Armor": 0,
+    "Shield": 0,
+    "ShieldRegen": 2,
+    "MoveSpeed": 6,
+    "MoveSpeedRear" : 2,
+    "TurnSpeed": 120,
+    "Acceleration": 6,
+    "BrakePower": 5
+  },
+  "Shield": {
+    "Hp": 100,
+    "Regen": 2,
+    "RegenDelay": 15
+  },
+  "Engine": "",
+  "uniqueEffects": [],
+  "leveling": []
+}

@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Unity.VisualScripting;
+using UnityEngine;
 
 namespace Ships
 {
@@ -37,7 +38,7 @@ namespace Ships
 			}
 		}
 
-		private void OnTriggerEnter(Collider other)
+		private void OnTriggerEnter2D(Collider2D other)
 		{
 			if (!other.TryGetComponent<ITargetable>(out var t))
 				return;

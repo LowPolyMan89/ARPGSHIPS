@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ShieldSector
-  m_Shader: {fileID: 4800000, guid: ce2cdd6a8b30a1e469a0ce3b38dff66a, type: 3}
+  m_Shader: {fileID: 4800000, guid: 0fffbc788e0b44ab8a05d67a18f336f6, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -48,7 +48,7 @@ Material:
     - _Charge: 1
     - _EnableExternalAlpha: 0
     - _HitStrength: 1
-    - _HitTime: -63.5
+    - _HitTime: 1
     - _SectorEnd: 12
     - _SectorStart: -10
     - _ZWrite: 0

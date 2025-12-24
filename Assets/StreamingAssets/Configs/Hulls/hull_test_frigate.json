@@ -2,10 +2,10 @@
   "id": "hull_test_frigate",
   "name": "Test Frigate",
   "cost": 0,
+  "Energy": 100,
   "stats": {
     "HitPoint": 500,
     "Armor": 5,
-    "Shield": 200,
     "ShieldRegen": 3,
     "MoveSpeed": 6,
     "MoveSpeedRear" : 2,
@@ -33,7 +33,7 @@
       "type": 0,
       "width": 4,
       "height": 2,
-      "origin": { "x": 0.35, "y": 0.05 },
+      "origin": { "x": 2.437, "y": -1.809 },
       "rotationDeg": 0
     },
     {
