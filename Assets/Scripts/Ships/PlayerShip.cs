@@ -9,6 +9,7 @@ namespace Ships
 		{
 			LoadShipFromConfig("hull_test_frigate");
 			Init();
+			Battle.Instance.Player = this;
 		}
 	}
 }

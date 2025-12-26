@@ -28,11 +28,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _GradientTex:
-        m_Texture: {fileID: 2800000, guid: 40d811236b9e15c47b36368f46f0e1e9, type: 3}
+        m_Texture: {fileID: 2800000, guid: 84487d73ca4b791498332d8f6858417f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: 904f97cb0cf966c4d814e5d968cd9a06, type: 3}
+        m_Texture: {fileID: 2800000, guid: 84487d73ca4b791498332d8f6858417f, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MaskTex:
@@ -52,10 +52,10 @@ Material:
     - _Center: 0.5
     - _CenterX: 0.5
     - _CenterY: 0.5
-    - _CutAxis: 0
+    - _CutAxis: 1
     - _EnableExternalAlpha: 0
-    - _Fill: 1
-    - _FillMode: 0
+    - _Fill: 0
+    - _FillMode: 1
     - _FillMul: 1
     - _GradientDir: 1
     - _InvertFill: 0
@@ -63,7 +63,7 @@ Material:
     - _PulseEnabled: 1
     - _PulseSpeed: 10
     - _PulseThreshold: 0.3
-    - _UVMaxX: 1
+    - _UVMaxX: 0.5
     - _UVMaxY: 1
     - _UVMinX: 0
     - _UVMinY: 0
@@ -71,6 +71,6 @@ Material:
     m_Colors:
     - _Color: {r: 1, g: 1, b: 1, a: 1}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}
-    - _Tint: {r: 1, g: 1, b: 1, a: 0.54509807}
+    - _Tint: {r: 0, g: 0.5286541, b: 1, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
