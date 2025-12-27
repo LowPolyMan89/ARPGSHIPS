@@ -2,7 +2,7 @@
   "Id": "weapon_p_small_bolter_1",
   "Name": "Small Bolter",
   "IconInventory": "weapon_01_img",
-  "IconOnDrag": "weapon_01_img",
+  "IconOnDrag": "",
   "IconOnFit": "weapon_01_fit_img",
   "Slot": "Weapon",
   "DamageType": "Kinetic",

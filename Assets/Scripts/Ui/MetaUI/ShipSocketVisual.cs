@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using System.IO;
 
 namespace Ships
 {
@@ -284,6 +285,20 @@ namespace Ships
 			return BaseSize * factor;
 		}
 
+		public bool TryGetSnappedWorldPosition(out Vector3 worldPos)
+		{
+			worldPos = Vector3.zero;
+			var dragged = ShipMetaDragContext.DraggedInventoryItem;
+			if (dragged != null && !CanAccept(dragged))
+				return false;
+
+			if (_rect == null)
+				return false;
+
+			worldPos = _rect.position;
+			return true;
+		}
+
 		private bool IsTypeAllowed(InventoryItem item)
 		{
 			if (!TryResolveTypes(item, out var allowed))
@@ -470,6 +485,8 @@ namespace Ships
 			private string _itemId;
 			private RectTransform _dragIcon;
 			private Canvas _canvas;
+			private Transform _dragWorld;
+			private float _dragWorldDepth;
 
 			public void Init(ShipSocketVisual socket, string itemId)
 			{
@@ -539,6 +556,20 @@ namespace Ships
 			{
 				UpdateActiveSocket(eventData);
 
+				if (_dragWorld != null)
+				{
+					if (ShipMetaDragContext.ActiveSocket != null &&
+					    ShipMetaDragContext.ActiveSocket.TryGetSnappedWorldPosition(out var snappedWorld))
+					{
+						_dragWorld.position = snappedWorld;
+					}
+					else
+					{
+						UpdateDragWorldPosition(eventData);
+					}
+					return;
+				}
+
 				if (_dragIcon == null)
 					return;
 
@@ -558,6 +589,9 @@ namespace Ships
 				if (_dragIcon != null)
 					Destroy(_dragIcon.gameObject);
 				_dragIcon = null;
+				if (_dragWorld != null)
+					Destroy(_dragWorld.gameObject);
+				_dragWorld = null;
 
 				var targetSocket = ShipMetaDragContext.ActiveSocket;
 				ShipMetaDragContext.ActiveSocket = null;
@@ -598,6 +632,12 @@ namespace Ships
 				img.raycastTarget = false;
 				go.GetComponent<CanvasGroup>().blocksRaycasts = false;
 				_dragIcon.position = eventData.position;
+
+				if (img.sprite == null)
+				{
+					img.enabled = false;
+					TryAttachDragPrefabWorld(item, eventData);
+				}
 			}
 
 			private void UpdateActiveSocket(PointerEventData eventData)
@@ -629,6 +669,50 @@ namespace Ships
 					return null;
 
 				return InventoryUtils.FindByItemId(MetaController.Instance.State.InventoryModel, _itemId);
+			}
+
+			private void UpdateDragWorldPosition(PointerEventData eventData)
+			{
+				var cam = eventData.pressEventCamera ?? eventData.enterEventCamera ?? Camera.main;
+				if (cam == null || _dragWorld == null)
+					return;
+
+				var sp = new Vector3(eventData.position.x, eventData.position.y, _dragWorldDepth);
+				var wp = cam.ScreenToWorldPoint(sp);
+				_dragWorld.position = wp;
+			}
+
+			private bool TryAttachDragPrefabWorld(InventoryItem item, PointerEventData eventData)
+			{
+				if (item == null)
+					return false;
+
+				var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
+				if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
+					return false;
+
+				var prefabId = !string.IsNullOrEmpty(data.MetaPrefab) ? data.MetaPrefab : data.Prefab;
+				if (string.IsNullOrEmpty(prefabId))
+					return false;
+
+				Transform parent = null;
+				if (MetaController.Instance != null)
+					parent = MetaController.Instance.ShipPodium;
+
+				var go = ResourceLoader.InstantiatePrefab(data.Slot, prefabId, parent, false);
+				if (go == null)
+					return false;
+
+				foreach (var col in go.GetComponentsInChildren<Collider>(true))
+					col.enabled = false;
+				foreach (var col2d in go.GetComponentsInChildren<Collider2D>(true))
+					col2d.enabled = false;
+
+				_dragWorld = go.transform;
+				var cam = eventData.pressEventCamera ?? eventData.enterEventCamera ?? Camera.main;
+				_dragWorldDepth = cam != null ? Mathf.Abs(_dragWorld.position.z - cam.transform.position.z) : 0f;
+				UpdateDragWorldPosition(eventData);
+				return true;
 			}
 
 			private void ClearPlacement(bool save, bool fireEvents)

@@ -223,13 +223,19 @@ namespace Ships
 		{
 			var meta = LoadGeneratedMeta(item) ?? LoadTemplateMeta(item);
 
+			var iconInventory = ResolveIcon(meta?.IconInventory, meta?.Icon);
+			// Для drag не используем фолбэки: если IconOnDrag пустой, вернём null.
+			var iconOnDrag = string.IsNullOrEmpty(meta?.IconOnDrag) ? null : meta.IconOnDrag;
+			var iconOnFit = ResolveIcon(meta?.IconOnFit, iconOnDrag, iconInventory);
+			var prefabId = !string.IsNullOrEmpty(meta?.MetaPrefab) ? meta.MetaPrefab : meta?.Prefab;
+
 			return new ItemAssetInfo
 			{
 				Slot = !string.IsNullOrEmpty(meta?.Slot) ? meta.Slot : "Weapon",
-				IconInventory = ResolveIcon(meta?.IconInventory, meta?.Icon),
-				IconOnDrag = ResolveIcon(meta?.IconOnDrag, meta?.Icon, meta?.IconInventory),
-				IconOnFit = ResolveIcon(meta?.IconOnFit, meta?.Icon, meta?.IconInventory, meta?.IconOnDrag),
-				PrefabId = meta?.Prefab
+				IconInventory = iconInventory,
+				IconOnDrag = iconOnDrag,
+				IconOnFit = iconOnFit,
+				PrefabId = prefabId
 			};
 		}
 
@@ -349,12 +355,25 @@ namespace Ships
 
 			public string GetIconId(ItemIconContext context)
 			{
-				return context switch
+				switch (context)
 				{
-					ItemIconContext.Drag => !string.IsNullOrEmpty(IconOnDrag) ? IconOnDrag : IconInventory,
-					ItemIconContext.Fit => !string.IsNullOrEmpty(IconOnFit) ? IconOnFit : (string.IsNullOrEmpty(IconOnDrag) ? IconInventory : IconOnDrag),
-					_ => IconInventory
-				};
+					case ItemIconContext.Drag:
+						// Если иконка для драга не указана, вернём null чтобы можно было показать мета-префаб.
+						if (!string.IsNullOrEmpty(IconOnDrag))
+							return IconOnDrag;
+						return null;
+
+					case ItemIconContext.Fit:
+						if (!string.IsNullOrEmpty(IconOnFit))
+							return IconOnFit;
+						if (!string.IsNullOrEmpty(IconOnDrag))
+							return IconOnDrag;
+						return IconInventory;
+
+					case ItemIconContext.Inventory:
+					default:
+						return IconInventory;
+				}
 			}
 		}
 
