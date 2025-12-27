@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 
 namespace Ships
 {
@@ -13,6 +14,8 @@ namespace Ships
 		public string EquippedGridId;
 		public int EquippedGridX = -1;
 		public int EquippedGridY = -1;
+		public Vector2 EquippedGridPos;
+		public float EquippedGridRot;
 
 		public bool IsEquipped => !string.IsNullOrEmpty(EquippedOnFitId);
 	}

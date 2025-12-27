@@ -6,17 +6,17 @@
   "IconOnFit": "weapon_01_fit_img",
   "Slot": "Weapon",
   "DamageType": "Kinetic",
-  "Size": "S",
-  "Prefab": "weapon_01_prefab",
-  "GridWidth": 2,
-  "GridHeight": 2,
+  "Size": "Small",
+  "BattlePrefab": "weapon_01_prefab",
+  "MetaPrefab": "weapon_01_prefab",
+  "GridWidth": 1,
+  "GridHeight": 1,
   "EnergyCost": 25,
   "Tags": [
     "Kinetic",
     "Projectile"
   ],
-  "AllowedGridTypes":
-  [
+  "AllowedGridTypes": [
     "WeaponGrid"
   ],
 

@@ -1,31 +1,37 @@
-﻿using UnityEngine;
+using UnityEngine;
 using UnityEngine.EventSystems;
 
 namespace Ships
 {
 	public class MetaVisual : MonoBehaviour
 	{
-		public ShipFitVisual _tankFitVisual;
 		public InventoryVisual InventoryVisual;
 		[SerializeField] private ItemSelectionVisual _itemSelectionVisual;
-
-		public void OpenInventory()
-		{
-			
-		}
-
-		public void ButtonItemClick(InventoryItem item)
-		{
-			
-		}
+		[SerializeField] private ShipUiMetaStatVisual _uiMetaStatVisualPrefab;
+		[SerializeField] private Transform _uiMetaStatVisualPrefabsRoot;
+		[SerializeField] private MetaStatsController _metaStatsController;
+		[SerializeField] private bool _autoRefreshStatsOnStart = true;
 
 		public void ShowItemInfoWindow(InventoryItem item, PointerEventData pointerEventData)
 		{
-			_itemSelectionVisual.Show(item, pointerEventData);
+			if (_itemSelectionVisual != null)
+				_itemSelectionVisual.Show(item, pointerEventData);
 		}
+
 		public void HideItemInfoWindow()
 		{
-			_itemSelectionVisual.Hide();
+			if (_itemSelectionVisual != null)
+				_itemSelectionVisual.Hide();
+		}
+
+		public ShipUiMetaStatVisual StatPrefab => _uiMetaStatVisualPrefab;
+		public Transform StatRoot => _uiMetaStatVisualPrefabsRoot;
+		public MetaStatsController StatsController => _metaStatsController;
+
+		private void Start()
+		{
+			if (_autoRefreshStatsOnStart && _metaStatsController != null)
+				_metaStatsController.Refresh();
 		}
 	}
 }

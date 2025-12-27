@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+using System;
 using System.IO;
-using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -19,22 +17,23 @@ namespace Ships
 		public Image Icon;
 		public Text CountLabel;
 		public Button Button;
-		[SerializeField] private TMP_Text _energyCostText;
+
 		public void Init(InventoryItem item, InventoryView inventoryView)
 		{
 			_inventoryView = inventoryView;
 			_item = item;
 			_canvas = GetComponentInParent<Canvas>();
 			ApplyIcon();
-			ApplyEnergyCost();
+
 			Button.onClick.RemoveAllListeners();
 			Button.onClick.AddListener(ButtonClick);
 		}
 
 		public void ButtonClick()
 		{
-			MetaController.Instance.MetaVisual.ButtonItemClick(_item);
+			_inventoryView.SelectItem(_item);
 		}
+
 		private void OnDestroy()
 		{
 			Button.onClick.RemoveAllListeners();
@@ -42,12 +41,14 @@ namespace Ships
 
 		public void OnPointerEnter(PointerEventData eventData)
 		{
-			MetaController.Instance.MetaVisual.ShowItemInfoWindow(_item, eventData);
+			if (MetaController.Instance?.MetaVisual != null)
+				MetaController.Instance.MetaVisual.ShowItemInfoWindow(_item, eventData);
 		}
 
 		public void OnPointerExit(PointerEventData eventData)
 		{
-			MetaController.Instance.MetaVisual.HideItemInfoWindow();
+			if (MetaController.Instance?.MetaVisual != null)
+				MetaController.Instance.MetaVisual.HideItemInfoWindow();
 		}
 
 		public void OnBeginDrag(PointerEventData eventData)
@@ -56,9 +57,8 @@ namespace Ships
 				return;
 
 			ShipMetaDragContext.DraggedInventoryItem = _item;
-			ShipMetaDragContext.ActiveGrid = null;
-			ShipMetaDragContext.DraggingFromFit = false;
-			ShipMetaDragContext.DraggedPlacement = null;
+			MetaController.Instance?.MetaVisual?.HideItemInfoWindow();
+			ShipSocketVisual.HighlightSockets(_item);
 
 			if (_canvas == null || Icon == null)
 				return;
@@ -66,9 +66,9 @@ namespace Ships
 			var go = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
 			go.transform.SetParent(_canvas.transform, false);
 			_dragIcon = (RectTransform)go.transform;
-			_dragIcon.anchorMin = new Vector2(0, 0);
-			_dragIcon.anchorMax = new Vector2(0, 0);
-			_dragIcon.pivot = new Vector2(0, 0);
+			_dragIcon.anchorMin = new Vector2(0.5f, 0.5f);
+			_dragIcon.anchorMax = new Vector2(0.5f, 0.5f);
+			_dragIcon.pivot = new Vector2(0.5f, 0.5f);
 			_dragIcon.sizeDelta = ((RectTransform)Icon.transform).rect.size;
 			var img = go.GetComponent<Image>();
 			img.sprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Drag);
@@ -85,10 +85,10 @@ namespace Ships
 			if (_dragIcon == null)
 				return;
 
-			if (ShipMetaDragContext.ActiveGrid != null &&
-			    ShipMetaDragContext.ActiveGrid.TryGetSnappedDragPosition(eventData, out var snapped, out _, out _))
+			if (ShipMetaDragContext.ActiveSocket != null &&
+			    ShipMetaDragContext.ActiveSocket.TryGetSnappedScreenPosition(eventData, out var snapped))
 			{
-				UpdateDragIconSize(ShipMetaDragContext.ActiveGrid);
+				UpdateDragIconSize(ShipMetaDragContext.ActiveSocket);
 				_dragIcon.position = snapped;
 			}
 			else
@@ -100,9 +100,8 @@ namespace Ships
 		public void OnEndDrag(PointerEventData eventData)
 		{
 			ShipMetaDragContext.DraggedInventoryItem = null;
-			ShipMetaDragContext.ActiveGrid = null;
-			ShipMetaDragContext.DraggingFromFit = false;
-			ShipMetaDragContext.DraggedPlacement = null;
+			ShipMetaDragContext.ActiveSocket = null;
+			ShipSocketVisual.ClearHighlights();
 			if (_dragIcon != null)
 				Destroy(_dragIcon.gameObject);
 			_dragIcon = null;
@@ -110,47 +109,11 @@ namespace Ships
 
 		private void OnDisable()
 		{
-			// If the item visual is destroyed while dragging (e.g., equipped and removed from list),
-			// make sure the drag icon doesn't stay on screen.
 			if (_dragIcon != null)
 			{
 				Destroy(_dragIcon.gameObject);
 				_dragIcon = null;
 			}
-		}
-
-		private void UpdateActiveGrid(PointerEventData eventData)
-		{
-			if (EventSystem.current == null)
-				return;
-
-			var results = new List<RaycastResult>();
-			EventSystem.current.RaycastAll(eventData, results);
-
-			ShipGridVisual grid = null;
-			for (var i = 0; i < results.Count; i++)
-			{
-				var go = results[i].gameObject;
-				if (go == null)
-					continue;
-
-				grid = go.GetComponentInParent<ShipGridVisual>();
-				if (grid != null)
-					break;
-			}
-
-			ShipMetaDragContext.ActiveGrid = grid;
-		}
-
-		private void UpdateDragIconSize(ShipGridVisual grid)
-		{
-			if (_dragIcon == null || grid == null)
-				return;
-
-			if (!TryResolveWeaponGridSize(_item, out var w, out var h))
-				return;
-
-			_dragIcon.sizeDelta = new Vector2(w * grid.CellSize, h * grid.CellSize);
 		}
 
 		private void ApplyIcon()
@@ -164,55 +127,36 @@ namespace Ships
 			Icon.preserveAspect = true;
 		}
 
-		private void ApplyEnergyCost()
+		private void UpdateActiveGrid(PointerEventData eventData)
 		{
-			if (_energyCostText == null)
+			if (EventSystem.current == null)
 				return;
 
-			var cost = EnergyCostResolver.ResolveEnergyCost(_item);
-			if (Mathf.Abs(cost) < 0.001f)
+			var results = new System.Collections.Generic.List<RaycastResult>();
+			EventSystem.current.RaycastAll(eventData, results);
+
+			ShipSocketVisual socket = null;
+			for (var i = 0; i < results.Count; i++)
 			{
-				_energyCostText.gameObject.SetActive(false);
-				return;
+				var go = results[i].gameObject;
+				if (go == null)
+					continue;
+
+				socket = go.GetComponentInParent<ShipSocketVisual>();
+				if (socket != null)
+					break;
 			}
 
-			_energyCostText.gameObject.SetActive(true);
-			_energyCostText.text = Mathf.RoundToInt(cost).ToString();
+			ShipMetaDragContext.ActiveSocket = socket;
 		}
 
-		private static bool TryResolveWeaponGridSize(InventoryItem item, out int width, out int height)
+		private void UpdateDragIconSize(ShipSocketVisual socket)
 		{
-			width = 1;
-			height = 1;
+			if (_dragIcon == null || socket == null || _item == null)
+				return;
 
-			if (item == null)
-				return false;
-
-			if (!string.IsNullOrEmpty(item.ItemId))
-			{
-				var generatedPath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
-				if (ResourceLoader.TryLoadPersistentJson(generatedPath, out GeneratedWeaponItem weapon))
-				{
-					width = weapon.GridWidth > 0 ? weapon.GridWidth : 1;
-					height = weapon.GridHeight > 0 ? weapon.GridHeight : 1;
-					return true;
-				}
-			}
-
-			if (string.IsNullOrEmpty(item.TemplateId))
-				return false;
-
-			var templateId = item.TemplateId.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
-				? item.TemplateId
-				: item.TemplateId + ".json";
-
-			var templatePath = Path.Combine(PathConstant.WeaponsConfigs, templateId);
-			if (!ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template))
-				return false;
-
-			width = template.GridWidth > 0 ? template.GridWidth : 1;
-			height = template.GridHeight > 0 ? template.GridHeight : 1;
-			return true;
+			_dragIcon.sizeDelta = new Vector2(socket.GetVisualSize(), socket.GetVisualSize());
 		}
+
 	}
 }

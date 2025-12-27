@@ -14,6 +14,13 @@ namespace Ships
 				return;
 			}
 
+			var energy = EnergyCalculator.Calculate(state);
+			if (!energy.CanStart)
+			{
+				Debug.LogWarning($"[StartBattle] Not enough energy: used {energy.Used}/{energy.Max} (base {energy.BaseMax}, bonus {energy.BonusMax})");
+				return;
+			}
+
 			MetaBattleBridge.LoadFit(state);
 			SceneManager.LoadScene("Battle");
 		}

@@ -145,6 +145,25 @@ namespace Ships
 			return UnityEngine.Object.Instantiate(prefab, parent, worldPositionStays);
 		}
 
+		public static GameObject InstantiatePrefabById(string prefabId, Transform parent = null, bool worldPositionStays = false)
+		{
+			if (string.IsNullOrEmpty(prefabId))
+				return null;
+
+			if (PrefabCache.TryGetValue(prefabId, out var cached))
+				return UnityEngine.Object.Instantiate(cached, parent, worldPositionStays);
+
+			var prefab = LoadByIdWithFallback(prefabId);
+			if (prefab == null)
+			{
+				Debug.LogWarning($"[ResourceLoader] Prefab not found at Resources/{prefabId}");
+				return null;
+			}
+
+			PrefabCache[prefabId] = prefab;
+			return UnityEngine.Object.Instantiate(prefab, parent, worldPositionStays);
+		}
+
 		private static GameObject LoadPrefab(string slot, string prefabId)
 		{
 			if (string.IsNullOrEmpty(prefabId))
@@ -181,6 +200,23 @@ namespace Ships
 		private static string BuildPath(string root, string id)
 		{
 			return string.IsNullOrEmpty(root) ? id : $"{root}/{id}";
+		}
+
+		private static GameObject LoadByIdWithFallback(string id)
+		{
+			// Try exact id, then common folders (Ships/*) if no folder specified.
+			var prefab = Resources.Load<GameObject>(id);
+			if (prefab != null)
+				return prefab;
+
+			if (!id.Contains("/"))
+			{
+				prefab = Resources.Load<GameObject>($"Ships/{id}");
+				if (prefab != null)
+					return prefab;
+			}
+
+			return null;
 		}
 
 		private static ItemAssetInfo ResolveItemAssetInfo(InventoryItem item)
@@ -331,6 +367,8 @@ namespace Ships
 			public string IconOnDrag;
 			public string IconOnFit;
 			public string Prefab;
+			public string BattlePrefab;
+			public string MetaPrefab;
 		}
 	}
 

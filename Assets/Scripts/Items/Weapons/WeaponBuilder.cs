@@ -9,7 +9,17 @@ namespace Ships
 {
 	public static class WeaponBuilder
 	{
-		public static WeaponBase Build(string weaponId, Transform mountPoint, ShipBase owner)
+		public static WeaponBase BuildBattle(string weaponId, Transform mountPoint, ShipBase owner)
+		{
+			return BuildInternal(weaponId, mountPoint, owner, useMetaPrefab: false);
+		}
+
+		public static WeaponBase BuildMeta(string weaponId, Transform mountPoint, ShipBase owner)
+		{
+			return BuildInternal(weaponId, mountPoint, owner, useMetaPrefab: true);
+		}
+
+		private static WeaponBase BuildInternal(string weaponId, Transform mountPoint, ShipBase owner, bool useMetaPrefab)
 		{
 			var relativePath = Path.Combine(PathConstant.Inventory, weaponId + ".json");
 			if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
@@ -18,10 +28,14 @@ namespace Ships
 				return null;
 			}
 
-			var go = ResourceLoader.InstantiatePrefab(data.Slot, data.Prefab, mountPoint, false);
+			var prefabId = useMetaPrefab
+				? (!string.IsNullOrEmpty(data.MetaPrefab) ? data.MetaPrefab : data.Prefab)
+				: (!string.IsNullOrEmpty(data.BattlePrefab) ? data.BattlePrefab : data.Prefab);
+
+			var go = ResourceLoader.InstantiatePrefab(data.Slot, prefabId, mountPoint, false);
 			if (go == null)
 			{
-				Debug.LogError($"[WeaponBuilder] Failed to instantiate weapon prefab '{data.Prefab}' (Slot='{data.Slot}')");
+				Debug.LogError($"[WeaponBuilder] Failed to instantiate weapon prefab '{prefabId}' (Slot='{data.Slot}')");
 				return null;
 			}
 
@@ -68,6 +82,10 @@ namespace Ships
 		public string Size;
 		public string Icon;
 		public string Prefab;
+		public string BattlePrefab;
+		public string MetaPrefab;
+
+		public float EnergyCost = 0f;
 
 		public int GridWidth = 1;
 		public int GridHeight = 1;

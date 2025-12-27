@@ -156,6 +156,8 @@ namespace Ships
 				Name = template.Name,
 				Rarity = rarity,
 				Prefab = template.Prefab,
+				BattlePrefab = template.BattlePrefab,
+				MetaPrefab = template.MetaPrefab,
 				Slot = template.Slot,
 				DamageType = template.DamageType,
 				Tags = EnumParsingHelpers.NormalizeStrings(template.Tags),
@@ -303,6 +305,8 @@ namespace Ships
 		public float FireArcDeg = 360f;
 		public float EnergyCost = 0f;
 		public string Prefab;
+		public string BattlePrefab;
+		public string MetaPrefab;
 		public EffectTemplateRef[] AvailableEffects;
 
 		public RarityEntry[] Rarities;
@@ -337,6 +341,8 @@ namespace Ships
 		public string IconOnDrag;
 		public string IconOnFit;
 		public string Prefab;
+		public string BattlePrefab;
+		public string MetaPrefab;
 
 		public int GridWidth = 1;
 		public int GridHeight = 1;

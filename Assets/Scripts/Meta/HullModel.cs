@@ -12,6 +12,8 @@ namespace Ships
 		public string id;
 		public string name;
 		public int cost;
+		public string BattlePrefab;
+		public string MetaPrefab;
 		public int Energy;
 		public StatContainer stats;
 		public ShieldModel Shield;
@@ -19,6 +21,8 @@ namespace Ships
 		// Grid definitions for meta fitting + in-battle weapon/module placement.
 		public float gridCellSize = 0.40f;
 		public List<HullGridModel> grids;
+		// Socket definitions for the new socket-based fitting.
+		public List<HullSocketModel> sockets;
 		public List<EffectModel> uniqueEffects;
 		public List<LevelModel> leveling;
 	}
@@ -35,6 +39,16 @@ namespace Ships
 		public Vector2 origin;
 
 		// Optional extra rotation of the grid relative to ship (degrees around Z).
+		public float rotationDeg = 0f;
+	}
+
+	[Serializable]
+	public class HullSocketModel
+	{
+		public string id;
+		public ShipGridType type = ShipGridType.WeaponGrid;
+		public string size;
+		public Vector2 position;
 		public float rotationDeg = 0f;
 	}
 	[Serializable]

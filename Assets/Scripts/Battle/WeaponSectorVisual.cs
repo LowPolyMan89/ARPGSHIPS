@@ -21,6 +21,15 @@ namespace Ships
 		private float _lastArc = -1f;
 		private ArcSpace _lastSpace = ArcSpace.WorldXY;
 
+		private bool ShouldUseWeaponStats()
+		{
+			// В мете показываем радиус, настроенный на компоненте (не из конфига/статов).
+			if (!_useWeaponStats || MetaController.Instance != null)
+				return false;
+
+			return true;
+		}
+
 		protected override void Awake()
 		{
 			base.Awake();
@@ -66,7 +75,7 @@ namespace Ships
 
 		private float ResolveArc()
 		{
-			if (_useWeaponStats && _weapon != null)
+			if (_weapon != null)
 				return _weapon.FireArcDeg <= 0f ? 360f : _weapon.FireArcDeg;
 
 			return Angle;
@@ -74,7 +83,7 @@ namespace Ships
 
 		private float ResolveRange()
 		{
-			if (_useWeaponStats && _weapon?.Model?.Stats != null)
+			if (ShouldUseWeaponStats() && _weapon?.Model?.Stats != null)
 			{
 				if (_weapon.Model.Stats.TryGetStat(StatType.FireRange, out var stat))
 					return stat.Current;

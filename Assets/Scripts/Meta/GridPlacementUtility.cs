@@ -1,8 +1,10 @@
-using System;
 using System.Collections.Generic;
 
 namespace Ships
 {
+	/// <summary>
+	/// Утилита для проверки размещения прямоугольников в сетке.
+	/// </summary>
 	public static class GridPlacementUtility
 	{
 		public static bool CanPlaceRect(
@@ -24,28 +26,28 @@ namespace Ships
 			if (x + width > gridWidth || y + height > gridHeight)
 				return false;
 
+			if (existing == null)
+				return true;
+
 			for (var i = 0; i < existing.Count; i++)
 			{
 				var p = existing[i];
+				if (p == null)
+					continue;
+
 				if (!string.IsNullOrEmpty(ignoreItemId) && p.ItemId == ignoreItemId)
 					continue;
 
-				if (RectsOverlap(x, y, width, height, p.X, p.Y, p.Width, p.Height))
+				var aRight = x + width;
+				var aTop = y + height;
+				var bRight = p.X + p.Width;
+				var bTop = p.Y + p.Height;
+				var overlap = x < bRight && aRight > p.X && y < bTop && aTop > p.Y;
+				if (overlap)
 					return false;
 			}
 
 			return true;
 		}
-
-		private static bool RectsOverlap(int ax, int ay, int aw, int ah, int bx, int by, int bw, int bh)
-		{
-			var aRight = ax + aw;
-			var aTop = ay + ah;
-			var bRight = bx + bw;
-			var bTop = by + bh;
-
-			return ax < bRight && aRight > bx && ay < bTop && aTop > by;
-		}
 	}
 }
-

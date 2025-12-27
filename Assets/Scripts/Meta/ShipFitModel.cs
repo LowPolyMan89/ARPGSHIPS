@@ -1,5 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 namespace Ships
 {
@@ -25,10 +26,15 @@ namespace Ships
 			public ShipGridType GridType;
 			public string ItemId;
 
+			// Старые значения в клетках грида (оставлены для совместимости и импортов).
 			public int X;
 			public int Y;
 			public int Width = 1;
 			public int Height = 1;
+
+			// Новая запись: позиция и поворот внутри грида (локальные единицы грида, от нижнего левого угла).
+			public Vector2 Position;
+			public float RotationDeg;
 		}
 	}
 
