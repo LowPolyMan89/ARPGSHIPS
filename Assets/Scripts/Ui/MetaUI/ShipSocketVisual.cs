@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 using System.IO;
@@ -225,6 +225,7 @@ namespace Ships
 
 			_currentHandle = mount.gameObject.AddComponent<EquippedItemHandle>();
 			_currentHandle.Init(this, item.ItemId);
+			SetRaycastEnabled(false);
 		}
 
 		private void EnsurePointerCollider(Transform mount)
@@ -479,6 +480,12 @@ namespace Ships
 			}
 		}
 
+		private void SetRaycastEnabled(bool enabled)
+		{
+			if (_image != null)
+				_image.raycastTarget = enabled;
+		}
+
 		private class EquippedItemHandle : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler, IPointerEnterHandler, IPointerExitHandler
 		{
 			private ShipSocketVisual _socket;
@@ -596,25 +603,27 @@ namespace Ships
 				var targetSocket = ShipMetaDragContext.ActiveSocket;
 				ShipMetaDragContext.ActiveSocket = null;
 
-				// Если предмет не был помещён (DraggedInventoryItem не обнулили в OnDrop), вернуть в инвентарь.
 				if (ShipMetaDragContext.DraggedInventoryItem != null)
 				{
 					var item = ShipMetaDragContext.DraggedInventoryItem;
 					ShipMetaDragContext.DraggedInventoryItem = null;
 
-					var target = targetSocket != null && targetSocket.CanAccept(item) ? targetSocket : _socket;
-					if (target != null)
+					if (targetSocket != null && targetSocket != _socket && targetSocket.CanAccept(item))
 					{
-						target.ReequipItem(item);
+						targetSocket.ReequipItem(item);
+					}
+					else if (targetSocket == null)
+					{
+						ClearPlacement(save: true, fireEvents: true);
 					}
 					else
 					{
-						MetaSaveSystem.Save(MetaController.Instance.State);
-						GameEvent.InventoryUpdated(MetaController.Instance.State.InventoryModel);
+						_socket?.ReequipItem(item);
 					}
 				}
 
 				ShipSocketVisual.ClearHighlights();
+				_socket?.SetRaycastEnabled(_socket._currentHandle == null);
 				Destroy(gameObject);
 			}
 
@@ -742,6 +751,8 @@ namespace Ships
 				var statsCtrl = MetaController.Instance?.MetaVisual?.StatsController;
 				if (statsCtrl != null)
 					statsCtrl.Refresh();
+
+				_socket?.SetRaycastEnabled(true);
 			}
 		}
 	}

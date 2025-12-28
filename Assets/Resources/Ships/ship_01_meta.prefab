@@ -283,6 +283,8 @@ MonoBehaviour:
   RotationDeg: 0
   _idleColor: {r: 1, g: 1, b: 1, a: 0.08}
   _hoverColor: {r: 1, g: 1, b: 0, a: 0.25}
+  _validColor: {r: 0, g: 1, b: 0, a: 0.3}
+  _invalidColor: {r: 1, g: 0, b: 0, a: 0.3}
 --- !u!1 &4588314432634970696
 GameObject:
   m_ObjectHideFlags: 0
@@ -480,6 +482,8 @@ MonoBehaviour:
   RotationDeg: 0
   _idleColor: {r: 1, g: 1, b: 1, a: 0.08}
   _hoverColor: {r: 1, g: 1, b: 0, a: 0.25}
+  _validColor: {r: 0, g: 1, b: 0, a: 0.3}
+  _invalidColor: {r: 1, g: 0, b: 0, a: 0.3}
 --- !u!1 &5785223208190821316
 GameObject:
   m_ObjectHideFlags: 0
@@ -643,6 +647,8 @@ MonoBehaviour:
   RotationDeg: 0
   _idleColor: {r: 1, g: 1, b: 1, a: 0.08}
   _hoverColor: {r: 1, g: 1, b: 0, a: 0.25}
+  _validColor: {r: 0, g: 1, b: 0, a: 0.3}
+  _invalidColor: {r: 1, g: 0, b: 0, a: 0.3}
 --- !u!1 &5993986242120222663
 GameObject:
   m_ObjectHideFlags: 0
