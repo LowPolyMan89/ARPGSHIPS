@@ -8,10 +8,10 @@
     "Armor": 0,
     "Shield": 0,
     "ShieldRegen": 2,
-    "MoveSpeed": 6,
+    "MoveSpeed": 3,
     "MoveSpeedRear" : 2,
     "TurnSpeed": 120,
-    "Acceleration": 6,
+    "Acceleration": 0.5,
     "BrakePower": 5
   },
   "Shield": {
