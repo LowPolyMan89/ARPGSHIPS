@@ -14,9 +14,10 @@ namespace Ships
 		private Transform _dragWorld;
 		private float _dragWorldDepth;
 		private Canvas _canvas;
+		private RectTransform _rectTransform;
+		private GameObject _iconInstance;
 
 		[Header("UI")]
-		public Image Icon;
 		public Text CountLabel;
 		public Button Button;
 
@@ -25,6 +26,7 @@ namespace Ships
 			_inventoryView = inventoryView;
 			_item = item;
 			_canvas = GetComponentInParent<Canvas>();
+			_rectTransform = GetComponent<RectTransform>();
 			ApplyIcon();
 
 			Button.onClick.RemoveAllListeners();
@@ -62,12 +64,27 @@ namespace Ships
 			MetaController.Instance?.MetaVisual?.HideItemInfoWindow();
 			ShipSocketVisual.HighlightSockets(_item);
 
-			if (_canvas == null || Icon == null)
+			if (_canvas == null || _rectTransform == null)
 				return;
 
 			var forceWorldPrefab = false;
+			var dragPrefab = ResourceLoader.LoadItemIconPrefab(_item, ItemIconContext.Drag);
 
-			if (!forceWorldPrefab)
+			if (!forceWorldPrefab && dragPrefab != null)
+			{
+				var go = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup));
+				go.transform.SetParent(_canvas.transform, false);
+				_dragIcon = (RectTransform)go.transform;
+				_dragIcon.anchorMin = new Vector2(0.5f, 0.5f);
+				_dragIcon.anchorMax = new Vector2(0.5f, 0.5f);
+				_dragIcon.pivot = new Vector2(0.5f, 0.5f);
+				_dragIcon.sizeDelta = _rectTransform.rect.size;
+				var iconInstance = Instantiate(dragPrefab, go.transform, false);
+				iconInstance.transform.SetSiblingIndex(0);
+				go.GetComponent<CanvasGroup>().blocksRaycasts = false;
+				_dragIcon.position = eventData.position;
+			}
+			else if (!forceWorldPrefab)
 			{
 				var go = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
 				go.transform.SetParent(_canvas.transform, false);
@@ -75,7 +92,7 @@ namespace Ships
 				_dragIcon.anchorMin = new Vector2(0.5f, 0.5f);
 				_dragIcon.anchorMax = new Vector2(0.5f, 0.5f);
 				_dragIcon.pivot = new Vector2(0.5f, 0.5f);
-				_dragIcon.sizeDelta = ((RectTransform)Icon.transform).rect.size;
+				_dragIcon.sizeDelta = _rectTransform.rect.size;
 				var img = go.GetComponent<Image>();
 				img.sprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Drag);
 				img.raycastTarget = false;
@@ -161,13 +178,18 @@ namespace Ships
 
 		private void ApplyIcon()
 		{
-			if (Icon == null)
+			if (_iconInstance != null)
+			{
+				Destroy(_iconInstance);
+				_iconInstance = null;
+			}
+
+			var prefab = ResourceLoader.LoadItemIconPrefab(_item, ItemIconContext.Inventory);
+			if (prefab == null)
 				return;
 
-			var sprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Inventory);
-			Icon.sprite = sprite;
-			Icon.enabled = sprite != null;
-			Icon.preserveAspect = true;
+			_iconInstance = Instantiate(prefab, transform, false);
+			_iconInstance.transform.SetSiblingIndex(0);
 		}
 
 		private void UpdateActiveGrid(PointerEventData eventData)

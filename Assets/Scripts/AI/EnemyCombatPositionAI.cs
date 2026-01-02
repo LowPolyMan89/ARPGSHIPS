@@ -45,7 +45,7 @@ namespace Ships
 
 			_fireRange = WeaponRangeResolver.GetMinFireRange(_tank);
 
-			var dist = Vector3.Distance(transform.position, _target.position);
+			var dist = PlanarDistance(transform.position, _target.position);
 
 			// 1) нет позиции → ищем
 			if (!_hasCombatPos)
@@ -103,11 +103,10 @@ namespace Ships
 		private void BuildCombatPosition()
 		{
 			var wantDist = _fireRange * _stopDistanceFactor;
-			var baseDir = transform.position - _target.position;
-			baseDir.y = 0f;
+			var baseDir = FlattenToPlane(transform.position - _target.position);
 
 			if (baseDir.sqrMagnitude < 0.001f)
-				baseDir = transform.forward;
+				baseDir = FlattenToPlane(GetDefaultForward());
 
 			baseDir.Normalize();
 
@@ -122,7 +121,7 @@ namespace Ships
 			var step = 360f / Mathf.Max(4, _positionSamples);
 			for (var i = 0; i < _positionSamples; i++)
 			{
-				var dir = Quaternion.Euler(0f, step * i, 0f) * baseDir;
+				var dir = Quaternion.AngleAxis(step * i, GetPlaneNormal()) * baseDir;
 				if (TryCandidate(dir, wantDist, out pos))
 				{
 					AcceptPosition(pos);
@@ -130,13 +129,13 @@ namespace Ships
 				}
 			}
 
-			// 3) ничего не нашли — едем прямо к цели
-			_nav.SetDestination(_target.position);
+			// 3) ничего не нашли - едем прямо к цели
+			_nav.SetDestination(AlignToPlane(_target.position));
 		}
 
 		private bool TryCandidate(Vector3 dir, float dist, out Vector3 result)
 		{
-			var raw = _target.position + dir * dist;
+			var raw = AlignToPlane(_target.position + dir * dist);
 
 			if (!_nav.SampleOnNavMesh(raw, _navSampleRadius, out result))
 				return false;
@@ -156,11 +155,59 @@ namespace Ships
 			_hasCombatPos = true;
 			_nav.SetDestination(_combatPos);
 		}
+
 		private void UpdateTarget()
 		{
 			_target = Battle.Instance && Battle.Instance.Player
 				? Battle.Instance.Player.transform
 				: null;
+		}
+
+		private Battle.WorldPlane CurrentPlane => Battle.Instance ? Battle.Instance.Plane : Battle.WorldPlane.XY;
+
+		private Vector3 FlattenToPlane(Vector3 v)
+		{
+			return CurrentPlane == Battle.WorldPlane.XY
+				? new Vector3(v.x, v.y, 0f)
+				: new Vector3(v.x, 0f, v.z);
+		}
+
+		private Vector3 AlignToPlane(Vector3 pos)
+		{
+			if (CurrentPlane == Battle.WorldPlane.XY)
+			{
+				pos.z = transform.position.z;
+			}
+			else
+			{
+				pos.y = transform.position.y;
+			}
+
+			return pos;
+		}
+
+		private Vector3 GetDefaultForward()
+		{
+			var forward = CurrentPlane == Battle.WorldPlane.XY
+				? transform.up
+				: transform.forward;
+
+			forward = FlattenToPlane(forward);
+
+			if (forward.sqrMagnitude < 0.001f)
+				forward = CurrentPlane == Battle.WorldPlane.XY ? Vector3.up : Vector3.forward;
+
+			return forward;
+		}
+
+		private Vector3 GetPlaneNormal()
+		{
+			return CurrentPlane == Battle.WorldPlane.XY ? Vector3.forward : Vector3.up;
+		}
+
+		private float PlanarDistance(Vector3 a, Vector3 b)
+		{
+			return FlattenToPlane(a - b).magnitude;
 		}
 	}
 }

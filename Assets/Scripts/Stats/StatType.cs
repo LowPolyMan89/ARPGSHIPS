@@ -28,6 +28,7 @@
 		Accuracy,
 		AmmoCount,
 		ReloadTime,
+		RotationSpeed,
 
 		// Resistances
 		KineticResist,

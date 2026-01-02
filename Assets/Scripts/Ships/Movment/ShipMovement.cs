@@ -223,7 +223,35 @@ namespace Ships
             else
                 nextPos.y = _fixedAxis;
 
-            var finalPos = nextPos;
+            var currentPos2 = new Vector2(currentPos.x, currentPos.y);
+            var nextPos2 = new Vector2(nextPos.x, nextPos.y);
+            var finalPos2 = nextPos2;
+
+            // Столкновения по плоскости XY (Physics2D)
+            if (_collision != null &&
+                _collision.Resolve2D(currentPos2, nextPos2, out var resolvedPos2))
+            {
+                var delta = resolvedPos2 - currentPos2;
+                if (delta.sqrMagnitude < 0.0001f)
+                {
+                    _velocity2D = Vector2.zero;
+                    _speedSigned2D = 0f;
+                    finalPos2 = currentPos2;
+                }
+                else
+                {
+                    var slideVel = delta / Time.deltaTime;
+                    _velocity2D = slideVel;
+                    _speedSigned2D = slideVel.magnitude * Mathf.Sign(Vector2.Dot(slideVel, (Vector2)transform.up));
+                    finalPos2 = resolvedPos2;
+                }
+            }
+            else
+            {
+                finalPos2 = nextPos2;
+            }
+
+            var finalPos = new Vector3(finalPos2.x, finalPos2.y, _fixedAxis);
             if (Battle.Instance != null)
             {
                 var unclamped = finalPos;
@@ -244,6 +272,7 @@ namespace Ships
             }
 
             transform.position = finalPos;
+            _collision?.ResolveShipOverlap2D();
         }
         // =====================================================================
         // ROTATION

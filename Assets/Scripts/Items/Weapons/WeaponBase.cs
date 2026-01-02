@@ -15,6 +15,7 @@ namespace Ships
 		[Tooltip("Вращающаяся часть (турель). Если не задано, используется root.")]
 		public Transform TurretTransform;
 
+		public bool IsActive = true;
 		public Transform FirePoint;
 		private int _ammo;
 		private bool _isReloading;
@@ -84,6 +85,9 @@ namespace Ships
 
 		public void TryFire(ITargetable target)
 		{
+			if (!IsActive)
+				return;
+
 			if (!CanFire())
 				return;
 

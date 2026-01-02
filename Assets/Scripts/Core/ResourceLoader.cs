@@ -29,6 +29,7 @@ namespace Ships
 		};
 
 		private static readonly Dictionary<string, Sprite> IconCache = new(StringComparer.OrdinalIgnoreCase);
+		private static readonly Dictionary<string, GameObject> IconPrefabCache = new(StringComparer.OrdinalIgnoreCase);
 		private static readonly Dictionary<string, GameObject> PrefabCache = new(StringComparer.OrdinalIgnoreCase);
 
 		public static string GetStreamingPath(params string[] segments) =>
@@ -119,6 +120,27 @@ namespace Ships
 
 			IconCache[key] = sprite;
 			return sprite;
+		}
+
+		public static GameObject LoadItemIconPrefab(InventoryItem item, ItemIconContext context)
+		{
+			var info = ResolveItemAssetInfo(item);
+			var iconId = info.GetIconId(context);
+			if (string.IsNullOrEmpty(iconId))
+				return null;
+
+			var root = GetIconRoot(info.Slot);
+			var key = BuildPath(root, iconId);
+
+			if (IconPrefabCache.TryGetValue(key, out var cached))
+				return cached;
+
+			var prefab = Resources.Load<GameObject>(key);
+			if (prefab == null)
+				Debug.LogWarning($"[ResourceLoader] Icon prefab not found at Resources/{key} (Slot='{info.Slot}')");
+
+			IconPrefabCache[key] = prefab;
+			return prefab;
 		}
 
 		public static GameObject LoadItemPrefab(InventoryItem item)

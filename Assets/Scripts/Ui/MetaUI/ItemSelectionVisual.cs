@@ -11,7 +11,6 @@ namespace Ships
 	public class ItemSelectionVisual : MonoBehaviour
 	{
 		[SerializeField] private StatInfoElementVisual _mainStatElementVisualPrefab;
-		[SerializeField] private StatInfoElementVisual _effectStatElementVisualPrefab;
 		[SerializeField] private ItemVisualInfoPanel _selectedItemPanel;
 
 		private const float OffsetX = 20f;
@@ -19,7 +18,6 @@ namespace Ships
 
 		// ? задержка тултипа
 		[SerializeField] private float _tooltipDelay = 0.4f;
-
 		private Coroutine _tooltipRoutine;
 
 		private static readonly Dictionary<string, WeaponStatDescriptor> WeaponStatMap =
@@ -126,17 +124,12 @@ namespace Ships
 			if (!TryLoadWeaponData(item, out var weapon, out _))
 				return;
 
-			if (_selectedItemPanel.ItemImage != null)
-			{
-				var sprite = ResourceLoader.LoadItemIcon(item);
-				_selectedItemPanel.ItemImage.sprite = sprite;
-				_selectedItemPanel.ItemImage.enabled = sprite != null;
-			}
-
 			_selectedItemPanel.ItemName.text = item.TemplateId;
 
 			var statsDict = BuildStatsDictionary(weapon.Stats);
 			PopulateMainStats(statsDict, weapon.DamageType);
+			if (weapon.Effects != null && weapon.Effects.Count > 0)
+				AddStatElement(_mainStatElementVisualPrefab, _selectedItemPanel.MainStatRoot, "------------");
 			PopulateEffectStats(weapon);
 		}
 
@@ -188,7 +181,7 @@ namespace Ships
 				if (string.IsNullOrEmpty(text))
 					continue;
 
-				AddStatElement(_effectStatElementVisualPrefab, _selectedItemPanel.EffectStatRoot, text);
+				AddEffectElement(_mainStatElementVisualPrefab, _selectedItemPanel.MainStatRoot, text);
 			}
 		}
 
@@ -352,6 +345,18 @@ namespace Ships
 			if (element.StatText != null)
 				element.StatText.text = text;
 		}
+		private void AddEffectElement(StatInfoElementVisual prefab, RectTransform root, string text)
+		{
+			if (prefab == null || root == null || string.IsNullOrEmpty(text))
+				return;
+
+			var element = Instantiate(prefab, root);
+			var elementRect = element.GetComponent<RectTransform>();
+			if (elementRect != null)
+				elementRect.sizeDelta = new Vector2(elementRect.sizeDelta.x, 70f);
+			if (element.StatText != null)
+				element.StatText.text = text;
+		}
 
 		private static void ClearRoot(RectTransform root)
 		{
@@ -393,7 +398,6 @@ namespace Ships
 	{
 		public GameObject PanelGameObject;
 		public TMP_Text ItemName;
-		public Image ItemImage;
 		public RectTransform MainStatRoot;
 		public RectTransform EffectStatRoot;
 		public Button EquipButton;

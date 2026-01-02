@@ -40,6 +40,7 @@ namespace Ships
 			}
 
 			var weapon = go.GetComponent<WeaponBase>();
+			weapon.WeaponTemplateId = data.TemplateId;
 
 			// ---------- Stats ----------
 			var stats = new Stats();
