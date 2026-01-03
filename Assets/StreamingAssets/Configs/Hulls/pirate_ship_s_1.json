@@ -5,7 +5,6 @@
   "Energy": 50,
   "stats": {
     "HitPoint": 200,
-    "Armor": 0,
     "Shield": 0,
     "ShieldRegen": 2,
     "MoveSpeed": 3,

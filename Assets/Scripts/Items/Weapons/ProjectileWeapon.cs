@@ -13,7 +13,6 @@ namespace Ships
 		{
 			var dmg = RollDamage();
 			var spd = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
-			var ap  = Model.Stats.GetStat(StatType.ArmorPierce).Current;
 
 			var fp = FirePoint != null ? FirePoint : transform;
 			var plane = Battle.Instance != null ? Battle.Instance.Plane : Battle.WorldPlane.XY;
@@ -29,7 +28,6 @@ namespace Ships
 				direction: dir,
 				dmg,
 				spd,
-				ap,
 				this
 			);
 		}

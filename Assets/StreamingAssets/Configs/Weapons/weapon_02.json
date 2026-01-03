@@ -1,4 +1,4 @@
-﻿{
+{
   "Id": "weapon_02",
   "Name": "Medium Cannon",
   "IconInventory": "weapon_02_img",
@@ -48,7 +48,6 @@
           { "Name": "RotationSpeed",   "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 5,  "Max": 7 },
           { "Name": "Accuracy",        "Min": 1,  "Max": 2 },
-          { "Name": "ArmorPierce",     "Min": 2,  "Max": 5 },
           { "Name": "FireRate",        "Min": 2,  "Max": 3 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
           { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
@@ -69,7 +68,6 @@
           { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 5, "Max": 7 },
           { "Name": "Accuracy", "Min": 1, "Max": 2 },
-          { "Name": "ArmorPierce", "Min": 2, "Max": 5 },
           { "Name": "FireRate", "Min": 2, "Max": 3 },
           { "Name": "AmmoCount", "Min": 12, "Max": 16 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
@@ -91,7 +89,6 @@
           { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 5, "Max": 7 },
           { "Name": "Accuracy", "Min": 1, "Max": 2 },
-          { "Name": "ArmorPierce", "Min": 2, "Max": 5 },
           { "Name": "FireRate", "Min": 2, "Max": 3 },
           { "Name": "AmmoCount", "Min": 12, "Max": 20 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
@@ -113,7 +110,6 @@
           { "Name": "RotationSpeed", "Min": 11, "Max": 18 },
           { "Name": "ProjectileSpeed", "Min": 5.5, "Max": 8 },
           { "Name": "Accuracy", "Min": 1.2, "Max": 2.5 },
-          { "Name": "ArmorPierce", "Min": 3, "Max": 7 },
           { "Name": "FireRate", "Min": 2.2, "Max": 3.5 },
           { "Name": "AmmoCount", "Min": 14, "Max": 22 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
@@ -135,7 +131,6 @@
           { "Name": "RotationSpeed", "Min": 12, "Max": 20 },
           { "Name": "ProjectileSpeed", "Min": 6,  "Max": 9 },
           { "Name": "Accuracy", "Min": 1.5, "Max": 3 },
-          { "Name": "ArmorPierce", "Min": 4, "Max": 8 },
           { "Name": "FireRate", "Min": 2.5, "Max": 4 },
           { "Name": "AmmoCount", "Min": 16, "Max": 25 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
@@ -146,3 +141,4 @@
     }
   ]
 }
+

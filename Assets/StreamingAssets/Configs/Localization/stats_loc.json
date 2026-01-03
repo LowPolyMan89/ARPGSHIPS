@@ -10,7 +10,6 @@
     { "Id": "brakepower", "Values": [ "Тормозная сила", "Brake Power" ] },
     { "Id": "shieldrestoredelay", "Values": [ "Задержка восстановления щита", "Shield Restore Delay" ] },
     { "Id": "backspeed", "Values": [ "Скорость назад", "Backward Speed" ] },
-    { "Id": "armor", "Values": [ "Броня", "Armor" ] },
     { "Id": "firerate", "Values": [ "Скорострельность", "Fire Rate" ] },
     { "Id": "mindamage", "Values": [ "Мин. урон", "Min Damage" ] },
     { "Id": "maxdamage", "Values": [ "Макс. урон", "Max Damage" ] },
@@ -18,18 +17,27 @@
     { "Id": "critchance", "Values": [ "Шанс крит. удара", "Crit Chance" ] },
     { "Id": "critmultiplier", "Values": [ "Крит. урон", "Crit Damage" ] },
     { "Id": "projectilespeed", "Values": [ "Скорость снаряда", "Projectile Speed" ] },
-    { "Id": "armorpierce", "Values": [ "Пробитие брони", "Armor Pierce" ] },
     { "Id": "firerange", "Values": [ "Дальность стрельбы", "Fire Range" ] },
     { "Id": "accuracy", "Values": [ "Точность", "Accuracy" ] },
     { "Id": "ammocount", "Values": [ "Боезапас", "Ammo Count" ] },
     { "Id": "reloadtime", "Values": [ "Время перезарядки", "Reload Time" ] },
     { "Id": "rotationspeed", "Values": [ "Скорость вращения", "Rotation Speed" ] },
+    { "Id": "kineticdamagebonus", "Values": [ "Kinetic Damage Bonus", "Kinetic Damage Bonus" ] },
+    { "Id": "thermaldamagebonus", "Values": [ "Thermal Damage Bonus", "Thermal Damage Bonus" ] },
+    { "Id": "energydamagebonus", "Values": [ "Energy Damage Bonus", "Energy Damage Bonus" ] },
     { "Id": "kineticresist", "Values": [ "Сопротивление кинетике", "Kinetic Resist" ] },
     { "Id": "thermalresist", "Values": [ "Сопротивление термике", "Thermal Resist" ] },
-    { "Id": "explosionresist", "Values": [ "Сопротивление взрыву", "Explosion Resist" ] },
+    { "Id": "energyresist", "Values": [ "Сопротивление энергии", "Energy Resist" ] },
     { "Id": "duration", "Values": [ "Длительность", "Duration" ] },
     { "Id": "value", "Values": [ "Значение", "Value" ] },
     { "Id": "chance", "Values": [ "Шанс", "Chance" ] },
     { "Id": "energy", "Values": [ "Энергия", "Energy" ] }
   ]
 }
+
+
+
+
+
+
+

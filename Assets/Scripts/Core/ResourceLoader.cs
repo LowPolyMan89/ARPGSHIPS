@@ -243,7 +243,7 @@ namespace Ships
 
 		private static ItemAssetInfo ResolveItemAssetInfo(InventoryItem item)
 		{
-			var meta = LoadGeneratedMeta(item) ?? LoadTemplateMeta(item);
+			var meta = LoadTemplateMeta(item);
 
 			var iconInventory = ResolveIcon(meta?.IconInventory, meta?.Icon);
 			// Для drag не используем фолбэки: если IconOnDrag пустой, вернём null.
@@ -270,15 +270,6 @@ namespace Ships
 			}
 
 			return null;
-		}
-
-		private static BasicItemMeta LoadGeneratedMeta(InventoryItem item)
-		{
-			if (item == null || string.IsNullOrEmpty(item.ItemId))
-				return null;
-
-			var generatedPath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
-			return TryLoadPersistentJson(generatedPath, out BasicItemMeta meta) ? meta : null;
 		}
 
 		private static BasicItemMeta LoadTemplateMeta(InventoryItem item)

@@ -2,8 +2,10 @@
   "LocalizationElements": [
     { "Id": "projectile", "Values": [ "Снаряд", "Projectile" ] },
     { "Id": "ray", "Values": [ "Луч", "Ray" ] },
-    { "Id": "thermal", "Values": [ "Термический", "Thermal" ] },
-    { "Id": "kinetic", "Values": [ "Кинетический", "Kinetic" ] },
-    { "Id": "explosion", "Values": [ "Взрывной", "Explosion" ] }
+    { "Id": "thermal", "Values": [ "Терм.", "Thermal" ] },
+    { "Id": "kinetic", "Values": [ "Кинет.", "Kinetic" ] },
+    { "Id": "energy", "Values": [ "Энерг.", "Energy" ] }
   ]
 }
+
+

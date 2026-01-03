@@ -194,6 +194,7 @@ namespace Ships
 
 			Init(stats);
 			FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg;
+			ApplyTemplateMeta(Model, template);
 		}
 
 		private static Stats BuildStatsFromTemplate(WeaponTemplate template)
@@ -226,6 +227,82 @@ namespace Ships
 			}
 
 			return stats;
+		}
+
+		private static void ApplyTemplateMeta(WeaponModel model, WeaponTemplate template)
+		{
+			if (model == null || template == null)
+				return;
+
+			model.IsAutoFire = ResolveIsAutoFire(template);
+
+			if (TryResolveDamageType(template, out var damageTag))
+			{
+				model.HasDamageType = true;
+				model.DamageType = damageTag;
+			}
+		}
+
+		private static bool ResolveIsAutoFire(WeaponTemplate template)
+		{
+			if (template?.Tags == null || template.Tags.Length == 0)
+				return false;
+
+			var tags = EnumParsingHelpers.ParseTags(template.Tags);
+			for (var i = 0; i < tags.Length; i++)
+			{
+				if (tags[i] == Tags.Automatic)
+					return true;
+			}
+
+			return false;
+		}
+
+		private static bool TryResolveDamageType(WeaponTemplate template, out Tags tag)
+		{
+			if (template == null)
+			{
+				tag = default;
+				return false;
+			}
+
+			if (TryParseDamageType(template.DamageType, out tag))
+				return true;
+
+			if (template.Tags != null && template.Tags.Length > 0)
+			{
+				var tags = EnumParsingHelpers.ParseTags(template.Tags);
+				for (var i = 0; i < tags.Length; i++)
+				{
+					if (IsDamageTag(tags[i]))
+					{
+						tag = tags[i];
+						return true;
+					}
+				}
+			}
+
+			tag = default;
+			return false;
+		}
+
+		private static bool TryParseDamageType(string value, out Tags tag)
+		{
+			if (string.IsNullOrEmpty(value))
+			{
+				tag = default;
+				return false;
+			}
+
+			if (!System.Enum.TryParse(value, true, out tag))
+				return false;
+
+			return IsDamageTag(tag);
+		}
+
+		private static bool IsDamageTag(Tags tag)
+		{
+			return tag == Tags.Kinetic || tag == Tags.Thermal || tag == Tags.Energy;
 		}
 	}
 }

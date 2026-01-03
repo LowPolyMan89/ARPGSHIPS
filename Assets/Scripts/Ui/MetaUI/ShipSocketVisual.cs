@@ -696,19 +696,11 @@ namespace Ships
 				if (item == null)
 					return false;
 
-				var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
-				if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
-					return false;
-
-				var prefabId = !string.IsNullOrEmpty(data.MetaPrefab) ? data.MetaPrefab : data.Prefab;
-				if (string.IsNullOrEmpty(prefabId))
-					return false;
-
 				Transform parent = null;
 				if (MetaController.Instance != null)
 					parent = MetaController.Instance.ShipPodium;
 
-				var go = ResourceLoader.InstantiatePrefab(data.Slot, prefabId, parent, false);
+				var go = ResourceLoader.InstantiateItemPrefab(item, parent, false);
 				if (go == null)
 					return false;
 

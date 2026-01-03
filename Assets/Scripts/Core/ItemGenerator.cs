@@ -155,18 +155,11 @@ namespace Ships
 				TemplateId = template.Id,
 				Name = template.Name,
 				Rarity = rarity,
-				Prefab = template.Prefab,
-				BattlePrefab = template.BattlePrefab,
-				MetaPrefab = template.MetaPrefab,
 				Slot = template.Slot,
 				DamageType = template.DamageType,
 				Tags = EnumParsingHelpers.NormalizeStrings(template.Tags),
 				TagValues = EnumParsingHelpers.ParseTags(template.Tags),
 				Size = template.Size,
-				Icon = template.Icon,
-				IconInventory = string.IsNullOrEmpty(template.IconInventory) ? template.Icon : template.IconInventory,
-				IconOnDrag = string.IsNullOrEmpty(template.IconOnDrag) ? template.Icon : template.IconOnDrag,
-				IconOnFit = string.IsNullOrEmpty(template.IconOnFit) ? template.Icon : template.IconOnFit,
 				GridWidth = template.GridWidth <= 0 ? 1 : template.GridWidth,
 				GridHeight = template.GridHeight <= 0 ? 1 : template.GridHeight,
 				AllowedGridTypes = EnumParsingHelpers.NormalizeStrings(template.AllowedGridTypes),
@@ -336,13 +329,6 @@ namespace Ships
 		[SerializeField] public string[] AllowedGridTypes;
 		[NonSerialized] public ShipGridType[] AllowedGridTypeValues;
 		public string Size;
-		public string Icon;
-		public string IconInventory;
-		public string IconOnDrag;
-		public string IconOnFit;
-		public string Prefab;
-		public string BattlePrefab;
-		public string MetaPrefab;
 
 		public int GridWidth = 1;
 		public int GridHeight = 1;

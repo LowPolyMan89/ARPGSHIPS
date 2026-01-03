@@ -14,7 +14,8 @@
   "EnergyCost": 25,
   "Tags": [
     "Kinetic",
-    "Projectile"
+    "Projectile",
+    "Automatic"
   ],
   "AllowedGridTypes": [
     "WeaponGrid"
@@ -37,7 +38,6 @@
           { "Name": "RotationSpeed",   "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 15,  "Max": 20 },
           { "Name": "Accuracy",        "Min": 1,  "Max": 2 },
-          { "Name": "ArmorPierce",     "Min": 2,  "Max": 5 },
           { "Name": "FireRate",        "Min": 2,  "Max": 3 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
           { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
@@ -48,3 +48,4 @@
     }
   ]
 }
+

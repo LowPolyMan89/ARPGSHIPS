@@ -55,7 +55,6 @@ namespace Ships
 	public class StatContainer
 	{
 		public float HitPoint;
-		public float Armor;
 		public float Shield;
 		public float ShieldRegen;
 		public float MoveSpeed;
@@ -63,6 +62,12 @@ namespace Ships
 		public float Acceleration;
 		public float BrakePower;
 		public float MoveSpeedRear;
+		public float KineticDamageBonus;
+		public float KineticResist;
+		public float ThermalDamageBonus;
+		public float EnergyDamageBonus;
+		public float ThermalResist;
+		public float EnergyResist;
 	}
 	
 	[Serializable]

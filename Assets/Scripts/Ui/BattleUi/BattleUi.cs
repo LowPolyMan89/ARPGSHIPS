@@ -12,6 +12,7 @@ namespace Ships
 		[SerializeField] private PlayerShipStatsContainerUi _playerShipStatsContainer;
 		[SerializeField] private float _updateRatio = 0.01f;
 		[SerializeField] private WeaponsUi _weaponsUi;
+		[SerializeField] private DamageUi_SO _damageUiConfig;
 		private void Awake()
 		{
 			_playerShipStatsContainer = GetComponentInChildren<PlayerShipStatsContainerUi>();
@@ -20,12 +21,14 @@ namespace Ships
 		private void Start()
 		{
 			GameEvent.OnUiUpdate += OnUpdate;
+			GameEvent.OnTakeDamage += OnTakeDamage;
 			StartCoroutine(InitWeaponSlotsRoutine());
 		}
 
 		private void OnDestroy()
 		{
 			GameEvent.OnUiUpdate -= OnUpdate;
+			GameEvent.OnTakeDamage -= OnTakeDamage;
 		}
 
 		private void OnUpdate()
@@ -70,6 +73,15 @@ namespace Ships
 				slot.Init(weapon);
 				_weaponsUi.ActiveSlots.Add(slot);
 			}
+		}
+
+		private void OnTakeDamage(CalculatedDamage calc)
+		{
+			if (_damageUiConfig == null || _damageUiConfig.DamageUiElementPrefab == null)
+				return;
+
+			var element = Instantiate(_damageUiConfig.DamageUiElementPrefab);
+			element.ShowDamage(calc, _damageUiConfig);
 		}
 	}
 

@@ -28,14 +28,31 @@ namespace Ships
 				return null;
 			}
 
-			var prefabId = useMetaPrefab
-				? (!string.IsNullOrEmpty(data.MetaPrefab) ? data.MetaPrefab : data.Prefab)
-				: (!string.IsNullOrEmpty(data.BattlePrefab) ? data.BattlePrefab : data.Prefab);
+			if (string.IsNullOrEmpty(data.TemplateId))
+			{
+				Debug.LogError($"[WeaponBuilder] TemplateId missing for weapon item '{weaponId}'");
+				return null;
+			}
 
-			var go = ResourceLoader.InstantiatePrefab(data.Slot, prefabId, mountPoint, false);
+			var templateFile = data.TemplateId.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+				? data.TemplateId
+				: data.TemplateId + ".json";
+			var templatePath = Path.Combine(PathConstant.WeaponsConfigs, templateFile);
+			if (!ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template))
+			{
+				Debug.LogError($"[WeaponBuilder] Weapon template not found: {templatePath}");
+				return null;
+			}
+
+			var prefabId = useMetaPrefab
+				? (!string.IsNullOrEmpty(template.MetaPrefab) ? template.MetaPrefab : template.Prefab)
+				: (!string.IsNullOrEmpty(template.BattlePrefab) ? template.BattlePrefab : template.Prefab);
+			var slot = !string.IsNullOrEmpty(template.Slot) ? template.Slot : data.Slot;
+
+			var go = ResourceLoader.InstantiatePrefab(slot, prefabId, mountPoint, false);
 			if (go == null)
 			{
-				Debug.LogError($"[WeaponBuilder] Failed to instantiate weapon prefab '{prefabId}' (Slot='{data.Slot}')");
+				Debug.LogError($"[WeaponBuilder] Failed to instantiate weapon prefab '{prefabId}' (Slot='{slot}')");
 				return null;
 			}
 
@@ -46,13 +63,20 @@ namespace Ships
 			var stats = new Stats();
 			foreach (var s in data.Stats)
 			{
-				var statType = Enum.Parse<StatType>(s.Name);
+				if (!Enum.TryParse(s.Name, true, out StatType statType))
+					continue;
 				stats.AddStat(new Stat(statType, s.Value));
 			}
 
 			weapon.Init(stats);
 			weapon.FireArcDeg = data.FireArcDeg <= 0 ? 360f : data.FireArcDeg;
 			weapon.Owner = owner;
+			weapon.Model.IsAutoFire = ResolveIsAutoFire(data, template);
+			if (TryResolveDamageType(data, template, out var damageTag))
+			{
+				weapon.Model.HasDamageType = true;
+				weapon.Model.DamageType = damageTag;
+			}
 
 			// ---------- Effects ----------
 			if (data.Effects != null)
@@ -66,6 +90,74 @@ namespace Ships
 			}
 
 			return weapon;
+		}
+
+		private static bool ResolveIsAutoFire(WeaponLoadData data, WeaponTemplate template)
+		{
+			if (data?.TagValues != null && data.TagValues.Length > 0)
+				return Array.IndexOf(data.TagValues, Tags.Automatic) >= 0;
+
+			if (template?.Tags == null || template.Tags.Length == 0)
+				return false;
+
+			var tagValues = EnumParsingHelpers.ParseTags(template.Tags);
+			return Array.IndexOf(tagValues, Tags.Automatic) >= 0;
+		}
+
+		private static bool TryResolveDamageType(WeaponLoadData data, WeaponTemplate template, out TagType tag)
+		{
+			if (TryParseDamageType(data?.DamageType, out tag))
+				return true;
+
+			if (TryParseDamageType(template?.DamageType, out tag))
+				return true;
+
+			if (data?.TagValues != null)
+			{
+				for (var i = 0; i < data.TagValues.Length; i++)
+				{
+					if (IsDamageTag(data.TagValues[i]))
+					{
+						tag = data.TagValues[i];
+						return true;
+					}
+				}
+			}
+
+			if (template?.Tags != null && template.Tags.Length > 0)
+			{
+				var tagValues = EnumParsingHelpers.ParseTags(template.Tags);
+				for (var i = 0; i < tagValues.Length; i++)
+				{
+					if (IsDamageTag(tagValues[i]))
+					{
+						tag = tagValues[i];
+						return true;
+					}
+				}
+			}
+
+			tag = default;
+			return false;
+		}
+
+		private static bool TryParseDamageType(string value, out TagType tag)
+		{
+			if (string.IsNullOrEmpty(value))
+			{
+				tag = default;
+				return false;
+			}
+
+			if (!Enum.TryParse(value, true, out tag))
+				return false;
+
+			return IsDamageTag(tag);
+		}
+
+		private static bool IsDamageTag(TagType tag)
+		{
+			return tag == Tags.Kinetic || tag == Tags.Thermal || tag == Tags.Energy;
 		}
 	}
 
@@ -81,10 +173,6 @@ namespace Ships
 		[SerializeField] public string[] Tags;
 		[NonSerialized] public TagType[] TagValues;
 		public string Size;
-		public string Icon;
-		public string Prefab;
-		public string BattlePrefab;
-		public string MetaPrefab;
 
 		public float EnergyCost = 0f;
 

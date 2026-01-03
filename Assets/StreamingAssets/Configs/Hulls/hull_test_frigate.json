@@ -7,13 +7,14 @@
   "Energy": 100,
   "stats": {
     "HitPoint": 500,
-    "Armor": 5,
     "ShieldRegen": 3,
     "MoveSpeed": 6,
     "MoveSpeedRear" : 2,
     "TurnSpeed": 60,
     "Acceleration": 4,
-    "BrakePower": 5
+    "BrakePower": 5,
+    "KineticDamageBonus": 0.1,
+    "KineticResist": 0.1
   },
   "Shield": {
     "Hp": 100,

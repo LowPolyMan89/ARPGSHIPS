@@ -13,7 +13,6 @@
 		BrakePower,
 		ShieldRestoreDelay,
 		BackSpeed,
-		Armor,
 		Energy,
 
 		// Weapon
@@ -23,17 +22,19 @@
 		CritChance,
 		CritMultiplier,
 		ProjectileSpeed,
-		ArmorPierce,
 		FireRange,
 		Accuracy,
 		AmmoCount,
 		ReloadTime,
 		RotationSpeed,
+		KineticDamageBonus,
+		ThermalDamageBonus,
+		EnergyDamageBonus,
 
 		// Resistances
 		KineticResist,
 		ThermalResist,
-		ExplosionResist,
+		EnergyResist,
 		
 		//values
 		Duration,

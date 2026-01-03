@@ -7,7 +7,6 @@ namespace Ships
 	{
 		private float _speed;
 		private float _damage;
-		private float _pierce;
 
 		public WeaponBase SourceWeapon { get; private set; }
 		public ShipBase Owner { get; private set; }
@@ -17,12 +16,11 @@ namespace Ships
 
 		public float Damage => _damage;
 
-		public void Init(Vector3 direction, float dmg, float spd, float armorPierce, WeaponBase source)
+		public void Init(Vector3 direction, float dmg, float spd, WeaponBase source)
 		{
 			_moveDir = direction.normalized;
 			_speed = spd;
 			_damage = dmg;
-			_pierce = armorPierce;
 
 			SourceWeapon = source;
 			Owner = source != null ? source.Owner : null;
@@ -48,7 +46,6 @@ namespace Ships
 
 			var calc = DamageCalculator.CalculateHit(
 				projectileDamage: _damage,
-				armorPierce: _pierce,
 				hitPoint: transform.position,
 				sourceWeapon: SourceWeapon,
 				target: t,
