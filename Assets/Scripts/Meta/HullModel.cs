@@ -16,6 +16,7 @@ namespace Ships
 		public string MetaPrefab;
 		public int Energy;
 		public StatContainer stats;
+		public List<StatEffectModel> StatEffects;
 		public ShieldModel Shield;
 
 		// Grid definitions for meta fitting + in-battle weapon/module placement.

@@ -5,6 +5,7 @@
 		public StatModifierType Type { get; }
 		public StatModifierTarget Target { get; }
 		public StatModifierPeriodicity Periodicity { get; }
+		public StatModifierSource SourceType { get; }
 
 		/// <summary>
 		/// Величина модификатора:
@@ -23,7 +24,8 @@
 			StatModifierPeriodicity periodicity,
 			float value,
 			int remainingTicks = 0,
-			object source = null)
+			object source = null,
+			StatModifierSource sourceType = StatModifierSource.Buff)
 		{
 			Type = type;
 			Target = target;
@@ -31,6 +33,7 @@
 			Value = value;
 			RemainingTicks = remainingTicks;
 			Source = source;
+			SourceType = sourceType;
 		}
 	}
 }

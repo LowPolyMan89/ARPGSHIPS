@@ -51,8 +51,20 @@ namespace Ships
 				if (!Enum.TryParse(fieldName, out StatType statType))
 					continue;
 				var value = (float)f.GetValue(data.stats);
-				ShipStats.AddStat(new Stat(statType, value));
+				if (Mathf.Approximately(value, 0f))
+					continue;
+
+				var stat = ShipStats.GetOrCreateStat(statType, 0f);
+				stat.AddModifier(new StatModifier(
+					StatModifierType.Flat,
+					StatModifierTarget.Maximum,
+					StatModifierPeriodicity.Permanent,
+					value,
+					source: data,
+					sourceType: StatModifierSource.Hull));
 			}
+
+			StatEffectApplier.ApplyAll(ShipStats, data.StatEffects, StatModifierSource.Hull, data);
 			
 			if (TryGetComponent<ShieldController>(out var controller))
 			{
@@ -268,6 +280,7 @@ namespace Ships
 								Type = mod.Type,
 								Target = mod.Target,
 								Periodicity = mod.Periodicity,
+								SourceType = mod.SourceType,
 								Value = mod.Value,
 								RemainingTicks = mod.RemainingTicks,
 								SourceName = mod.Source?.ToString()

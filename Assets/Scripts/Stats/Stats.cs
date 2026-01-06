@@ -14,6 +14,16 @@ namespace Ships
 			_stats[stat.Name] = stat;
 		}
 
+		public Stat GetOrCreateStat(StatType name, float baseMaximum = 0f, float? baseCurrent = null)
+		{
+			if (_stats.TryGetValue(name, out var stat))
+				return stat;
+
+			stat = new Stat(name, baseMaximum, baseCurrent);
+			_stats[name] = stat;
+			return stat;
+		}
+
 		public bool TryGetStat(StatType name, out Stat stat)
 		{
 			return _stats.TryGetValue(name, out stat);

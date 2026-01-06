@@ -24,6 +24,7 @@
 
 			ship.LoadShipFromConfig(fit.SelectedShipId);
 			ship.Init();
+			StatEffectApplier.ApplyAll(ship.ShipStats, fit.MainStatEffects, StatModifierSource.Main, fit);
 
 			InstallFit(ship, fit.Fit, hull);
 		}

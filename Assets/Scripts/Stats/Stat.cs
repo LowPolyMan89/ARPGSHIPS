@@ -181,47 +181,61 @@ namespace Ships
             return false;
         }
 
+        private static readonly StatModifierSource[] SourceOrder =
+        {
+            StatModifierSource.Main,
+            StatModifierSource.Hull,
+            StatModifierSource.Module,
+            StatModifierSource.Buff
+        };
+
         private float ApplyModifiers(float baseValue, StatModifierTarget target)
         {
-            var flatAdd = 0f;
-            var percentAdd = 0f;
-            var percentMult = 1f;
-            var hasSet = false;
-            var setValue = 0f;
+            var value = baseValue;
 
-            for (int i = 0; i < _modifiers.Count; i++)
+            for (int s = 0; s < SourceOrder.Length; s++)
             {
-                var mod = _modifiers[i];
-                if (mod.Target != target)
-                    continue;
+                var source = SourceOrder[s];
+                var flatAdd = 0f;
+                var percentAdd = 0f;
+                var percentMult = 1f;
+                var hasSet = false;
+                var setValue = 0f;
 
-                switch (mod.Type)
+                for (int i = 0; i < _modifiers.Count; i++)
                 {
-                    case StatModifierType.Flat:
-                        flatAdd += mod.Value;
-                        break;
+                    var mod = _modifiers[i];
+                    if (mod.Target != target || mod.SourceType != source)
+                        continue;
 
-                    case StatModifierType.PercentAdd:
-                        percentAdd += mod.Value;
-                        break;
+                    switch (mod.Type)
+                    {
+                        case StatModifierType.Flat:
+                            flatAdd += mod.Value;
+                            break;
 
-                    case StatModifierType.PercentMult:
-                        percentMult *= (1f + mod.Value);
-                        break;
+                        case StatModifierType.PercentAdd:
+                            percentAdd += mod.Value;
+                            break;
 
-                    case StatModifierType.Set:
-                        hasSet = true;
-                        setValue = mod.Value;
-                        break;
+                        case StatModifierType.PercentMult:
+                            percentMult *= (1f + mod.Value);
+                            break;
+
+                        case StatModifierType.Set:
+                            hasSet = true;
+                            setValue = mod.Value;
+                            break;
+                    }
                 }
+
+                value += flatAdd;
+                value *= (1f + percentAdd);
+                value *= percentMult;
+
+                if (hasSet)
+                    value = setValue;
             }
-
-            var value = baseValue + flatAdd;
-            value *= (1f + percentAdd);
-            value *= percentMult;
-
-            if (hasSet)
-                value = setValue;
 
             return value;
         }

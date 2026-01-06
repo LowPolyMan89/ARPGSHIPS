@@ -44,7 +44,8 @@ namespace Ships.HitEffect
 				StatModifierPeriodicity.Timed,
 				-totalSlow,
 				remainingTicks: Mathf.CeilToInt(duration),
-				source: this
+				source: this,
+				sourceType: StatModifierSource.Buff
 			));
 		}
 	}

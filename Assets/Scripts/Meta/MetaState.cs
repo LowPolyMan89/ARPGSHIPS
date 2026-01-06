@@ -10,6 +10,7 @@ namespace Ships
 		public ShipFitModel Fit = new ShipFitModel();
 		public List<ShipFitModel> PlayerShipFits = new ();
 		public PlayerInventoryModel InventoryModel = new PlayerInventoryModel();
+		public List<StatEffectModel> MainStatEffects = new();
 	}
 
 	[System.Serializable]
