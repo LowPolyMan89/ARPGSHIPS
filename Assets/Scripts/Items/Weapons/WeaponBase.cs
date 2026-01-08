@@ -158,15 +158,10 @@ namespace Ships
 
 		protected float RollDamage()
 		{
-			var dmg = Random.Range(
+			return Random.Range(
 				Model.Stats.GetStat(StatType.MinDamage).Current,
 				Model.Stats.GetStat(StatType.MaxDamage).Current
 			);
-
-			if (Random.value < Model.Stats.GetStat(StatType.CritChance).Current)
-				dmg *= Model.Stats.GetStat(StatType.CritMultiplier).Current;
-
-			return dmg;
 		}
 
 		private void TryInitFromTemplate()
@@ -193,6 +188,9 @@ namespace Ships
 				return;
 
 			Init(stats);
+			Model.BaseStats = stats.Clone();
+			Model.Size = template.Size;
+			Model.Tags = EnumParsingHelpers.ParseTags(template.Tags);
 			FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg;
 			ApplyTemplateMeta(Model, template);
 		}

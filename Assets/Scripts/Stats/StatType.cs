@@ -2,20 +2,24 @@
 {
 	public enum StatType
 	{
-		// Ship
+		// Ship (base)
 		HitPoint,
-		MoveSpeed,
-		MoveSpeedRear,
 		TurnSpeed,
 		Shield,
 		ShieldRegen,
+		MoveSpeed,
+		MoveSpeedRear,
 		Acceleration,
 		BrakePower,
 		ShieldRestoreDelay,
 		BackSpeed,
 		Energy,
+		PowerCell,
+		AfterburnerSpeed,
+		AfterburnerTime,
+		Evasion,
 
-		// Weapon
+		// Weapon (base)
 		FireRate,
 		MinDamage,
 		MaxDamage,
@@ -27,14 +31,57 @@
 		AmmoCount,
 		ReloadTime,
 		RotationSpeed,
-		KineticDamageBonus,
-		ThermalDamageBonus,
-		EnergyDamageBonus,
+		Penetration,
+		RocketSpeed,
+		ExplosionRadius,
+		Spread,
 
 		// Resistances
 		KineticResist,
 		ThermalResist,
 		EnergyResist,
+
+		// Meta bonuses (percent unless noted)
+		HitPointBonus,
+		ShieldBonus,
+		ShieldRegenBonus,
+		DamageBonus,
+		MoveSpeedBonus,
+		AccelerationBonus,
+		TurnSpeedBonus,
+		EvasionBonus,
+		AfterburnerSpeedBonus,
+		AfterburnerTimeBonus,
+		KineticDamageBonus,
+		ThermalDamageBonus,
+		EnergyDamageBonus,
+		SmallWeaponDamageBonus,
+		MediumWeaponDamageBonus,
+		LargeWeaponDamageBonus,
+		PenetrationBonus,
+		CritChanceBonus,
+		CritMultiplierBonus,
+		ProjectileSpeedBonus,
+		FireRangeBonus,
+		AccuracyBonus,
+		ReloadTimeBonus,
+		RotationSpeedBonus,
+		FireRateBonus,
+		KineticResistBonus,
+		ThermalResistBonus,
+		EnergyResistBonus,
+		ExplosionRadiusBonus,
+		RocketSpeedBonus,
+		AbilityCooldownBonus,
+		ShieldDamageBonus,
+
+		// Meta bonuses (flat)
+		PowerCellBonus,
+		ProjectileAmmoBonus,
+		EnergyBonus,
+		Mechanic,
+		Pilot,
+		Warrior,
 		
 		//values
 		Duration,

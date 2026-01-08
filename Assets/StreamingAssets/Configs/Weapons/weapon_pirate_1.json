@@ -42,7 +42,11 @@
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
           { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
           { "Name": "AmmoCount", "Min": 12, "Max": 20 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 },
+          { "Name": "Penetration",  "Min": 0, "Max": 0 },
+          { "Name": "RocketSpeed",  "Min": 0, "Max": 0 },
+          { "Name": "ExplosionRadius",  "Min": 0, "Max": 0 },
+          { "Name": "Spread",  "Min": 0, "Max": 0 }
         ]
       }
     }

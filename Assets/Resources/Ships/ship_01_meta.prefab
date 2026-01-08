@@ -639,7 +639,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9335a77d5c0782f49a5a41f861265bb2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SocketId: socket_02
+  SocketId: socket_04
   SocketType: 0
   SocketSize: 0
   BaseSize: 64
@@ -689,7 +689,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: -0.39}
-  m_SizeDelta: {x: 128, y: 128}
+  m_SizeDelta: {x: 64, y: 64}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &7272079901316767774
 Canvas:
@@ -804,10 +804,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9335a77d5c0782f49a5a41f861265bb2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  SocketId: socket_02
+  SocketId: socket_03
   SocketType: 1
   SocketSize: 0
-  BaseSize: 128
+  BaseSize: 64
   MediumFactor: 2
   LargeFactor: 3
   RotationDeg: 0

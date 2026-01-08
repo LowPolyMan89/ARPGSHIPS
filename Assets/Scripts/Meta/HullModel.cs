@@ -63,6 +63,7 @@ namespace Ships
 		public float Acceleration;
 		public float BrakePower;
 		public float MoveSpeedRear;
+		public float Evasion;
 		public float KineticDamageBonus;
 		public float KineticResist;
 		public float ThermalDamageBonus;

@@ -74,19 +74,78 @@ namespace Ships
 			return GenerateWeaponFromAllTemplates();
 		}
 
-		public static GeneratedWeaponItem GenerateModuleFromLoot(string lootTableId = null)
+		public static ModuleLoadData GenerateModuleFromLoot(string lootTableId = null)
 		{
 			return GenerateModuleFromAllTemplates();
 		}
 
-		public static GeneratedWeaponItem GenerateModule(string templateFile, string forcedRarity)
+		public static ModuleLoadData GenerateModule(string templateFile, string forcedRarity)
 		{
-			return new GeneratedWeaponItem();
+			if (!ResourceLoader.TryLoadStreamingJson(Path.Combine(PathConstant.ModulesConfigs, templateFile), out ModuleTemplate template))
+			{
+				Debug.LogError($"[ItemGenerator] Module template not found or invalid: {templateFile}");
+				return null;
+			}
+
+			var rarity = string.Equals(forcedRarity, "Random", StringComparison.OrdinalIgnoreCase)
+				? PickRandomRarity(template)
+				: forcedRarity;
+
+			var rarityData = FindRarity(template, rarity);
+			if (rarityData == null)
+			{
+				rarityData = template.Rarities != null && template.Rarities.Length > 0
+					? template.Rarities[0]
+					: null;
+				rarity = rarityData?.Rarity ?? "Common";
+			}
+
+			var item = new ModuleLoadData
+			{
+				ItemId = Services.UniqueIdGenerator.GenerateItemId(),
+				TemplateId = template.Id,
+				Name = template.Name,
+				Rarity = string.IsNullOrEmpty(rarity) ? "Common" : rarity,
+				Slot = string.IsNullOrEmpty(template.Slot) ? "Module" : template.Slot,
+				Size = template.Size,
+				GridWidth = template.GridWidth <= 0 ? 1 : template.GridWidth,
+				GridHeight = template.GridHeight <= 0 ? 1 : template.GridHeight,
+				AllowedGridTypes = EnumParsingHelpers.NormalizeStrings(template.AllowedGridTypes),
+				AllowedGridTypeValues = EnumParsingHelpers.ParseGridTypes(template.AllowedGridTypes),
+				EnergyCost = template.EnergyCost,
+				ShipStatEffects = BuildModuleShipEffects(template, rarityData),
+				WeaponStatEffects = BuildModuleWeaponEffects(template, rarityData),
+				ActiveEffects = template.ActiveEffects ?? new List<EffectModel>()
+			};
+
+			SaveItem(item);
+			return item;
 		}
 
-		private static GeneratedWeaponItem GenerateModuleFromAllTemplates()
+		private static ModuleLoadData GenerateModuleFromAllTemplates()
 		{
-			return new GeneratedWeaponItem();
+			var files = LoadModuleFiles();
+			if (files.Count == 0)
+				return null;
+
+			var pool = new List<(string template, string rarity, int weight)>();
+			foreach (var file in files)
+			{
+				if (!ResourceLoader.TryLoadStreamingJson(Path.Combine(PathConstant.ModulesConfigs, file), out ModuleTemplate template))
+					continue;
+
+				if (template.Rarities == null || template.Rarities.Length == 0)
+				{
+					pool.Add((template.Id, "Common", 1));
+					continue;
+				}
+
+				foreach (var r in template.Rarities)
+					pool.Add((template.Id, r.Rarity, r.DropChance));
+			}
+
+			var pick = PickGlobal(pool);
+			return GenerateModule(pick.template + ".json", pick.rarity);
 		}
 
 		private static GeneratedWeaponItem GenerateWeaponFromAllTemplates()
@@ -191,6 +250,22 @@ namespace Ships
 				r => r.Rarity.Equals(rarity, StringComparison.OrdinalIgnoreCase));
 		}
 
+		private static ModuleRarityEntry FindRarity(ModuleTemplate t, string rarity)
+		{
+			if (t?.Rarities == null || t.Rarities.Length == 0 || string.IsNullOrEmpty(rarity))
+				return null;
+
+			for (var i = 0; i < t.Rarities.Length; i++)
+			{
+				var r = t.Rarities[i];
+				if (r != null && r.Rarity != null &&
+				    r.Rarity.Equals(rarity, StringComparison.OrdinalIgnoreCase))
+					return r;
+			}
+
+			return null;
+		}
+
 		private static string PickRandomRarity(WeaponTemplate tpl)
 		{
 			var total = tpl.Rarities.Sum(r => r.DropChance);
@@ -208,6 +283,83 @@ namespace Ships
 			}
 
 			return tpl.Rarities[0].Rarity;
+		}
+
+		private static string PickRandomRarity(ModuleTemplate tpl)
+		{
+			if (tpl?.Rarities == null || tpl.Rarities.Length == 0)
+				return "Common";
+
+			var total = tpl.Rarities.Sum(r => r.DropChance);
+			if (total <= 0)
+				return tpl.Rarities[0].Rarity;
+
+			var roll = Random.Range(0, total);
+			var accum = 0;
+
+			foreach (var r in tpl.Rarities)
+			{
+				accum += r.DropChance;
+				if (roll < accum)
+					return r.Rarity;
+			}
+
+			return tpl.Rarities[0].Rarity;
+		}
+
+		private static List<StatEffectModel> BuildModuleShipEffects(ModuleTemplate template, ModuleRarityEntry rarity)
+		{
+			if (rarity?.ShipStatEffects != null && rarity.ShipStatEffects.Length > 0)
+			{
+				var effects = new List<StatEffectModel>(rarity.ShipStatEffects.Length);
+				for (var i = 0; i < rarity.ShipStatEffects.Length; i++)
+				{
+					var e = rarity.ShipStatEffects[i];
+					if (e == null || string.IsNullOrEmpty(e.Stat))
+						continue;
+
+					effects.Add(new StatEffectModel
+					{
+						Stat = e.Stat,
+						Operation = e.Operation,
+						Target = e.Target,
+						Value = Random.Range(e.Min, e.Max)
+					});
+				}
+				return effects;
+			}
+
+			return template?.ShipStatEffects ?? new List<StatEffectModel>();
+		}
+
+		private static List<WeaponStatEffectModel> BuildModuleWeaponEffects(ModuleTemplate template, ModuleRarityEntry rarity)
+		{
+			if (rarity?.WeaponStatEffects != null && rarity.WeaponStatEffects.Length > 0)
+			{
+				var effects = new List<WeaponStatEffectModel>(rarity.WeaponStatEffects.Length);
+				for (var i = 0; i < rarity.WeaponStatEffects.Length; i++)
+				{
+					var e = rarity.WeaponStatEffects[i];
+					if (e == null || string.IsNullOrEmpty(e.Stat))
+						continue;
+
+					if (e.Filter != null && e.Filter.Tags != null && e.Filter.Tags.Length > 0 &&
+					    (e.Filter.TagValues == null || e.Filter.TagValues.Length == 0))
+						e.Filter.OnAfterDeserialize();
+
+					var value = Random.Range(e.Min, e.Max);
+					effects.Add(new WeaponStatEffectModel
+					{
+						Stat = e.Stat,
+						Operation = e.Operation,
+						Value = value,
+						Filter = e.Filter
+					});
+				}
+				return effects;
+			}
+
+			return template?.WeaponStatEffects ?? new List<WeaponStatEffectModel>();
 		}
 
 		private static List<EffectValue> GenerateEffects(
@@ -272,6 +424,13 @@ namespace Ships
 		}
 
 		private static void SaveItem(GeneratedWeaponItem item)
+		{
+			var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
+			ResourceLoader.SavePersistentJson(relativePath, item, true);
+			Debug.Log("Saved item at " + ResourceLoader.GetPersistentPath(relativePath));
+		}
+
+		private static void SaveItem(ModuleLoadData item)
 		{
 			var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
 			ResourceLoader.SavePersistentJson(relativePath, item, true);

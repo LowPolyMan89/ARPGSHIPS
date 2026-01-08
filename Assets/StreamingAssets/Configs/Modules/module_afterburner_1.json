@@ -1,0 +1,52 @@
+{
+  "Id": "module_afterburner_1",
+  "Name": "Afterburner I",
+  "Slot": "Module",
+  "Size": "Small",
+  "AllowedGridTypes": [ "ModuleGrid" ],
+  "EnergyCost": 5,
+  "Prefab": "module_afterburner_1",
+  "MetaPrefab": "module_afterburner_1",
+  "Rarities": [
+    {
+      "Rarity": "Common",
+      "DropChance": 50,
+      "ShipStatEffects": [
+        { "Stat": "AfterburnerSpeedBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.15, "Max": 0.25 },
+        { "Stat": "AfterburnerTimeBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.1, "Max": 0.2 }
+      ]
+    },
+    {
+      "Rarity": "Uncommon",
+      "DropChance": 25,
+      "ShipStatEffects": [
+        { "Stat": "AfterburnerSpeedBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.2, "Max": 0.3 },
+        { "Stat": "AfterburnerTimeBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.15, "Max": 0.25 }
+      ]
+    },
+    {
+      "Rarity": "Rare",
+      "DropChance": 15,
+      "ShipStatEffects": [
+        { "Stat": "AfterburnerSpeedBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.25, "Max": 0.35 },
+        { "Stat": "AfterburnerTimeBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.2, "Max": 0.3 }
+      ]
+    },
+    {
+      "Rarity": "Epic",
+      "DropChance": 7,
+      "ShipStatEffects": [
+        { "Stat": "AfterburnerSpeedBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.3, "Max": 0.4 },
+        { "Stat": "AfterburnerTimeBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.25, "Max": 0.35 }
+      ]
+    },
+    {
+      "Rarity": "Legendary",
+      "DropChance": 3,
+      "ShipStatEffects": [
+        { "Stat": "AfterburnerSpeedBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.35, "Max": 0.5 },
+        { "Stat": "AfterburnerTimeBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.3, "Max": 0.45 }
+      ]
+    }
+  ]
+}

@@ -164,13 +164,15 @@ namespace Ships
 				_currentHandle.Unequip();
 
 			var fit = state.Fit;
+			var isModuleItem = IsModuleItem(item);
+
 			if (updateFitList && fit != null && fit.GridPlacements != null)
 			{
 				fit.GridPlacements.RemoveAll(p => p != null && (p.ItemId == item.ItemId || p.GridId == SocketId));
 				fit.GridPlacements.Add(new ShipFitModel.GridPlacement
 				{
 					GridId = SocketId,
-					GridType = SocketType,
+					GridType = isModuleItem ? ShipGridType.ModuleGrid : SocketType,
 					ItemId = item.ItemId,
 					X = 0,
 					Y = 0,
@@ -217,9 +219,18 @@ namespace Ships
 
 			var ship = GetComponentInParent<PlayerShip>();
 
-			if (SocketType == ShipGridType.WeaponGrid)
+			if (IsModuleItem(item))
+			{
+				ModuleBuilder.BuildMeta(item.ItemId, mount, ship);
+			}
+			else if (SocketType == ShipGridType.WeaponGrid)
+			{
 				WeaponBuilder.BuildMeta(item.ItemId, mount, ship);
-			// TODO: Module builder when появится.
+			}
+			else if (SocketType == ShipGridType.ModuleGrid)
+			{
+				ModuleBuilder.BuildMeta(item.ItemId, mount, ship);
+			}
 
 			EnsurePointerCollider(mount);
 
@@ -309,6 +320,20 @@ namespace Ships
 			return System.Array.IndexOf(allowed, SocketType) >= 0;
 		}
 
+		private static bool IsModuleItem(InventoryItem item)
+		{
+			if (item == null)
+				return false;
+
+			if (!string.IsNullOrEmpty(item.ItemId) && ModuleBuilder.TryLoadModuleData(item.ItemId, out _))
+				return true;
+
+			if (!string.IsNullOrEmpty(item.TemplateId))
+				return ModuleBuilder.TryLoadModuleTemplate(item.TemplateId, out _);
+
+			return false;
+		}
+
 		private static bool TryResolveTypes(InventoryItem item, out ShipGridType[] allowed)
 		{
 			allowed = null;
@@ -317,6 +342,12 @@ namespace Ships
 
 			if (!string.IsNullOrEmpty(item.ItemId))
 			{
+				if (ModuleBuilder.TryLoadModuleData(item.ItemId, out var module))
+				{
+					allowed = module.AllowedGridTypeValues;
+					return true;
+				}
+
 				var relativePath = System.IO.Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
 				if (ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData weapon))
 				{
@@ -328,6 +359,12 @@ namespace Ships
 			if (!string.IsNullOrEmpty(item.TemplateId))
 			{
 				var templateId = item.TemplateId.EndsWith(".json") ? item.TemplateId : item.TemplateId + ".json";
+				if (ModuleBuilder.TryLoadModuleTemplate(templateId, out var moduleTemplate))
+				{
+					allowed = EnumParsingHelpers.ParseGridTypes(moduleTemplate.AllowedGridTypes);
+					return true;
+				}
+
 				var templatePath = System.IO.Path.Combine(PathConstant.WeaponsConfigs, templateId);
 				if (ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template))
 				{
@@ -348,6 +385,14 @@ namespace Ships
 			// 1) Пробуем поле Size из айтема.
 			if (!string.IsNullOrEmpty(item.ItemId))
 			{
+				if (ModuleBuilder.TryLoadModuleData(item.ItemId, out var module))
+				{
+					if (TryParseSize(module.Size, out size))
+						return true;
+
+					return TryMapGridToSize(module.GridWidth, module.GridHeight, out size);
+				}
+
 				var relativePath = System.IO.Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
 				if (ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData weapon))
 				{
@@ -362,6 +407,14 @@ namespace Ships
 			if (!string.IsNullOrEmpty(item.TemplateId))
 			{
 				var templateId = item.TemplateId.EndsWith(".json") ? item.TemplateId : item.TemplateId + ".json";
+				if (ModuleBuilder.TryLoadModuleTemplate(templateId, out var moduleTemplate))
+				{
+					if (TryParseSize(moduleTemplate.Size, out size))
+						return true;
+
+					return TryMapGridToSize(moduleTemplate.GridWidth, moduleTemplate.GridHeight, out size);
+				}
+
 				var templatePath = System.IO.Path.Combine(PathConstant.WeaponsConfigs, templateId);
 				if (ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template))
 				{

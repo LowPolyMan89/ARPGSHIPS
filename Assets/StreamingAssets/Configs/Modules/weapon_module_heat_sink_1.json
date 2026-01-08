@@ -1,0 +1,72 @@
+{
+  "Id": "weapon_module_heat_sink_1",
+  "Name": "Heat Sink I",
+  "Slot": "Module",
+  "Size": "Small",
+  "AllowedGridTypes": [ "ModuleGrid" ],
+  "EnergyCost": 3,
+  "Prefab": "weapon_module_heat_sink_1",
+  "MetaPrefab": "weapon_module_heat_sink_1",
+  "Rarities": [
+    {
+      "Rarity": "Common",
+      "DropChance": 50,
+      "WeaponStatEffects": [
+        {
+          "Stat": "ReloadTimeBonus",
+          "Operation": "PercentAdd",
+          "Min": -0.1,
+          "Max": -0.05
+        }
+      ]
+    },
+    {
+      "Rarity": "Uncommon",
+      "DropChance": 25,
+      "WeaponStatEffects": [
+        {
+          "Stat": "ReloadTimeBonus",
+          "Operation": "PercentAdd",
+          "Min": -0.15,
+          "Max": -0.08
+        }
+      ]
+    },
+    {
+      "Rarity": "Rare",
+      "DropChance": 15,
+      "WeaponStatEffects": [
+        {
+          "Stat": "ReloadTimeBonus",
+          "Operation": "PercentAdd",
+          "Min": -0.2,
+          "Max": -0.1
+        }
+      ]
+    },
+    {
+      "Rarity": "Epic",
+      "DropChance": 7,
+      "WeaponStatEffects": [
+        {
+          "Stat": "ReloadTimeBonus",
+          "Operation": "PercentAdd",
+          "Min": -0.25,
+          "Max": -0.15
+        }
+      ]
+    },
+    {
+      "Rarity": "Legendary",
+      "DropChance": 3,
+      "WeaponStatEffects": [
+        {
+          "Stat": "ReloadTimeBonus",
+          "Operation": "PercentAdd",
+          "Min": -0.3,
+          "Max": -0.2
+        }
+      ]
+    }
+  ]
+}

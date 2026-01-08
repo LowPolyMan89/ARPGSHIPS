@@ -69,6 +69,9 @@ namespace Ships
 			}
 
 			weapon.Init(stats);
+			weapon.Model.BaseStats = stats.Clone();
+			weapon.Model.Size = data.Size;
+			weapon.Model.Tags = data.TagValues;
 			weapon.FireArcDeg = data.FireArcDeg <= 0 ? 360f : data.FireArcDeg;
 			weapon.Owner = owner;
 			weapon.Model.IsAutoFire = ResolveIsAutoFire(data, template);

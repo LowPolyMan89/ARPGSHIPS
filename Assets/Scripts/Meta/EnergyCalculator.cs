@@ -36,14 +36,22 @@ namespace Ships
 				if (p == null || string.IsNullOrEmpty(p.ItemId))
 					continue;
 
-				var relativePath = Path.Combine(PathConstant.Inventory, p.ItemId + ".json");
-				if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
+				float energy = 0f;
+				if (ModuleBuilder.TryLoadModuleData(p.ItemId, out var module))
 				{
-					Debug.LogWarning($"[EnergyCalculator] Item data not found for '{p.ItemId}'");
-					continue;
+					energy = module.EnergyCost;
+				}
+				else
+				{
+					var relativePath = Path.Combine(PathConstant.Inventory, p.ItemId + ".json");
+					if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
+					{
+						Debug.LogWarning($"[EnergyCalculator] Item data not found for '{p.ItemId}'");
+						continue;
+					}
+					energy = data.EnergyCost;
 				}
 
-				var energy = data.EnergyCost;
 				if (energy >= 0f)
 					report.Used += energy;
 				else

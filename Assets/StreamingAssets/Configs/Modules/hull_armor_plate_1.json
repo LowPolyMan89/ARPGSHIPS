@@ -1,0 +1,60 @@
+{
+  "Id": "hull_armor_plate_1",
+  "Name": "Armor Plate I",
+  "Slot": "Module",
+  "Size": "Small",
+  "AllowedGridTypes": [ "ModuleGrid" ],
+  "EnergyCost": 4,
+  "Prefab": "armor_plate_1",
+  "MetaPrefab": "armor_plate_1",
+  "IconInventory": "armor_plate_1",
+  "IconOnDrag": "",
+  "IconOnFit": "",
+  "Rarities": [
+    {
+      "Rarity": "Common",
+      "DropChance": 50,
+      "ShipStatEffects": [
+        { "Stat": "HitPointBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.1, "Max": 0.2 },
+        { "Stat": "KineticResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.05, "Max": 0.1 },
+        { "Stat": "ThermalResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.05, "Max": 0.1 }
+      ]
+    },
+    {
+      "Rarity": "Uncommon",
+      "DropChance": 25,
+      "ShipStatEffects": [
+        { "Stat": "HitPointBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.15, "Max": 0.25 },
+        { "Stat": "KineticResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.08, "Max": 0.12 },
+        { "Stat": "ThermalResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.08, "Max": 0.12 }
+      ]
+    },
+    {
+      "Rarity": "Rare",
+      "DropChance": 15,
+      "ShipStatEffects": [
+        { "Stat": "HitPointBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.2, "Max": 0.3 },
+        { "Stat": "KineticResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.1, "Max": 0.15 },
+        { "Stat": "ThermalResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.1, "Max": 0.15 }
+      ]
+    },
+    {
+      "Rarity": "Epic",
+      "DropChance": 7,
+      "ShipStatEffects": [
+        { "Stat": "HitPointBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.25, "Max": 0.4 },
+        { "Stat": "KineticResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.12, "Max": 0.18 },
+        { "Stat": "ThermalResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.12, "Max": 0.18 }
+      ]
+    },
+    {
+      "Rarity": "Legendary",
+      "DropChance": 3,
+      "ShipStatEffects": [
+        { "Stat": "HitPointBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.35, "Max": 0.5 },
+        { "Stat": "KineticResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.15, "Max": 0.25 },
+        { "Stat": "ThermalResistBonus", "Operation": "PercentAdd", "Target": "Maximum", "Min": 0.15, "Max": 0.25 }
+      ]
+    }
+  ]
+}

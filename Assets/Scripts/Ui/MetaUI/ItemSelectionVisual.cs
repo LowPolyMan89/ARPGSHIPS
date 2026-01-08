@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -5,6 +6,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 
 namespace Ships
 {
@@ -29,6 +31,14 @@ namespace Ships
 				{ "CritChance", new WeaponStatDescriptor("CritChance", "critchance", WeaponStatFormat.Percent) },
 				{ "CritMultiplier", new WeaponStatDescriptor("CritMultiplier", "critmultiplier", WeaponStatFormat.Percent) },
 				{ "FireRange", new WeaponStatDescriptor("FireRange", "firerange", WeaponStatFormat.Value, unit: "m") },
+				{ "ReloadTime", new WeaponStatDescriptor("ReloadTime", "reloadtime", WeaponStatFormat.Value) },
+				{ "ProjectileSpeed", new WeaponStatDescriptor("ProjectileSpeed", "projectilespeed", WeaponStatFormat.Value) },
+				{ "RocketSpeed", new WeaponStatDescriptor("RocketSpeed", "rocketspeed", WeaponStatFormat.Value) },
+				{ "ExplosionRadius", new WeaponStatDescriptor("ExplosionRadius", "explosionradius", WeaponStatFormat.Value, unit: "m") },
+				{ "Accuracy", new WeaponStatDescriptor("Accuracy", "accuracy", WeaponStatFormat.Percent) },
+				{ "Penetration", new WeaponStatDescriptor("Penetration", "penetration", WeaponStatFormat.Percent) },
+				{ "AmmoCount", new WeaponStatDescriptor("AmmoCount", "ammocount", WeaponStatFormat.Value) },
+				{ "Spread", new WeaponStatDescriptor("Spread", "spread", WeaponStatFormat.Value) },
 			};
 		private void Start()
 		{
@@ -126,14 +136,23 @@ namespace Ships
 
 			_selectedItemPanel.ItemName.text = item.TemplateId;
 
-			var statsDict = BuildStatsDictionary(weapon.Stats);
-			PopulateMainStats(statsDict, weapon.DamageType);
+			var baseStatsDict = BuildStatsDictionary(weapon.Stats);
+			var statsDict = baseStatsDict;
+			if (TryBuildComposedWeaponStats(item, weapon, out var composed))
+				statsDict = composed;
+
+			var showBase = IsAltPressed();
+			PopulateMainStats(statsDict, baseStatsDict, weapon.DamageType, showBase);
 			if (weapon.Effects != null && weapon.Effects.Count > 0)
 				AddStatElement(_mainStatElementVisualPrefab, _selectedItemPanel.MainStatRoot, "------------");
 			PopulateEffectStats(weapon);
 		}
 
-		private void PopulateMainStats(Dictionary<string, float> stats, string damageType)
+		private void PopulateMainStats(
+			Dictionary<string, float> stats,
+			Dictionary<string, float> baseStats,
+			string damageType,
+			bool showBase)
 		{
 			if (stats == null || stats.Count == 0)
 				return;
@@ -151,7 +170,15 @@ namespace Ships
 					if (min <= 0f && max <= 0f)
 						continue;
 
-					var text = $"{descriptor.Label}: <b><color={damageColor}>{Mathf.RoundToInt(min)}</color></b> - <b><color={damageColor}>{Mathf.RoundToInt(max)}</color></b>";
+					var baseSuffix = string.Empty;
+					if (showBase && baseStats != null &&
+					    TryGetStat(baseStats, descriptor.Name, out var baseMin) &&
+					    TryGetStat(baseStats, descriptor.PairedWith, out var baseMax))
+					{
+						baseSuffix = $" ({Mathf.RoundToInt(baseMin)} - {Mathf.RoundToInt(baseMax)})";
+					}
+
+					var text = $"{descriptor.Label}: <b><color={damageColor}>{Mathf.RoundToInt(min)}</color></b> - <b><color={damageColor}>{Mathf.RoundToInt(max)}</color></b>{baseSuffix}";
 					AddStatElement(_mainStatElementVisualPrefab, _selectedItemPanel.MainStatRoot, text);
 					continue;
 				}
@@ -159,11 +186,19 @@ namespace Ships
 				if (!TryGetStat(stats, descriptor.Name, out var value) || value <= 0f)
 					continue;
 
-				var formatted = FormatStatValue(descriptor, value);
+				var formatted = FormatStatValue(descriptor, value, true);
 				if (string.IsNullOrEmpty(formatted))
 					continue;
 
-				AddStatElement(_mainStatElementVisualPrefab, _selectedItemPanel.MainStatRoot, $"{descriptor.Label}: {formatted}");
+				var baseSuffixValue = string.Empty;
+				if (showBase && baseStats != null && TryGetStat(baseStats, descriptor.Name, out var baseValue))
+				{
+					var baseText = FormatStatValue(descriptor, baseValue, false);
+					if (!string.IsNullOrEmpty(baseText))
+						baseSuffixValue = $" ({baseText})";
+				}
+
+				AddStatElement(_mainStatElementVisualPrefab, _selectedItemPanel.MainStatRoot, $"{descriptor.Label}: {formatted}{baseSuffixValue}");
 			}
 		}
 
@@ -185,16 +220,19 @@ namespace Ships
 			}
 		}
 
-		private static string FormatStatValue(WeaponStatDescriptor descriptor, float value)
+		private static string FormatStatValue(WeaponStatDescriptor descriptor, float value, bool bold)
 		{
+			var prefix = bold ? "<b>" : string.Empty;
+			var suffix = bold ? "</b>" : string.Empty;
+
 			switch (descriptor.Format)
 			{
 				case WeaponStatFormat.Percent:
-					return $"<b>{Mathf.RoundToInt(value * 100f)}%</b>";
+					return $"{prefix}{Mathf.RoundToInt(value * 100f)}%{suffix}";
 				case WeaponStatFormat.Value:
 					return descriptor.HasUnit
-						? $"<b>{Mathf.RoundToInt(value)}</b> {descriptor.Unit}"
-						: $"<b>{Mathf.RoundToInt(value)}</b>";
+						? $"{prefix}{Mathf.RoundToInt(value)}{suffix} {descriptor.Unit}"
+						: $"{prefix}{Mathf.RoundToInt(value)}{suffix}";
 				default:
 					return null;
 			}
@@ -286,12 +324,59 @@ namespace Ships
 				weapon = new GeneratedWeaponItem
 				{
 					DamageType = template.DamageType,
+					Size = template.Size,
+					Tags = EnumParsingHelpers.NormalizeStrings(template.Tags),
+					TagValues = EnumParsingHelpers.ParseTags(template.Tags),
 					Stats = ConvertRangesToValues(rarity?.Stats),
 					Effects = new List<EffectValue>()
 				};
 			}
 
 			return weapon != null;
+		}
+
+		private static bool TryBuildComposedWeaponStats(
+			InventoryItem item,
+			GeneratedWeaponItem weapon,
+			out Dictionary<string, float> composed)
+		{
+			composed = null;
+			if (item == null || weapon == null)
+				return false;
+
+			var baseStats = WeaponStatComposer.BuildBaseStats(weapon.Stats);
+			if (baseStats == null)
+				return false;
+
+			var state = MetaController.Instance != null ? MetaController.Instance.State : null;
+			var includeModules = item.IsEquipped;
+			var includeHull = item.IsEquipped;
+			var includeMeta = true;
+
+			var shipBuild = ShipStatBuilder.Build(state, includeHull, includeModules, includeMeta);
+			var model = BuildWeaponModelForPreview(weapon, baseStats);
+
+			var composedStats = WeaponStatComposer.Compose(baseStats, model, shipBuild.ShipStats, shipBuild.WeaponEffects);
+			composed = BuildStatsDictionary(composedStats);
+			return composed.Count > 0;
+		}
+
+		private static WeaponModel BuildWeaponModelForPreview(GeneratedWeaponItem weapon, Stats baseStats)
+		{
+			var model = new WeaponModel(baseStats)
+			{
+				BaseStats = baseStats,
+				Size = weapon.Size,
+				Tags = weapon.TagValues ?? Array.Empty<Tags>()
+			};
+
+			if (!string.IsNullOrEmpty(weapon.DamageType) && Enum.TryParse(weapon.DamageType, true, out Tags tag))
+			{
+				model.HasDamageType = true;
+				model.DamageType = tag;
+			}
+
+			return model;
 		}
 
 		private static StatValue[] ConvertRangesToValues(StatRangeList ranges)
@@ -322,6 +407,20 @@ namespace Ships
 					continue;
 
 				dict[s.Name] = s.Value;
+			}
+
+			return dict;
+		}
+
+		private static Dictionary<string, float> BuildStatsDictionary(Stats stats)
+		{
+			var dict = new Dictionary<string, float>(System.StringComparer.OrdinalIgnoreCase);
+			if (stats == null)
+				return dict;
+
+			foreach (var kvp in stats.All)
+			{
+				dict[kvp.Key.ToString()] = kvp.Value.Maximum;
 			}
 
 			return dict;
@@ -367,10 +466,20 @@ namespace Ships
 			{
 				var child = root.GetChild(i);
 				if (Application.isPlaying)
-					Object.Destroy(child.gameObject);
+					UnityEngine.Object.Destroy(child.gameObject);
 				else
-					Object.DestroyImmediate(child.gameObject);
+					UnityEngine.Object.DestroyImmediate(child.gameObject);
 			}
+		}
+
+		private static bool IsAltPressed()
+		{
+			var keyboard = Keyboard.current;
+			if (keyboard == null)
+				return false;
+
+			return (keyboard.leftAltKey != null && keyboard.leftAltKey.isPressed) ||
+			       (keyboard.rightAltKey != null && keyboard.rightAltKey.isPressed);
 		}
 
 		private static string GetDamageColorHex(string damageType)

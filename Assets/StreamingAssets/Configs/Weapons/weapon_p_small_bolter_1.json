@@ -46,12 +46,15 @@
           { "Name": "FireRange",       "Min": 25,  "Max": 40 },
           { "Name": "RotationSpeed",   "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 15,  "Max": 20 },
-          { "Name": "Accuracy",        "Min": 1,  "Max": 2 },
+          { "Name": "Accuracy",        "Min": 0.8,  "Max": 1 },
           { "Name": "FireRate",        "Min": 2,  "Max": 3 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
           { "Name": "AmmoCount", "Min": 12, "Max": 20 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 },
+          { "Name": "Penetration",  "Min": 0, "Max": 0 },
+          { "Name": "RocketSpeed",  "Min": 0, "Max": 0 },
+          { "Name": "ExplosionRadius",  "Min": 0, "Max": 0 },
+          { "Name": "Spread",  "Min": 0, "Max": 0 }
         ]
       }
     },
@@ -67,12 +70,15 @@
           { "Name": "FireRange", "Min": 25, "Max": 40 },
           { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 15, "Max": 20 },
-          { "Name": "Accuracy", "Min": 1, "Max": 2 },
+          { "Name": "Accuracy",        "Min": 0.8,  "Max": 1 },
           { "Name": "FireRate", "Min": 2, "Max": 3 },
           { "Name": "AmmoCount", "Min": 12, "Max": 16 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 },
+          { "Name": "Penetration",  "Min": 0, "Max": 0 },
+          { "Name": "RocketSpeed",  "Min": 0, "Max": 0 },
+          { "Name": "ExplosionRadius",  "Min": 0, "Max": 0 },
+          { "Name": "Spread",  "Min": 0, "Max": 0 }
         ]
       }
     },
@@ -88,12 +94,15 @@
           { "Name": "FireRange", "Min": 25, "Max": 40 },
           { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
           { "Name": "ProjectileSpeed", "Min": 15, "Max": 20 },
-          { "Name": "Accuracy", "Min": 1, "Max": 2 },
+          { "Name": "Accuracy",        "Min": 0.8,  "Max": 1 },
           { "Name": "FireRate", "Min": 2, "Max": 3 },
           { "Name": "AmmoCount", "Min": 12, "Max": 20 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 },
+          { "Name": "Penetration",  "Min": 0, "Max": 0 },
+          { "Name": "RocketSpeed",  "Min": 0, "Max": 0 },
+          { "Name": "ExplosionRadius",  "Min": 0, "Max": 0 },
+          { "Name": "Spread",  "Min": 0, "Max": 0 }
         ]
       }
     },
@@ -109,12 +118,15 @@
           { "Name": "FireRange", "Min": 25, "Max": 40 },
           { "Name": "RotationSpeed", "Min": 11, "Max": 18 },
           { "Name": "ProjectileSpeed", "Min": 15, "Max": 20 },
-          { "Name": "Accuracy", "Min": 1.2, "Max": 2.5 },
+          { "Name": "Accuracy",        "Min": 0.8,  "Max": 1 },
           { "Name": "FireRate", "Min": 2.2, "Max": 3.5 },
           { "Name": "AmmoCount", "Min": 14, "Max": 22 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 },
+          { "Name": "Penetration",  "Min": 0, "Max": 0 },
+          { "Name": "RocketSpeed",  "Min": 0, "Max": 0 },
+          { "Name": "ExplosionRadius",  "Min": 0, "Max": 0 },
+          { "Name": "Spread",  "Min": 0, "Max": 0 }
         ]
       }
     },
@@ -130,12 +142,15 @@
           { "Name": "FireRange", "Min": 60,  "Max": 80 },
           { "Name": "RotationSpeed", "Min": 12, "Max": 20 },
           { "Name": "ProjectileSpeed", "Min": 25,  "Max": 35 },
-          { "Name": "Accuracy", "Min": 1.5, "Max": 3 },
+          { "Name": "Accuracy",        "Min": 0.8,  "Max": 1 },
           { "Name": "FireRate", "Min": 2.5, "Max": 4 },
           { "Name": "AmmoCount", "Min": 16, "Max": 25 },
           { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
+          { "Name": "ReloadTime",   "Min": 10, "Max": 5 },
+          { "Name": "Penetration",  "Min": 0, "Max": 0 },
+          { "Name": "RocketSpeed",  "Min": 0, "Max": 0 },
+          { "Name": "ExplosionRadius",  "Min": 0, "Max": 0 },
+          { "Name": "Spread",  "Min": 0, "Max": 0 }
         ]
       }
     }

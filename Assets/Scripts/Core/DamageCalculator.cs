@@ -20,40 +20,47 @@ namespace Ships
 				HitPoint = hitPoint
 			};
 
-			// ============================================================
-			// 1) КРИТ ШАНС
-			// ============================================================
-			var critChance = sourceWeapon.Model.Stats.GetStat(StatType.CritChance)?.Current ?? 0f;
-			var critMult = sourceWeapon.Model.Stats.GetStat(StatType.CritMultiplier)?.Current ?? 1f;
-
-			var isCrit = Random.value < critChance;
-			var critDamage = isCrit ? (sourceWeapon.Model.Stats.GetMaximum(StatType.MaxDamage ) * 0.9f) * critMult : projectileDamage;
-
-			result.IsCrit = isCrit;
-			result.CritChance = critChance;
-			result.CritBonus = isCrit ? critMult : 1f;
-			var damage = ApplyDamageBonus(critDamage, sourceWeapon);
+			var damage = projectileDamage;
 
 			// ============================================================
-			// 2) Если попали в щит — броню не учитываем
+			// 1) Если попали в щит - броню не учитываем
 			// ============================================================
 
 			if (wasShieldHit)
 			{
-				result.AfterShield = damage;
-				result.FinalDamage = damage; // щит сам поглотит сколько может
-				//LogDamage(result);
+				damage = ApplyShieldDamageBonus(damage, sourceWeapon);
+			}
+			else
+			{
+				// ============================================================
+				// 2) Сопротивления по типу урона
+				// ============================================================
+				damage = ApplyDamageResist(damage, sourceWeapon, target);
+			}
+
+			// ============================================================
+			// 3) Проверка попадания (Accuracy vs Evasion)
+			// ============================================================
+			if (!RollHit(sourceWeapon, target))
+			{
+				result.FinalDamage = 0f;
 				return result;
 			}
 
 			// ============================================================
-			// 3) Сопротивления по типу урона
+			// 4) Крит
 			// ============================================================
-			var dmgAfterResist = ApplyDamageResist(damage, sourceWeapon, target);
+			var critChance = sourceWeapon.Model.Stats.GetStat(StatType.CritChance)?.Current ?? 0f;
+			var critMult = sourceWeapon.Model.Stats.GetStat(StatType.CritMultiplier)?.Current ?? 1f;
+			var isCrit = Random.value < critChance;
+			if (isCrit)
+				damage *= critMult;
 
-			result.FinalDamage = dmgAfterResist;
-
-			//LogDamage(result);
+			result.IsCrit = isCrit;
+			result.CritChance = critChance;
+			result.CritBonus = isCrit ? critMult : 1f;
+			result.AfterShield = damage;
+			result.FinalDamage = damage;
 			return result;
 		}
 
@@ -69,25 +76,11 @@ namespace Ships
 			);
 		}
 
-		private static float ApplyDamageBonus(float damage, WeaponBase sourceWeapon)
+		private static float ApplyShieldDamageBonus(float damage, WeaponBase sourceWeapon)
 		{
-			if (!TryGetDamageTag(sourceWeapon, out var tag))
-				return damage;
-
-			if (sourceWeapon?.Owner != null)
-			{
-				if (tag == Tags.Kinetic &&
-				    sourceWeapon.Owner.TryGetStat(StatType.KineticDamageBonus, out var kineticBonus))
-					return damage * (1f + Mathf.Max(0f, kineticBonus.Current));
-
-				if (tag == Tags.Thermal &&
-				    sourceWeapon.Owner.TryGetStat(StatType.ThermalDamageBonus, out var thermalBonus))
-					return damage * (1f + Mathf.Max(0f, thermalBonus.Current));
-
-				if (tag == Tags.Energy &&
-				    sourceWeapon.Owner.TryGetStat(StatType.EnergyDamageBonus, out var energyBonus))
-					return damage * (1f + Mathf.Max(0f, energyBonus.Current));
-			}
+			if (sourceWeapon?.Owner != null &&
+			    sourceWeapon.Owner.TryGetStat(StatType.ShieldDamageBonus, out var shieldBonus))
+				return damage * (1f + Mathf.Max(0f, shieldBonus.Current));
 
 			return damage;
 		}
@@ -101,18 +94,38 @@ namespace Ships
 			{
 				if (tag == Tags.Kinetic &&
 				    target.TryGetStat(StatType.KineticResist, out var kineticResist))
-					return damage * (1f - Mathf.Clamp01(kineticResist.Current));
+					return ApplyResist(damage, kineticResist.Current, sourceWeapon);
 
 				if (tag == Tags.Thermal &&
 				    target.TryGetStat(StatType.ThermalResist, out var thermalResist))
-					return damage * (1f - Mathf.Clamp01(thermalResist.Current));
+					return ApplyResist(damage, thermalResist.Current, sourceWeapon);
 
 				if (tag == Tags.Energy &&
 				    target.TryGetStat(StatType.EnergyResist, out var energyResist))
-					return damage * (1f - Mathf.Clamp01(energyResist.Current));
+					return ApplyResist(damage, energyResist.Current, sourceWeapon);
 			}
 
 			return damage;
+		}
+
+		private static float ApplyResist(float damage, float resistValue, WeaponBase sourceWeapon)
+		{
+			var resist = Mathf.Clamp(resistValue, 0f, 0.75f);
+			var penetration = sourceWeapon?.Model?.Stats?.GetStat(StatType.Penetration)?.Current ?? 0f;
+			var effectiveResist = Mathf.Max(0f, resist - penetration);
+			return damage * (1f - effectiveResist);
+		}
+
+		private static bool RollHit(WeaponBase sourceWeapon, ITargetable target)
+		{
+			var accuracyStat = sourceWeapon?.Model?.Stats?.GetStat(StatType.Accuracy);
+			var weaponAccuracy = accuracyStat != null ? accuracyStat.Current : 1f;
+			var evasion = target != null && target.TryGetStat(StatType.Evasion, out var evas)
+				? evas.Current
+				: 0f;
+
+			var hitChance = Mathf.Clamp01(weaponAccuracy - evasion);
+			return Random.value <= hitChance;
 		}
 
 		private static bool TryGetDamageTag(WeaponBase sourceWeapon, out Tags tag)

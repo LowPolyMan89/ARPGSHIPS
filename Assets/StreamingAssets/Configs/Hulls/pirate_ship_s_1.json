@@ -11,7 +11,18 @@
     "MoveSpeedRear" : 2,
     "TurnSpeed": 120,
     "Acceleration": 0.5,
-    "BrakePower": 5
+    "BrakePower": 5,
+    "AfterburnerSpeed": 0,
+    "AfterburnerTime": 0,
+    "Energy": 0,
+    "PowerCell": 0,
+    "Evasion": 1,
+    "KineticDamageBonus": 0,
+    "ThermalDamageBonus": 0,
+    "EnergyDamageBonus": 0,
+    "KineticResist": 0,
+    "ThermalResist": 0,
+    "EnergyResist": 0
   },
   "Shield": {
     "Hp": 100,

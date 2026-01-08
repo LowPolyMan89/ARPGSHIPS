@@ -49,6 +49,17 @@ namespace Ships
 		{
 			return _stats.TryGetValue(name, out var stat) ? stat.Maximum : 0f;
 		}
+
+		public Stats Clone()
+		{
+			var clone = new Stats();
+			foreach (var kvp in _stats)
+			{
+				var s = kvp.Value;
+				clone.AddStat(new Stat(kvp.Key, s.BaseMaximum, s.BaseCurrent));
+			}
+			return clone;
+		}
 		
 		public void Tick()
 		{
