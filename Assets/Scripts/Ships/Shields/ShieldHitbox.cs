@@ -7,15 +7,15 @@ namespace Ships
 	
 		public ShieldController Controller;
 
-		private void OnTriggerEnter2D(Collider2D other)
+		private void OnTriggerEnter(Collider other)
 		{
 			if (!other.TryGetComponent<Projectile>(out var proj))
 				return;
 
-			if (!HitRules.CanHit(proj.HitMask, Controller._ship.Team))
+			if (!HitRules.CanHit(proj.HitMask, Controller._ship.Team) || Controller.ShipShield.ShieldHP.Current <= 0)
 				return;
 
-			Vector2 hitPoint = proj.transform.position;
+			Vector3 hitPoint = proj.transform.position;
 			
 			var calc = DamageCalculator.CalculateHit(
 				projectileDamage: proj.Damage,

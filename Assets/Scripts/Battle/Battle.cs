@@ -6,12 +6,6 @@ namespace Ships
 {
 	public class Battle : MonoBehaviour
 	{
-		public enum WorldPlane
-		{
-			XZ = 0,
-			XY = 1
-		}
-
 		public static Battle Instance;
 
 		[Header("Battlefield Bounds (3D)")]
@@ -19,10 +13,10 @@ namespace Ships
 		public Vector3 MaxBounds = new Vector3(500, 10, 500);
 
 		[Header("Runtime")]
-		public WorldPlane Plane = WorldPlane.XY;
 		public PlayerShip Player;
 		public BattleCamera CameraController;
 		[FormerlySerializedAs("AllTanks")] public List<ShipBase> AllShips = new();
+		public List<ShipBase> SelectedShips = new();
 		public Transform PlayerSpawnPosition;
 
 		private void Awake()
@@ -31,6 +25,71 @@ namespace Ships
 				Destroy(gameObject);
 			else
 				Instance = this;
+
+			if (GetComponent<BattleSelectionController>() == null)
+				gameObject.AddComponent<BattleSelectionController>();
+		}
+
+		private void Start()
+		{
+			RegisterInitialShips();
+		}
+
+		private void RegisterInitialShips()
+		{
+			var ships = FindObjectsOfType<ShipBase>();
+			for (var i = 0; i < ships.Length; i++)
+				RegisterShip(ships[i]);
+		}
+
+		public void RegisterShip(ShipBase ship)
+		{
+			if (ship == null)
+				return;
+
+			if (!AllShips.Contains(ship))
+				AllShips.Add(ship);
+		}
+
+		public void UnregisterShip(ShipBase ship)
+		{
+			if (ship == null)
+				return;
+
+			AllShips.Remove(ship);
+			SelectedShips.Remove(ship);
+		}
+
+		public bool IsShipSelected(ShipBase ship)
+		{
+			return ship != null && SelectedShips.Contains(ship);
+		}
+
+		public void SetSelection(List<ShipBase> ships)
+		{
+			SelectedShips.Clear();
+			if (ships != null && ships.Count > 0)
+			{
+				var unique = new HashSet<ShipBase>();
+				for (var i = 0; i < ships.Count; i++)
+				{
+					var ship = ships[i];
+					if (ship == null || !unique.Add(ship))
+						continue;
+					SelectedShips.Add(ship);
+				}
+			}
+
+			for (var i = 0; i < AllShips.Count; i++)
+			{
+				var s = AllShips[i];
+				if (s == null)
+					continue;
+
+				s.IsSelected = SelectedShips.Contains(s);
+			}
+
+			GameEvent.SelectionChanged(new List<ShipBase>(SelectedShips));
 		}
 
 		/// <summary>
@@ -38,15 +97,6 @@ namespace Ships
 		/// </summary>
 		public Vector3 ClampPosition(Vector3 pos)
 		{
-			if (Plane == WorldPlane.XY)
-			{
-				return new Vector3(
-					Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x),
-					Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y),
-					pos.z
-				);
-			}
-
 			return new Vector3(
 				Mathf.Clamp(pos.x, MinBounds.x, MaxBounds.x),
 				Mathf.Clamp(pos.y, MinBounds.y, MaxBounds.y),
@@ -59,12 +109,6 @@ namespace Ships
 		/// </summary>
 		public bool IsInside(Vector3 pos)
 		{
-			if (Plane == WorldPlane.XY)
-			{
-				return pos.x >= MinBounds.x && pos.x <= MaxBounds.x &&
-				       pos.y >= MinBounds.y && pos.y <= MaxBounds.y;
-			}
-
 			return pos.x >= MinBounds.x && pos.x <= MaxBounds.x &&
 			       pos.y >= MinBounds.y && pos.y <= MaxBounds.y &&
 			       pos.z >= MinBounds.z && pos.z <= MaxBounds.z;

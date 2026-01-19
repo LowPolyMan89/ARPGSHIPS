@@ -15,8 +15,7 @@
         {
           "Stat": "ReloadTimeBonus",
           "Operation": "PercentAdd",
-          "Min": -0.1,
-          "Max": -0.05
+          "Value": -0.075
         }
       ]
     },
@@ -27,8 +26,7 @@
         {
           "Stat": "ReloadTimeBonus",
           "Operation": "PercentAdd",
-          "Min": -0.15,
-          "Max": -0.08
+          "Value": -0.115
         }
       ]
     },
@@ -39,8 +37,7 @@
         {
           "Stat": "ReloadTimeBonus",
           "Operation": "PercentAdd",
-          "Min": -0.2,
-          "Max": -0.1
+          "Value": -0.15
         }
       ]
     },
@@ -51,8 +48,7 @@
         {
           "Stat": "ReloadTimeBonus",
           "Operation": "PercentAdd",
-          "Min": -0.25,
-          "Max": -0.15
+          "Value": -0.2
         }
       ]
     },
@@ -63,8 +59,7 @@
         {
           "Stat": "ReloadTimeBonus",
           "Operation": "PercentAdd",
-          "Min": -0.3,
-          "Max": -0.2
+          "Value": -0.25
         }
       ]
     }

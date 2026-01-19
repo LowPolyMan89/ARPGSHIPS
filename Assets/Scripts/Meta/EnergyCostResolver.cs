@@ -15,22 +15,14 @@ namespace Ships
 			if (item == null)
 				return false;
 
-			if (!string.IsNullOrEmpty(item.ItemId))
-			{
-				var generatedPath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
-				if (ResourceLoader.TryLoadPersistentJson(generatedPath, out GeneratedWeaponItem weapon) && weapon != null)
-				{
-					cost = weapon.EnergyCost;
-					return true;
-				}
-			}
+			var templateId = InventoryUtils.ResolveItemId(item);
 
-			if (string.IsNullOrEmpty(item.TemplateId))
+			if (string.IsNullOrEmpty(templateId))
 				return false;
 
-			var templateId = item.TemplateId.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase)
-				? item.TemplateId
-				: item.TemplateId + ".json";
+			templateId = templateId.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase)
+				? templateId
+				: templateId + ".json";
 
 			var templatePath = Path.Combine(PathConstant.WeaponsConfigs, templateId);
 			if (!ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template) || template == null)

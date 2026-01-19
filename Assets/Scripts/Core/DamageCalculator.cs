@@ -6,7 +6,7 @@ namespace Ships
 	{
 		public static CalculatedDamage CalculateHit(
 			float projectileDamage,
-			Vector2 hitPoint,
+			Vector3 hitPoint,
 			WeaponBase sourceWeapon,
 			ITargetable target,
 			bool wasShieldHit
@@ -149,7 +149,7 @@ namespace Ships
 		public bool IsCrit;
 		public float CritChance;
 		public float CritBonus;
-		public Vector2 HitPoint;
+		public Vector3 HitPoint;
 		public WeaponBase SourceWeapon;
 
 		public bool WasShieldHit;

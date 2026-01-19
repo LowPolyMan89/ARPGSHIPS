@@ -1,10 +1,11 @@
 ﻿{
   "id": "pirate_01",
   "name": "pirate_01",
+  "shipClass": "Frigate",
   "cost": 0,
   "Energy": 50,
   "stats": {
-    "HitPoint": 200,
+    "HitPoint": 250,
     "Shield": 0,
     "ShieldRegen": 2,
     "MoveSpeed": 3,
@@ -16,7 +17,7 @@
     "AfterburnerTime": 0,
     "Energy": 0,
     "PowerCell": 0,
-    "Evasion": 1,
+    "Evasion": 0.01,
     "KineticDamageBonus": 0,
     "ThermalDamageBonus": 0,
     "EnergyDamageBonus": 0,

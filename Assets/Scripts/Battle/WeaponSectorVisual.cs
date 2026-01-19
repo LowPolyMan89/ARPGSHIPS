@@ -96,19 +96,13 @@ namespace Ships
 
 		private ArcSpace ResolveSpace()
 		{
-			if (Battle.Instance != null && Battle.Instance.Plane == Battle.WorldPlane.XZ)
-				return ArcSpace.WorldXZ;
-
-			return ArcSpace.WorldXY;
+			return ArcSpace.WorldXZ;
 		}
 
 		private float ResolveScale(ArcSpace space)
 		{
 			var ls = transform.lossyScale;
-			if (space == ArcSpace.WorldXZ)
-				return Mathf.Max(Mathf.Abs(ls.x), Mathf.Abs(ls.z));
-
-			return Mathf.Max(Mathf.Abs(ls.x), Mathf.Abs(ls.y));
+			return Mathf.Max(Mathf.Abs(ls.x), Mathf.Abs(ls.z));
 		}
 	}
 }

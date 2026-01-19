@@ -12,7 +12,6 @@ namespace Ships
       public ElementsProgressBar AmmoCountBar;
       public Image ReloadingProgressFillImage;
       private int _maxAmmo;
-      private GameObject _iconInstance;
 
       public void Init(WeaponBase weapon)
       {
@@ -23,11 +22,8 @@ namespace Ships
       }
       private void OnDisable()
       {
-         if (_iconInstance != null)
-         {
-            Destroy(_iconInstance);
-            _iconInstance = null;
-         }
+         if (WeaponImage != null)
+            WeaponImage.sprite = null;
       }
       private void Update()
       {
@@ -100,12 +96,6 @@ namespace Ships
 
       private void SetupIcon()
       {
-         if (_iconInstance != null)
-         {
-            Destroy(_iconInstance);
-            _iconInstance = null;
-         }
-
          if (WeaponImage != null)
             WeaponImage.enabled = false;
 
@@ -116,12 +106,12 @@ namespace Ships
             return;
 
          var item = new InventoryItem { TemplateId = CurrentWeapon.WeaponTemplateId };
-         var prefab = ResourceLoader.LoadItemIconPrefab(item, ItemIconContext.Inventory);
-         if (prefab == null)
+         var sprite = ResourceLoader.LoadItemIcon(item, ItemIconContext.Inventory);
+         if (WeaponImage == null)
             return;
 
-         var parent = WeaponImage != null ? WeaponImage.transform : transform;
-         _iconInstance = Instantiate(prefab, parent, false);
+         WeaponImage.sprite = sprite;
+         WeaponImage.enabled = sprite != null;
       }
    }
 }

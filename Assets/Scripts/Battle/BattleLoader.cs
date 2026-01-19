@@ -22,26 +22,28 @@
 			var hull = HullLoader.Load(fit.SelectedShipId);
 			var go = Instantiate(PlayerShipPrefab, Vector3.zero, Quaternion.identity);
 			var ship = go.GetComponent<PlayerShip>();
+			Battle.Instance?.RegisterShip(ship);
 
 			ship.LoadShipFromConfig(fit.SelectedShipId);
 			ship.Init();
 			StatEffectApplier.ApplyAll(ship.ShipStats, fit.MainStatEffects, StatModifierSource.Main, fit);
 
-			var moduleWeaponEffects = ApplyModuleEffects(ship, fit.Fit);
+			var moduleWeaponEffects = ApplyModuleEffects(ship, fit);
 			ShipStatBonusApplier.Apply(ship.ShipStats);
-			InstallFit(ship, fit.Fit, hull, moduleWeaponEffects);
+			InstallFit(ship, fit, hull, moduleWeaponEffects);
 		}
 
 		private void InstallFit(
 			PlayerShip ship,
-			ShipFitModel fit,
+			MetaState state,
 			HullModel hull,
 			List<WeaponStatEffectModel> moduleWeaponEffects)
 		{
-			if (ship == null || fit == null)
+			if (ship == null || state == null)
 				return;
 
-			if (fit.GridPlacements == null || fit.GridPlacements.Count == 0)
+			var fit = state.Fit;
+			if (fit?.GridPlacements == null || fit.GridPlacements.Count == 0)
 				return;
 
 			foreach (var placement in fit.GridPlacements)
@@ -56,7 +58,8 @@
 
 				if (placement.GridType == ShipGridType.WeaponGrid)
 				{
-					var weapon = WeaponBuilder.BuildBattle(placement.ItemId, mount, ship);
+					var item = InventoryUtils.FindByItemId(state.InventoryModel, placement.ItemId);
+					var weapon = WeaponBuilder.BuildBattle(placement.ItemId, mount, ship, item);
 					if (weapon != null)
 						ApplyWeaponComposition(weapon, ship, moduleWeaponEffects);
 				}
@@ -67,20 +70,22 @@
 			}
 		}
 
-		private static List<WeaponStatEffectModel> ApplyModuleEffects(PlayerShip ship, ShipFitModel fit)
+		private static List<WeaponStatEffectModel> ApplyModuleEffects(PlayerShip ship, MetaState state)
 		{
 			var weaponEffects = new List<WeaponStatEffectModel>();
-			if (ship == null || fit?.GridPlacements == null)
+			if (ship == null || state?.Fit?.GridPlacements == null)
 				return weaponEffects;
 
-			foreach (var placement in fit.GridPlacements)
+			foreach (var placement in state.Fit.GridPlacements)
 			{
 				if (placement == null ||
 				    placement.GridType != ShipGridType.ModuleGrid ||
 				    string.IsNullOrEmpty(placement.ItemId))
 					continue;
 
-				if (!ModuleBuilder.TryLoadModuleData(placement.ItemId, out var module))
+				var item = InventoryUtils.FindByItemId(state.InventoryModel, placement.ItemId);
+				if ((item == null || !ModuleBuilder.TryLoadModuleData(item, out var module)) &&
+				    !ModuleBuilder.TryLoadModuleData(placement.ItemId, out module))
 					continue;
 
 				StatEffectApplier.ApplyAll(ship.ShipStats, module.ShipStatEffects, StatModifierSource.Module, module);
@@ -111,9 +116,18 @@
 			var mount = mountGo.transform;
 			mount.SetParent(shipRoot, worldPositionStays: false);
 
-			var pos = placement.Position;
-			mount.localPosition = new Vector3(pos.x, pos.y, 0f);
-			mount.localRotation = Quaternion.Euler(0f, 0f, placement.RotationDeg);
+			var localPos = placement.LocalPosition;
+			var localEuler = placement.LocalEuler;
+
+			if (!placement.HasLocalPose)
+			{
+				var pos2 = placement.Position;
+				localPos = new Vector3(pos2.x, 0f, pos2.y);
+				localEuler = new Vector3(0f, placement.RotationDeg, 0f);
+			}
+
+			mount.localPosition = localPos;
+			mount.localRotation = Quaternion.Euler(localEuler);
 			mount.localScale = Vector3.one;
 			return mount;
 		}

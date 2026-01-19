@@ -25,17 +25,17 @@ namespace Ships
 			Vector3 forward,
 			float maxAngleDeg,
 			float maxDistance,
-			Battle.WorldPlane plane = Battle.WorldPlane.XZ)
+			IReadOnlyList<ShipClass> classPriority = null)
 		{
-			if (plane == Battle.WorldPlane.XY)
+			origin.y = 0f;
+			forward.y = 0f;
+
+			Dictionary<ShipClass, int> priority = null;
+			if (classPriority != null && classPriority.Count > 0)
 			{
-				origin.z = 0f;
-				forward.z = 0f;
-			}
-			else
-			{
-				origin.y = 0f;
-				forward.y = 0f;
+				priority = new Dictionary<ShipClass, int>(classPriority.Count);
+				for (var i = 0; i < classPriority.Count; i++)
+					priority[classPriority[i]] = i;
 			}
 
 			var valid =
@@ -43,27 +43,65 @@ namespace Ships
 					.Where(t =>
 					{
 						var pos = t.Transform.position;
-						if (plane == Battle.WorldPlane.XY)
-							pos.z = 0f;
-						else
-							pos.y = 0f;
+						pos.y = 0f;
 
 						var toTarget = pos - origin;
+						if (priority != null && !priority.ContainsKey(t.Class))
+							return false;
+
 						return toTarget.magnitude <= maxDistance &&
 						       Vector3.Angle(forward, toTarget) <= maxAngleDeg;
 					})
-					.OrderBy(t =>
+					.OrderBy(t => GetClassPriority(t.Class, priority))
+					.ThenBy(t =>
 					{
 						var pos = t.Transform.position;
-						if (plane == Battle.WorldPlane.XY)
-							pos.z = 0f;
-						else
-							pos.y = 0f;
+						pos.y = 0f;
 						return Vector3.Distance(origin, pos);
 					})
 					.ToList();
 
 			return valid.FirstOrDefault();
+		}
+
+		public bool IsValidTarget(
+			ITargetable target,
+			Vector3 origin,
+			Vector3 forward,
+			float maxAngleDeg,
+			float maxDistance,
+			IReadOnlyList<ShipClass> classPriority = null)
+		{
+			if (target == null || !target.IsAlive)
+				return false;
+
+			Dictionary<ShipClass, int> priority = null;
+			if (classPriority != null && classPriority.Count > 0)
+			{
+				priority = new Dictionary<ShipClass, int>(classPriority.Count);
+				for (var i = 0; i < classPriority.Count; i++)
+					priority[classPriority[i]] = i;
+			}
+
+			if (priority != null && !priority.ContainsKey(target.Class))
+				return false;
+
+			var pos = target.Transform.position;
+			pos.y = 0f;
+			origin.y = 0f;
+			forward.y = 0f;
+
+			var toTarget = pos - origin;
+			return toTarget.magnitude <= maxDistance &&
+			       Vector3.Angle(forward, toTarget) <= maxAngleDeg;
+		}
+
+		private static int GetClassPriority(ShipClass shipClass, Dictionary<ShipClass, int> priority)
+		{
+			if (priority == null)
+				return 0;
+
+			return priority.TryGetValue(shipClass, out var value) ? value : int.MaxValue;
 		}
 
 		// упреждение

@@ -6,17 +6,15 @@ namespace Ships
 	[Serializable]
 	public class InventoryItem
 	{
-		public string ItemId;          // уникальный ID предмета
-		public string TemplateId;      // weapon_p_small_bolter_1.json
-		public string EquippedOnFitId; // фит, на котором установлен
+		public string ItemId;     // legacy id, now matches TemplateId
+		public string TemplateId; // weapon_p_small_bolter_1.json
+		public string Rarity;     // Common, Rare, etc.
+		public int Count = 1;     // total owned in stack
 
-		// Grid-based equipment (meta)
-		public string EquippedGridId;
-		public int EquippedGridX = -1;
-		public int EquippedGridY = -1;
-		public Vector2 EquippedGridPos;
-		public float EquippedGridRot;
+		[NonSerialized] public int EquippedCount;
 
-		public bool IsEquipped => !string.IsNullOrEmpty(EquippedOnFitId);
+		public string ResolvedId => !string.IsNullOrEmpty(TemplateId) ? TemplateId : ItemId;
+		public int AvailableCount => Mathf.Max(0, Count - EquippedCount);
+		public bool IsEquipped => EquippedCount > 0;
 	}
 }

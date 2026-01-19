@@ -163,46 +163,32 @@ namespace Ships
 				: null;
 		}
 
-		private Battle.WorldPlane CurrentPlane => Battle.Instance ? Battle.Instance.Plane : Battle.WorldPlane.XY;
-
 		private Vector3 FlattenToPlane(Vector3 v)
 		{
-			return CurrentPlane == Battle.WorldPlane.XY
-				? new Vector3(v.x, v.y, 0f)
-				: new Vector3(v.x, 0f, v.z);
+			return new Vector3(v.x, 0f, v.z);
 		}
 
 		private Vector3 AlignToPlane(Vector3 pos)
 		{
-			if (CurrentPlane == Battle.WorldPlane.XY)
-			{
-				pos.z = transform.position.z;
-			}
-			else
-			{
-				pos.y = transform.position.y;
-			}
-
+			pos.y = transform.position.y;
 			return pos;
 		}
 
 		private Vector3 GetDefaultForward()
 		{
-			var forward = CurrentPlane == Battle.WorldPlane.XY
-				? transform.up
-				: transform.forward;
+			var forward = transform.forward;
 
 			forward = FlattenToPlane(forward);
 
 			if (forward.sqrMagnitude < 0.001f)
-				forward = CurrentPlane == Battle.WorldPlane.XY ? Vector3.up : Vector3.forward;
+				forward = Vector3.forward;
 
 			return forward;
 		}
 
 		private Vector3 GetPlaneNormal()
 		{
-			return CurrentPlane == Battle.WorldPlane.XY ? Vector3.forward : Vector3.up;
+			return Vector3.up;
 		}
 
 		private float PlanarDistance(Vector3 a, Vector3 b)

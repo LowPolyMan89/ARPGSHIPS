@@ -1,9 +1,12 @@
 ﻿namespace Ships
 {
-	public enum TargetSize
+	public enum ShipClass
 	{
-		Small,
-		Medium,
-		Large
+		Rocket,
+		Frigate,
+		Destroyer,
+		Cruiser,
+		Battleship,
+		Flagship
 	}
 }

@@ -1,5 +1,4 @@
-﻿using System;
-using UnityEngine;
+using System;
 
 namespace Ships
 {
@@ -8,8 +7,7 @@ namespace Ships
 		public static Action<CalculatedDamage> OnTakeDamage;
 		public static Action OnUiUpdate;
 		public static Action<InventoryItem> OnClickItem;
-		public static event Action<Vector2> OnCursorInput;
-		public static event Action<bool> OnFireLmbInput;
+		public static event Action<System.Collections.Generic.List<ShipBase>> OnSelectionChanged;
 		public static event Action<PlayerInventoryModel> OnInventoryUpdated;
 		public static event Action<InventoryItem> OnItemSelected;
 		public static void TakeDamage(CalculatedDamage calculatedDamage)
@@ -25,14 +23,6 @@ namespace Ships
 		{
 			OnInventoryUpdated?.Invoke(playerInventoryModel);
 		}
-		public static void CursorInput(Vector2 screenPosition)
-		{
-			OnCursorInput?.Invoke(screenPosition);
-		}
-		public static void FireLmbInput(bool isPressed)
-		{
-			OnFireLmbInput?.Invoke(isPressed);
-		}
 		public static void ItemSelected(InventoryItem item)
 		{
 			OnItemSelected?.Invoke(item);
@@ -40,6 +30,11 @@ namespace Ships
 		public static void ClickItem(InventoryItem item)
 		{
 			OnClickItem?.Invoke(item);
+		}
+
+		public static void SelectionChanged(System.Collections.Generic.List<ShipBase> ships)
+		{
+			OnSelectionChanged?.Invoke(ships);
 		}
 	}
 }

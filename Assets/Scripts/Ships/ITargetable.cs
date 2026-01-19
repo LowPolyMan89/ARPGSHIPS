@@ -6,7 +6,7 @@ namespace Ships
 	{
 		Transform Transform { get; }
 		bool IsAlive { get; }
-		TargetSize Size { get; }
+		ShipClass Class { get; }
 		Vector3 Velocity { get; }
 		TeamMask Team { get; }
 		void TakeDamage(CalculatedDamage calculatedDamage);

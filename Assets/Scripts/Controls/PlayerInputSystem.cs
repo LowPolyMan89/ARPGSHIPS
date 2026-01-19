@@ -12,6 +12,8 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 	private bool fireLMB;
 	private bool fireRMB;
 	private Vector2 cursorScreen;
+	private Vector2 cameraMove;
+	private float cameraZoom;
 
 	public Vector2 Steering => steering;
 	public float Throttle => throttleAxis;
@@ -19,6 +21,8 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 	public bool FireLMB => fireLMB;
 	public bool FireRMB => fireRMB;
 	public Vector2 CursorScreen => cursorScreen;
+	public Vector2 CameraMove => cameraMove;
+	public float CameraZoom => cameraZoom;
 
 	private void Awake()
 	{
@@ -39,12 +43,10 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 		controls.Ship.FireLMB.performed += _ =>
 		{
 			fireLMB = true;
-			GameEvent.FireLmbInput(true);
 		};
 		controls.Ship.FireLMB.canceled += _ =>
 		{
 			fireLMB = false;
-			GameEvent.FireLmbInput(false);
 		};
 
 		controls.Ship.FireRMB.performed += _ => fireRMB = true;
@@ -57,11 +59,11 @@ public class PlayerInputSystem : MonoBehaviour, IPlayerInput
 	private void Update()
 	{
 		var mouse = Mouse.current;
-		if (mouse == null)
-			return;
+		if (mouse != null)
+			cursorScreen = mouse.position.ReadValue();
 
-		cursorScreen = mouse.position.ReadValue();
-		GameEvent.CursorInput(cursorScreen);
+		cameraMove = controls.Camera.Move.ReadValue<Vector2>();
+		cameraZoom = controls.Camera.Zoom.ReadValue<float>();
 	}
 }
 

@@ -16,129 +16,123 @@
     "Kinetic",
     "Projectile"
   ],
-  "AllowedGridTypes":
-  [
+  "AllowedGridTypes": [
     "WeaponGrid"
   ],
-
-  "AvailableEffects": [
-    {
-      "Name": "DotFire",
-      "Stats": {
-        "Entries": [
-          { "Name": "MinDamage", "Min": 5,  "Max": 10 },
-          { "Name": "MaxDamage", "Min": 10,  "Max": 20 },
-          { "Name": "Chance", "Min": 0.05,  "Max": 0.8 },
-          { "Name": "Duration", "Min": 2,  "Max": 5 }
-        ]
-      }
-    }
-  ],
-
   "Rarities": [
     {
       "Rarity": "Common",
       "DropChance": 50,
-      "MaxEffectCount": 0,
-      "Stats": {
-        "Entries": [
-          { "Name": "MinDamage",       "Min": 5,  "Max": 10 },
-          { "Name": "MaxDamage",       "Min": 7,  "Max": 14 },
-          { "Name": "FireRange",       "Min": 5,  "Max": 7 },
-          { "Name": "RotationSpeed",   "Min": 10, "Max": 16 },
-          { "Name": "ProjectileSpeed", "Min": 5,  "Max": 7 },
-          { "Name": "Accuracy",        "Min": 1,  "Max": 2 },
-          { "Name": "FireRate",        "Min": 2,  "Max": 3 },
-          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
-        ]
-      }
+      "Stats": [
+        { "Name": "MinDamage", "Value": 7.5 },
+        { "Name": "MaxDamage", "Value": 10.5 },
+        { "Name": "FireRange", "Value": 6 },
+        { "Name": "RotationSpeed", "Value": 13 },
+        { "Name": "ProjectileSpeed", "Value": 6 },
+        { "Name": "Accuracy", "Value": 1.5 },
+        { "Name": "FireRate", "Value": 2.5 },
+        { "Name": "CritChance", "Value": 0.035 },
+        { "Name": "CritMultiplier", "Value": 1.3 },
+        { "Name": "ReloadTime", "Value": 7.5 }
+      ]
     },
-
     {
       "Rarity": "Uncommon",
       "DropChance": 25,
-      "MaxEffectCount": 0,
-      "Stats": {
-        "Entries": [
-          { "Name": "MinDamage", "Min": 7, "Max": 13 },
-          { "Name": "MaxDamage", "Min": 13, "Max": 18 },
-          { "Name": "FireRange", "Min": 5, "Max": 7 },
-          { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
-          { "Name": "ProjectileSpeed", "Min": 5, "Max": 7 },
-          { "Name": "Accuracy", "Min": 1, "Max": 2 },
-          { "Name": "FireRate", "Min": 2, "Max": 3 },
-          { "Name": "AmmoCount", "Min": 12, "Max": 16 },
-          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
-        ]
-      }
+      "Stats": [
+        { "Name": "MinDamage", "Value": 10 },
+        { "Name": "MaxDamage", "Value": 15.5 },
+        { "Name": "FireRange", "Value": 6 },
+        { "Name": "RotationSpeed", "Value": 13 },
+        { "Name": "ProjectileSpeed", "Value": 6 },
+        { "Name": "Accuracy", "Value": 1.5 },
+        { "Name": "FireRate", "Value": 2.5 },
+        { "Name": "AmmoCount", "Value": 14 },
+        { "Name": "CritChance", "Value": 0.035 },
+        { "Name": "CritMultiplier", "Value": 1.3 },
+        { "Name": "ReloadTime", "Value": 7.5 }
+      ]
     },
-
     {
       "Rarity": "Rare",
       "DropChance": 15,
-      "MaxEffectCount": 1,
-      "Stats": {
-        "Entries": [
-          { "Name": "MinDamage", "Min": 10, "Max": 15 },
-          { "Name": "MaxDamage", "Min": 15, "Max": 22 },
-          { "Name": "FireRange", "Min": 5, "Max": 7 },
-          { "Name": "RotationSpeed", "Min": 10, "Max": 16 },
-          { "Name": "ProjectileSpeed", "Min": 5, "Max": 7 },
-          { "Name": "Accuracy", "Min": 1, "Max": 2 },
-          { "Name": "FireRate", "Min": 2, "Max": 3 },
-          { "Name": "AmmoCount", "Min": 12, "Max": 20 },
-          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
-        ]
-      }
+      "Stats": [
+        { "Name": "MinDamage", "Value": 12.5 },
+        { "Name": "MaxDamage", "Value": 18.5 },
+        { "Name": "FireRange", "Value": 6 },
+        { "Name": "RotationSpeed", "Value": 13 },
+        { "Name": "ProjectileSpeed", "Value": 6 },
+        { "Name": "Accuracy", "Value": 1.5 },
+        { "Name": "FireRate", "Value": 2.5 },
+        { "Name": "AmmoCount", "Value": 16 },
+        { "Name": "CritChance", "Value": 0.035 },
+        { "Name": "CritMultiplier", "Value": 1.3 },
+        { "Name": "ReloadTime", "Value": 7.5 }
+      ],
+      "Effects": [
+        {
+          "Name": "DotFire",
+          "Stats": [
+            { "Name": "DamagePerTick", "Value": 11.25 },
+            { "Name": "Chance", "Value": 0.425 },
+            { "Name": "Duration", "Value": 3.5 }
+          ]
+        }
+      ]
     },
-
     {
       "Rarity": "Epic",
       "DropChance": 7,
-      "MaxEffectCount": 1,
-      "Stats": {
-        "Entries": [
-          { "Name": "MinDamage", "Min": 12, "Max": 17 },
-          { "Name": "MaxDamage", "Min": 18, "Max": 26 },
-          { "Name": "FireRange", "Min": 5.5, "Max": 7.5 },
-          { "Name": "RotationSpeed", "Min": 11, "Max": 18 },
-          { "Name": "ProjectileSpeed", "Min": 5.5, "Max": 8 },
-          { "Name": "Accuracy", "Min": 1.2, "Max": 2.5 },
-          { "Name": "FireRate", "Min": 2.2, "Max": 3.5 },
-          { "Name": "AmmoCount", "Min": 14, "Max": 22 },
-          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
-        ]
-      }
+      "Stats": [
+        { "Name": "MinDamage", "Value": 14.5 },
+        { "Name": "MaxDamage", "Value": 22 },
+        { "Name": "FireRange", "Value": 6.5 },
+        { "Name": "RotationSpeed", "Value": 14.5 },
+        { "Name": "ProjectileSpeed", "Value": 6.75 },
+        { "Name": "Accuracy", "Value": 1.85 },
+        { "Name": "FireRate", "Value": 2.85 },
+        { "Name": "AmmoCount", "Value": 18 },
+        { "Name": "CritChance", "Value": 0.035 },
+        { "Name": "CritMultiplier", "Value": 1.3 },
+        { "Name": "ReloadTime", "Value": 7.5 }
+      ],
+      "Effects": [
+        {
+          "Name": "DotFire",
+          "Stats": [
+            { "Name": "DamagePerTick", "Value": 11.25 },
+            { "Name": "Chance", "Value": 0.425 },
+            { "Name": "Duration", "Value": 3.5 }
+          ]
+        }
+      ]
     },
-
     {
       "Rarity": "Legendary",
       "DropChance": 3,
-      "MaxEffectCount": 1,
-      "Stats": {
-        "Entries": [
-          { "Name": "MinDamage", "Min": 15, "Max": 20 },
-          { "Name": "MaxDamage", "Min": 22, "Max": 32 },
-          { "Name": "FireRange", "Min": 6,  "Max": 8 },
-          { "Name": "RotationSpeed", "Min": 12, "Max": 20 },
-          { "Name": "ProjectileSpeed", "Min": 6,  "Max": 9 },
-          { "Name": "Accuracy", "Min": 1.5, "Max": 3 },
-          { "Name": "FireRate", "Min": 2.5, "Max": 4 },
-          { "Name": "AmmoCount", "Min": 16, "Max": 25 },
-          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 }
-        ]
-      }
+      "Stats": [
+        { "Name": "MinDamage", "Value": 17.5 },
+        { "Name": "MaxDamage", "Value": 27 },
+        { "Name": "FireRange", "Value": 7 },
+        { "Name": "RotationSpeed", "Value": 16 },
+        { "Name": "ProjectileSpeed", "Value": 7.5 },
+        { "Name": "Accuracy", "Value": 2.25 },
+        { "Name": "FireRate", "Value": 3.25 },
+        { "Name": "AmmoCount", "Value": 20.5 },
+        { "Name": "CritChance", "Value": 0.035 },
+        { "Name": "CritMultiplier", "Value": 1.3 },
+        { "Name": "ReloadTime", "Value": 7.5 }
+      ],
+      "Effects": [
+        {
+          "Name": "DotFire",
+          "Stats": [
+            { "Name": "DamagePerTick", "Value": 11.25 },
+            { "Name": "Chance", "Value": 0.425 },
+            { "Name": "Duration", "Value": 3.5 }
+          ]
+        }
+      ]
     }
   ]
 }
-

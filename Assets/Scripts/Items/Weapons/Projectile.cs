@@ -36,7 +36,7 @@ namespace Ships
 			}
 		}
 
-		private void OnTriggerEnter2D(Collider2D other)
+		private void OnTriggerEnter(Collider other)
 		{
 			if (!other.TryGetComponent<ITargetable>(out var t))
 				return;
@@ -51,7 +51,6 @@ namespace Ships
 				target: t,
 				wasShieldHit: false
 			);
-
 			GameEvent.TakeDamage(calc);
 			t.TakeDamage(calc);
 			Destroy(gameObject);

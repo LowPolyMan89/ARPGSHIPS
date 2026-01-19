@@ -43,13 +43,15 @@ namespace Ships
 				}
 				else
 				{
-					var relativePath = Path.Combine(PathConstant.Inventory, p.ItemId + ".json");
-					if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
+					if (TryResolveWeaponEnergy(p.ItemId, out var cost))
+					{
+						energy = cost;
+					}
+					else
 					{
 						Debug.LogWarning($"[EnergyCalculator] Item data not found for '{p.ItemId}'");
 						continue;
 					}
-					energy = data.EnergyCost;
 				}
 
 				if (energy >= 0f)
@@ -59,6 +61,23 @@ namespace Ships
 			}
 
 			return report;
+		}
+
+		private static bool TryResolveWeaponEnergy(string templateId, out float cost)
+		{
+			cost = 0f;
+			if (string.IsNullOrEmpty(templateId))
+				return false;
+
+			var file = templateId.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase)
+				? templateId
+				: templateId + ".json";
+			var templatePath = Path.Combine(PathConstant.WeaponsConfigs, file);
+			if (!ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template) || template == null)
+				return false;
+
+			cost = template.EnergyCost;
+			return true;
 		}
 	}
 }

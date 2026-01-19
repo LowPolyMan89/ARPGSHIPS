@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: ShieldSector
-  m_Shader: {fileID: 4800000, guid: 0fffbc788e0b44ab8a05d67a18f336f6, type: 3}
+  m_Shader: {fileID: 4800000, guid: ce2cdd6a8b30a1e469a0ce3b38dff66a, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -32,11 +32,11 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MaskTex:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
+        m_Texture: {fileID: 10300, guid: 0000000000000000f000000000000000, type: 0}
+        m_Scale: {x: 3, y: 3}
         m_Offset: {x: 0, y: 0}
     - _NoiseTex:
-        m_Texture: {fileID: 10300, guid: 0000000000000000f000000000000000, type: 0}
+        m_Texture: {fileID: 10309, guid: 0000000000000000f000000000000000, type: 0}
         m_Scale: {x: 4, y: 4}
         m_Offset: {x: 0, y: 0}
     - _NormalMap:
@@ -45,15 +45,34 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
+    - _Appear: 0
+    - _Break: 0
     - _Charge: 1
+    - _EmissionStrength: 0.69
     - _EnableExternalAlpha: 0
+    - _HitBoost: 20
+    - _HitFalloff: 3.7
+    - _HitMaskMin: 0.764
     - _HitStrength: 1
-    - _HitTime: 1
+    - _HitTime: 36.4
+    - _HitWaveFrequency: 35
+    - _HitWaveSpeed: 10
+    - _HitWaveStrength: 2.24
+    - _IdleGlintScale: 9.76
+    - _IdleGlintSpeed: 0.2
+    - _IdleGlintStrength: 0.55
+    - _IdleGlintThreshold: 0.245
+    - _MaskRotation: 0
+    - _MaskRotationSpeed: 0.16
+    - _RimPower: 3.57
+    - _RimStrength: 2
     - _SectorEnd: 12
     - _SectorStart: -10
     - _ZWrite: 0
     m_Colors:
-    - _Color: {r: 0, g: 0.5461459, b: 1, a: 1}
+    - _BreakColor: {r: 1, g: 0.6, b: 0.2, a: 1}
+    - _Color: {r: 0, g: 0.5684226, b: 1.5157166, a: 1}
+    - _HitColor: {r: 1, g: 0, b: 0, a: 1}
     - _HitPoint: {r: 0.27, g: 0.5, b: 0, a: 0}
     - _HitPos: {r: 0, g: 0, b: 0, a: 0}
     - _RendererColor: {r: 1, g: 1, b: 1, a: 1}

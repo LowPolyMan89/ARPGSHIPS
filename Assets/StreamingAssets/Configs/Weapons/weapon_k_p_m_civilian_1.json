@@ -1,0 +1,46 @@
+{
+  "Id": "weapon_k_p_m_civilian_1",
+  "Name": "Small Bolter",
+  "IconInventory": "weapon_k_p_m_civilian_1",
+  "IconOnDrag": "weapon_k_p_m_civilian_1",
+  "IconOnFit": "weapon_k_p_m_civilian_1",
+  "Slot": "Weapon",
+  "DamageType": "Kinetic",
+  "Size": "Medium",
+  "BattlePrefab": "weapon_k_p_m_civilian_1_prefab",
+  "MetaPrefab": "weapon_k_p_m_civilian_1_prefab",
+  "GridWidth": 1,
+  "GridHeight": 1,
+  "EnergyCost": 0,
+  "Tags": [
+    "Kinetic",
+    "Projectile"
+  ],
+  "AllowedGridTypes": [
+    "WeaponGrid"
+  ],
+  "Rarities": [
+    {
+      "Rarity": "Common",
+      "DropChance": 50,
+      "Stats": [
+        { "Name": "MinDamage", "Value": 10 },
+        { "Name": "MaxDamage", "Value": 25 },
+        { "Name": "FireRange", "Value": 60 },
+        { "Name": "RotationSpeed", "Value": 25 },
+        { "Name": "ProjectileSpeed", "Value": 18 },
+        { "Name": "Accuracy", "Value": 0.9 },
+        { "Name": "FireRate", "Value": 1 },
+        { "Name": "CritChance", "Value": 0.035 },
+        { "Name": "AmmoCount", "Value": 10 },
+        { "Name": "ReloadTime", "Value": 8 },
+        { "Name": "Penetration", "Value": 0 },
+        { "Name": "RocketSpeed", "Value": 0 },
+        { "Name": "ExplosionRadius", "Value": 0 },
+        { "Name": "Spread", "Value": 0 }
+      ]
+    }
+  ],
+      "Effects": [
+      ]
+}

@@ -13,6 +13,7 @@ namespace Ships
 
 		// Persistent
 		public const string Inventory = "Inventory";
+		public const string InventoryConfig = "Inventory/inventory.json";
 		public const string MetaFile = "meta.json";
 	}
 }

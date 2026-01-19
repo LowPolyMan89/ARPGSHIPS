@@ -9,34 +9,37 @@ namespace Ships
 {
 	public static class WeaponBuilder
 	{
-		public static WeaponBase BuildBattle(string weaponId, Transform mountPoint, ShipBase owner)
+		public static WeaponBase BuildBattle(string weaponId, Transform mountPoint, ShipBase owner, InventoryItem item = null)
 		{
-			return BuildInternal(weaponId, mountPoint, owner, useMetaPrefab: false);
+			return BuildInternal(weaponId, mountPoint, owner, useMetaPrefab: false, item: item);
 		}
 
-		public static WeaponBase BuildMeta(string weaponId, Transform mountPoint, ShipBase owner)
+		public static WeaponBase BuildMeta(string weaponId, Transform mountPoint, ShipBase owner, InventoryItem item = null)
 		{
-			return BuildInternal(weaponId, mountPoint, owner, useMetaPrefab: true);
+			return BuildInternal(weaponId, mountPoint, owner, useMetaPrefab: true, item: item);
 		}
 
-		private static WeaponBase BuildInternal(string weaponId, Transform mountPoint, ShipBase owner, bool useMetaPrefab)
+		private static WeaponBase BuildInternal(string weaponId, Transform mountPoint, ShipBase owner, bool useMetaPrefab, InventoryItem item)
 		{
-			var relativePath = Path.Combine(PathConstant.Inventory, weaponId + ".json");
-			if (!ResourceLoader.TryLoadPersistentJson(relativePath, out WeaponLoadData data))
+			WeaponLoadData data = null;
+			if (item == null)
 			{
-				Debug.LogError($"[WeaponBuilder] Weapon data not found: {relativePath}");
-				return null;
+				var relativePath = Path.Combine(PathConstant.Inventory, weaponId + ".json");
+				ResourceLoader.TryLoadPersistentJson(relativePath, out data);
 			}
 
-			if (string.IsNullOrEmpty(data.TemplateId))
+			var templateId = !string.IsNullOrEmpty(item?.ResolvedId)
+				? item.ResolvedId
+				: (!string.IsNullOrEmpty(data?.TemplateId) ? data.TemplateId : weaponId);
+			if (string.IsNullOrEmpty(templateId))
 			{
 				Debug.LogError($"[WeaponBuilder] TemplateId missing for weapon item '{weaponId}'");
 				return null;
 			}
 
-			var templateFile = data.TemplateId.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
-				? data.TemplateId
-				: data.TemplateId + ".json";
+			var templateFile = templateId.EndsWith(".json", StringComparison.OrdinalIgnoreCase)
+				? templateId
+				: templateId + ".json";
 			var templatePath = Path.Combine(PathConstant.WeaponsConfigs, templateFile);
 			if (!ResourceLoader.TryLoadStreamingJson(templatePath, out WeaponTemplate template))
 			{
@@ -47,7 +50,7 @@ namespace Ships
 			var prefabId = useMetaPrefab
 				? (!string.IsNullOrEmpty(template.MetaPrefab) ? template.MetaPrefab : template.Prefab)
 				: (!string.IsNullOrEmpty(template.BattlePrefab) ? template.BattlePrefab : template.Prefab);
-			var slot = !string.IsNullOrEmpty(template.Slot) ? template.Slot : data.Slot;
+			var slot = !string.IsNullOrEmpty(template.Slot) ? template.Slot : data?.Slot;
 
 			var go = ResourceLoader.InstantiatePrefab(slot, prefabId, mountPoint, false);
 			if (go == null)
@@ -57,34 +60,33 @@ namespace Ships
 			}
 
 			var weapon = go.GetComponent<WeaponBase>();
-			weapon.WeaponTemplateId = data.TemplateId;
+			weapon.WeaponTemplateId = !string.IsNullOrEmpty(template.Id) ? template.Id : templateId;
 
-			// ---------- Stats ----------
-			var stats = new Stats();
-			foreach (var s in data.Stats)
+			var rarityId = !string.IsNullOrEmpty(item?.Rarity) ? item.Rarity : data?.Rarity;
+			var rarity = FindRarity(template, rarityId);
+			var stats = BuildStatsFromRarity(rarity);
+			if (stats == null)
 			{
-				if (!Enum.TryParse(s.Name, true, out StatType statType))
-					continue;
-				stats.AddStat(new Stat(statType, s.Value));
+				Debug.LogError($"[WeaponBuilder] Missing stats for weapon '{template.Id}' (rarity '{rarityId ?? "Common"}')");
+				return null;
 			}
 
 			weapon.Init(stats);
 			weapon.Model.BaseStats = stats.Clone();
-			weapon.Model.Size = data.Size;
-			weapon.Model.Tags = data.TagValues;
-			weapon.FireArcDeg = data.FireArcDeg <= 0 ? 360f : data.FireArcDeg;
+			weapon.Model.Size = template.Size;
+			weapon.Model.Tags = EnumParsingHelpers.ParseTags(template.Tags);
+			weapon.FireArcDeg = template.FireArcDeg <= 0 ? 360f : template.FireArcDeg;
 			weapon.Owner = owner;
-			weapon.Model.IsAutoFire = ResolveIsAutoFire(data, template);
+			weapon.Model.IsAutoFire = true;
 			if (TryResolveDamageType(data, template, out var damageTag))
 			{
 				weapon.Model.HasDamageType = true;
 				weapon.Model.DamageType = damageTag;
 			}
 
-			// ---------- Effects ----------
-			if (data.Effects != null)
+			if (rarity?.Effects != null)
 			{
-				foreach (var eff in data.Effects)
+				foreach (var eff in rarity.Effects)
 				{
 					var runtime = EffectFactory.Create(eff);
 					if (runtime != null)
@@ -97,14 +99,7 @@ namespace Ships
 
 		private static bool ResolveIsAutoFire(WeaponLoadData data, WeaponTemplate template)
 		{
-			if (data?.TagValues != null && data.TagValues.Length > 0)
-				return Array.IndexOf(data.TagValues, Tags.Automatic) >= 0;
-
-			if (template?.Tags == null || template.Tags.Length == 0)
-				return false;
-
-			var tagValues = EnumParsingHelpers.ParseTags(template.Tags);
-			return Array.IndexOf(tagValues, Tags.Automatic) >= 0;
+			return true;
 		}
 
 		private static bool TryResolveDamageType(WeaponLoadData data, WeaponTemplate template, out TagType tag)
@@ -161,6 +156,46 @@ namespace Ships
 		private static bool IsDamageTag(TagType tag)
 		{
 			return tag == Tags.Kinetic || tag == Tags.Thermal || tag == Tags.Energy;
+		}
+
+		private static WeaponTemplate.RarityEntry FindRarity(WeaponTemplate template, string rarityId)
+		{
+			if (template?.Rarities == null || template.Rarities.Length == 0)
+				return null;
+
+			if (!string.IsNullOrEmpty(rarityId))
+			{
+				for (var i = 0; i < template.Rarities.Length; i++)
+				{
+					var entry = template.Rarities[i];
+					if (entry != null && entry.Rarity != null &&
+					    entry.Rarity.Equals(rarityId, StringComparison.OrdinalIgnoreCase))
+						return entry;
+				}
+			}
+
+			return template.Rarities[0];
+		}
+
+		private static Stats BuildStatsFromRarity(WeaponTemplate.RarityEntry rarity)
+		{
+			if (rarity?.Stats == null || rarity.Stats.Length == 0)
+				return null;
+
+			var stats = new Stats();
+			for (var i = 0; i < rarity.Stats.Length; i++)
+			{
+				var entry = rarity.Stats[i];
+				if (entry == null || string.IsNullOrEmpty(entry.Name))
+					continue;
+
+				if (!Enum.TryParse(entry.Name, true, out StatType statType))
+					continue;
+
+				stats.AddStat(new Stat(statType, entry.Value));
+			}
+
+			return stats;
 		}
 	}
 

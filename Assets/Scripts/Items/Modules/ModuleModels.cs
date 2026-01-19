@@ -47,44 +47,13 @@ namespace Ships
 	}
 
 	[Serializable]
-	public sealed class ModuleStatEffectRange
-	{
-		public string Stat;
-		public StatEffectOperation Operation = StatEffectOperation.Add;
-		public StatModifierTarget Target = StatModifierTarget.Maximum;
-		public float Min;
-		public float Max;
-	}
-
-	[Serializable]
-	public sealed class ModuleWeaponStatEffectRange : ISerializationCallbackReceiver
-	{
-		public string Stat;
-		public StatEffectOperation Operation = StatEffectOperation.Add;
-		public float Min;
-		public float Max;
-		public WeaponEffectFilter Filter;
-
-		public void OnBeforeSerialize()
-		{
-			if (Filter != null)
-				Filter.Tags = EnumParsingHelpers.NormalizeStrings(Filter.Tags);
-		}
-
-		public void OnAfterDeserialize()
-		{
-			if (Filter != null)
-				Filter.OnAfterDeserialize();
-		}
-	}
-
-	[Serializable]
 	public sealed class ModuleRarityEntry
 	{
 		public string Rarity;
 		public int DropChance;
-		public ModuleStatEffectRange[] ShipStatEffects;
-		public ModuleWeaponStatEffectRange[] WeaponStatEffects;
+		public StatEffectModel[] ShipStatEffects;
+		public WeaponStatEffectModel[] WeaponStatEffects;
+		public EffectModel[] ActiveEffects;
 	}
 
 	[Serializable]

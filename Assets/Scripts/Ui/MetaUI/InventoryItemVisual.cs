@@ -1,4 +1,5 @@
 using System;
+using TMPro;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -14,10 +15,11 @@ namespace Ships
 		private float _dragWorldDepth;
 		private Canvas _canvas;
 		private RectTransform _rectTransform;
-		private GameObject _iconInstance;
 
 		[Header("UI")]
-		public Text CountLabel;
+		public Image Icon;
+		public TMP_Text CountLabel;
+		public TMP_Text EnergyLabel;
 		public Button Button;
 
 		public void Init(InventoryItem item, InventoryView inventoryView)
@@ -27,6 +29,8 @@ namespace Ships
 			_canvas = GetComponentInParent<Canvas>();
 			_rectTransform = GetComponent<RectTransform>();
 			ApplyIcon();
+			UpdateCountLabel();
+			UpdateEnergyLabel();
 
 			Button.onClick.RemoveAllListeners();
 			Button.onClick.AddListener(ButtonClick);
@@ -61,29 +65,15 @@ namespace Ships
 
 			ShipMetaDragContext.DraggedInventoryItem = _item;
 			MetaController.Instance?.MetaVisual?.HideItemInfoWindow();
-			ShipSocketVisual.HighlightSockets(_item);
+			ShipFitSlotUi.HighlightSlots(_item);
 
 			if (_canvas == null || _rectTransform == null)
 				return;
 
 			var forceWorldPrefab = false;
-			var dragPrefab = ResourceLoader.LoadItemIconPrefab(_item, ItemIconContext.Drag);
+			var dragSprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Drag);
 
-			if (!forceWorldPrefab && dragPrefab != null)
-			{
-				var go = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup));
-				go.transform.SetParent(_canvas.transform, false);
-				_dragIcon = (RectTransform)go.transform;
-				_dragIcon.anchorMin = new Vector2(0.5f, 0.5f);
-				_dragIcon.anchorMax = new Vector2(0.5f, 0.5f);
-				_dragIcon.pivot = new Vector2(0.5f, 0.5f);
-				_dragIcon.sizeDelta = _rectTransform.rect.size;
-				var iconInstance = Instantiate(dragPrefab, go.transform, false);
-				iconInstance.transform.SetSiblingIndex(0);
-				go.GetComponent<CanvasGroup>().blocksRaycasts = false;
-				_dragIcon.position = eventData.position;
-			}
-			else if (!forceWorldPrefab)
+			if (!forceWorldPrefab)
 			{
 				var go = new GameObject("DragIcon", typeof(RectTransform), typeof(CanvasGroup), typeof(Image));
 				go.transform.SetParent(_canvas.transform, false);
@@ -93,7 +83,7 @@ namespace Ships
 				_dragIcon.pivot = new Vector2(0.5f, 0.5f);
 				_dragIcon.sizeDelta = _rectTransform.rect.size;
 				var img = go.GetComponent<Image>();
-				img.sprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Drag);
+				img.sprite = dragSprite;
 				img.raycastTarget = false;
 				go.GetComponent<CanvasGroup>().blocksRaycasts = false;
 
@@ -119,38 +109,21 @@ namespace Ships
 
 			if (_dragWorld != null)
 			{
-				if (ShipMetaDragContext.ActiveSocket != null &&
-				    ShipMetaDragContext.ActiveSocket.TryGetSnappedWorldPosition(out var snappedWorld))
-				{
-					_dragWorld.position = snappedWorld;
-				}
-				else
-				{
-					UpdateDragWorldPosition(eventData);
-				}
+				UpdateDragWorldPosition(eventData);
 				return;
 			}
 
 			if (_dragIcon != null)
 			{
-				if (ShipMetaDragContext.ActiveSocket != null &&
-				    ShipMetaDragContext.ActiveSocket.TryGetSnappedScreenPosition(eventData, out var snapped))
-				{
-					UpdateDragIconSize(ShipMetaDragContext.ActiveSocket);
-					_dragIcon.position = snapped;
-				}
-				else
-				{
-					_dragIcon.position = eventData.position;
-				}
+				_dragIcon.position = eventData.position;
 			}
 		}
 
 		public void OnEndDrag(PointerEventData eventData)
 		{
 			ShipMetaDragContext.DraggedInventoryItem = null;
-			ShipMetaDragContext.ActiveSocket = null;
-			ShipSocketVisual.ClearHighlights();
+			ShipMetaDragContext.ActiveSlot = null;
+			ShipFitSlotUi.ClearHighlights();
 
 			if (_dragIcon != null)
 				Destroy(_dragIcon.gameObject);
@@ -177,18 +150,52 @@ namespace Ships
 
 		private void ApplyIcon()
 		{
-			if (_iconInstance != null)
-			{
-				Destroy(_iconInstance);
-				_iconInstance = null;
-			}
+			if (Icon == null)
+				Icon = GetComponent<Image>();
 
-			var prefab = ResourceLoader.LoadItemIconPrefab(_item, ItemIconContext.Inventory);
-			if (prefab == null)
+			if (Icon == null)
 				return;
 
-			_iconInstance = Instantiate(prefab, transform, false);
-			_iconInstance.transform.SetSiblingIndex(0);
+			var sprite = ResourceLoader.LoadItemIcon(_item, ItemIconContext.Inventory);
+			Icon.sprite = sprite;
+			Icon.enabled = sprite != null;
+		}
+
+		private void UpdateCountLabel()
+		{
+			if (CountLabel == null)
+				return;
+
+			var count = _item != null ? _item.AvailableCount : 0;
+			CountLabel.text = count.ToString();
+			CountLabel.gameObject.SetActive(count > 0);
+		}
+
+		private void UpdateEnergyLabel()
+		{
+			if (EnergyLabel == null)
+				return;
+
+			var energy = ResolveEnergy();
+			if (energy <= 0f)
+			{
+				EnergyLabel.gameObject.SetActive(false);
+				return;
+			}
+
+			EnergyLabel.text = Mathf.RoundToInt(energy).ToString();
+			EnergyLabel.gameObject.SetActive(true);
+		}
+
+		private float ResolveEnergy()
+		{
+			if (_item == null)
+				return 0f;
+
+			if (ModuleBuilder.TryBuildModuleData(_item.ResolvedId, _item.Rarity, out var module))
+				return module.EnergyCost;
+
+			return EnergyCostResolver.ResolveEnergyCost(_item);
 		}
 
 		private void UpdateActiveGrid(PointerEventData eventData)
@@ -199,27 +206,19 @@ namespace Ships
 			var results = new System.Collections.Generic.List<RaycastResult>();
 			EventSystem.current.RaycastAll(eventData, results);
 
-			ShipSocketVisual socket = null;
+			ShipFitSlotUi slot = null;
 			for (var i = 0; i < results.Count; i++)
 			{
 				var go = results[i].gameObject;
 				if (go == null)
 					continue;
 
-				socket = go.GetComponentInParent<ShipSocketVisual>();
-				if (socket != null)
+				slot = go.GetComponentInParent<ShipFitSlotUi>();
+				if (slot != null)
 					break;
 			}
 
-			ShipMetaDragContext.ActiveSocket = socket;
-		}
-
-		private void UpdateDragIconSize(ShipSocketVisual socket)
-		{
-			if (_dragIcon == null || socket == null || _item == null)
-				return;
-
-			_dragIcon.sizeDelta = new Vector2(socket.GetVisualSize(), socket.GetVisualSize());
+			ShipMetaDragContext.ActiveSlot = slot;
 		}
 
 		private void UpdateDragWorldPosition(PointerEventData eventData)

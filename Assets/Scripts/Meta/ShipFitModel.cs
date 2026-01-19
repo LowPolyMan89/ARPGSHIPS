@@ -35,6 +35,11 @@ namespace Ships
 			// Новая запись: позиция и поворот внутри грида (локальные единицы грида, от нижнего левого угла).
 			public Vector2 Position;
 			public float RotationDeg;
+
+			// 3D pose relative to the ship root.
+			public Vector3 LocalPosition;
+			public Vector3 LocalEuler;
+			public bool HasLocalPose;
 		}
 	}
 

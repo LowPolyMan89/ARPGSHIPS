@@ -3,10 +3,6 @@ using UnityEngine.EventSystems;
 
 namespace Ships
 {
-	/// <summary>
-	/// Обработчик дропа предмета из инвентаря на конкретный якорь слота в мета-сцене.
-	/// Требует Collider + PhysicsRaycaster на камере.
-	/// </summary>
 	public class ShipSlotDropHandler : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IDropHandler
 	{
 		[SerializeField] private ShipSlotAnchor _anchor;
@@ -30,12 +26,10 @@ namespace Ships
 
 		public void OnPointerEnter(PointerEventData eventData)
 		{
-			// Можно добавить подсветку слота.
 		}
 
 		public void OnPointerExit(PointerEventData eventData)
 		{
-			// Снять подсветку.
 		}
 
 		public void OnDrop(PointerEventData eventData)
@@ -44,33 +38,37 @@ namespace Ships
 			if (item == null || _anchor == null || _ship == null || MetaController.Instance == null)
 				return;
 
-			// Сразу спавним префаб оружия в слот.
-			var weapon = WeaponBuilder.BuildMeta(item.ItemId, _anchor.MountPoint, _ship);
+			var itemId = InventoryUtils.ResolveItemId(item);
+			if (string.IsNullOrEmpty(itemId))
+				return;
+
+			var state = MetaController.Instance.State;
+			if (!InventoryUtils.TryConsume(state.InventoryModel, itemId, 1))
+				return;
+
+			var weapon = WeaponBuilder.BuildMeta(itemId, _anchor.MountPoint, _ship, item);
 			if (weapon == null)
 			{
-				Debug.LogWarning($"[ShipSlotDropHandler] Failed to build weapon '{item.ItemId}' on slot '{_anchor.GridId}'");
+				InventoryUtils.ReturnToInventory(state.InventoryModel, itemId, 1);
+				Debug.LogWarning($"[ShipSlotDropHandler] Failed to build weapon '{itemId}' on slot '{_anchor.GridId}'");
 				return;
 			}
 
-			// Обновляем инвентарь/сейв.
-			item.EquippedOnFitId = MetaController.Instance.State.SelectedShipId;
-			item.EquippedGridId = _anchor.GridId;
-			item.EquippedGridX = Mathf.FloorToInt(_anchor.CellPosition.x);
-			item.EquippedGridY = Mathf.FloorToInt(_anchor.CellPosition.y);
-			item.EquippedGridPos = _anchor.CellPosition;
-			item.EquippedGridRot = _anchor.RotationDeg;
-
-			var fit = MetaController.Instance.State.Fit;
+			var fit = state.Fit;
 			if (fit != null)
 			{
-				fit.GridPlacements.RemoveAll(p => p != null && p.ItemId == item.ItemId);
+				var existing = fit.GridPlacements.Find(p => p != null && p.GridId == _anchor.GridId);
+				if (existing != null && !string.IsNullOrEmpty(existing.ItemId))
+					InventoryUtils.ReturnToInventory(state.InventoryModel, existing.ItemId, 1);
+
+				fit.GridPlacements.RemoveAll(p => p != null && p.GridId == _anchor.GridId);
 				fit.GridPlacements.Add(new ShipFitModel.GridPlacement
 				{
 					GridId = _anchor.GridId,
 					GridType = _anchor.GridType,
-					ItemId = item.ItemId,
-					X = item.EquippedGridX,
-					Y = item.EquippedGridY,
+					ItemId = itemId,
+					X = Mathf.FloorToInt(_anchor.CellPosition.x),
+					Y = Mathf.FloorToInt(_anchor.CellPosition.y),
 					Width = 1,
 					Height = 1,
 					Position = _anchor.CellPosition,
@@ -78,9 +76,9 @@ namespace Ships
 				});
 			}
 
-			MetaSaveSystem.Save(MetaController.Instance.State);
+			MetaSaveSystem.Save(state);
+			GameEvent.InventoryUpdated(state.InventoryModel);
 
-			// Очистить drag контекст.
 			ShipMetaDragContext.DraggedInventoryItem = null;
 		}
 	}

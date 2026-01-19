@@ -1,6 +1,4 @@
 using System.Collections.Generic;
-using System.IO;
-using UnityEngine;
 
 namespace Ships
 {
@@ -8,6 +6,8 @@ namespace Ships
 	{
 		public static void Save(MetaState state)
 		{
+			if (state != null)
+				SaveInventory(state.InventoryModel);
 			ResourceLoader.SavePersistentJson(PathConstant.MetaFile, state, true);
 		}
 
@@ -16,63 +16,142 @@ namespace Ships
 			if (!ResourceLoader.TryLoadPersistentJson(PathConstant.MetaFile, out MetaState meta))
 				meta = new MetaState();
 
-			// подтягиваем сгенерённые предметы с диска, но без дублей
-			LoadGeneratedItems(meta);
-			CleanupMissingGeneratedItems(meta);
+			meta.InventoryModel = LoadInventory(meta);
+			InventoryUtils.RebuildEquippedCounts(meta);
 
 			return meta;
 		}
 
-		private static void LoadGeneratedItems(MetaState state)
+		private static PlayerInventoryModel LoadInventory(MetaState state)
 		{
-			var inventory = state.InventoryModel.InventoryUniqueItems;
-
-			foreach (var file in ResourceLoader.GetPersistentFiles(PathConstant.Inventory, "*.json"))
+			if (ResourceLoader.TryLoadPersistentJson(PathConstant.InventoryConfig, out InventorySaveData save) &&
+			    save?.Items != null)
 			{
-				var relativePath = Path.Combine(PathConstant.Inventory, file);
-				if (!ResourceLoader.TryLoadPersistentJson(relativePath, out GeneratedWeaponItem gen))
-					continue;
-
-				// если такой ItemId уже есть в профиле - пропускаем
-				var exists = inventory.Exists(i => i.ItemId == gen.ItemId);
-				if (exists)
-					continue;
-
-				inventory.Add(new InventoryItem
+				var model = new PlayerInventoryModel();
+				var removedDefault = false;
+				foreach (var item in save.Items)
 				{
-					ItemId = gen.ItemId,
-					TemplateId = gen.TemplateId
+					if (item == null)
+						continue;
+
+					var id = !string.IsNullOrEmpty(item.TemplateId) ? item.TemplateId : item.ItemId;
+					if (string.IsNullOrEmpty(id))
+						continue;
+					id = NormalizeItemId(id);
+					if (DefaultWeaponResolver.IsDefaultTemplateId(id))
+					{
+						removedDefault = true;
+						continue;
+					}
+
+					var count = item.Count <= 0 ? 0 : item.Count;
+					model.InventoryUniqueItems.Add(new InventoryItem
+					{
+						ItemId = id,
+						TemplateId = id,
+						Rarity = item.Rarity,
+						Count = count
+					});
+				}
+				if (removedDefault)
+					SaveInventory(model);
+				return model;
+			}
+
+			var fallback = new PlayerInventoryModel();
+			var legacyMap = new Dictionary<string, string>(System.StringComparer.OrdinalIgnoreCase);
+			if (state?.InventoryModel?.InventoryUniqueItems != null)
+			{
+				foreach (var item in state.InventoryModel.InventoryUniqueItems)
+				{
+					if (item == null)
+						continue;
+
+					var id = !string.IsNullOrEmpty(item.TemplateId) ? item.TemplateId : item.ItemId;
+					if (string.IsNullOrEmpty(id))
+						continue;
+					id = NormalizeItemId(id);
+					if (DefaultWeaponResolver.IsDefaultTemplateId(id))
+						continue;
+
+					if (!string.IsNullOrEmpty(item.ItemId) && !string.IsNullOrEmpty(item.TemplateId) &&
+					    !string.Equals(item.ItemId, item.TemplateId, System.StringComparison.OrdinalIgnoreCase))
+					{
+						legacyMap[item.ItemId] = NormalizeItemId(item.TemplateId);
+					}
+
+					var rarity = string.IsNullOrEmpty(item.Rarity) ? DefaultWeaponResolver.DefaultRarity : item.Rarity;
+					InventoryUtils.AddOrIncrease(fallback, id, rarity, 1);
+				}
+			}
+
+			if (legacyMap.Count > 0)
+				RemapPlacements(state, legacyMap);
+
+			SaveInventory(fallback);
+			return fallback;
+		}
+
+		private static void SaveInventory(PlayerInventoryModel model)
+		{
+			if (model?.InventoryUniqueItems == null)
+				return;
+
+			var save = new InventorySaveData();
+			foreach (var item in model.InventoryUniqueItems)
+			{
+				if (item == null)
+					continue;
+
+				var id = !string.IsNullOrEmpty(item.TemplateId) ? item.TemplateId : item.ItemId;
+				if (string.IsNullOrEmpty(id))
+					continue;
+				id = NormalizeItemId(id);
+				if (DefaultWeaponResolver.IsDefaultTemplateId(id))
+					continue;
+
+				var count = item.Count <= 0 ? 0 : item.Count;
+				save.Items.Add(new InventoryItem
+				{
+					ItemId = id,
+					TemplateId = id,
+					Rarity = item.Rarity,
+					Count = count
 				});
+			}
+
+			ResourceLoader.SavePersistentJson(PathConstant.InventoryConfig, save, true);
+		}
+
+		private static void RemapPlacements(MetaState state, Dictionary<string, string> legacyMap)
+		{
+			if (state?.Fit?.GridPlacements == null || legacyMap == null || legacyMap.Count == 0)
+				return;
+
+			foreach (var placement in state.Fit.GridPlacements)
+			{
+				if (placement == null || string.IsNullOrEmpty(placement.ItemId))
+					continue;
+
+				if (legacyMap.TryGetValue(placement.ItemId, out var templateId))
+					placement.ItemId = templateId;
 			}
 		}
 
-		private static void CleanupMissingGeneratedItems(MetaState state)
+		private static string NormalizeItemId(string itemId)
 		{
-			if (state == null)
-				return;
+			if (string.IsNullOrEmpty(itemId))
+				return itemId;
 
-			var inv = state.InventoryModel.InventoryUniqueItems;
-			var removedIds = new HashSet<string>();
+			return itemId.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase)
+				? itemId.Substring(0, itemId.Length - ".json".Length)
+				: itemId;
+		}
 
-			for (var i = inv.Count - 1; i >= 0; i--)
-			{
-				var item = inv[i];
-				if (item == null || string.IsNullOrEmpty(item.ItemId))
-					continue;
-
-				var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
-				if (ResourceLoader.PersistentFileExists(relativePath))
-					continue;
-
-				removedIds.Add(item.ItemId);
-				inv.RemoveAt(i);
-			}
-
-			if (removedIds.Count == 0)
-				return;
-
-			if (state.Fit?.GridPlacements != null)
-				state.Fit.GridPlacements.RemoveAll(p => p != null && removedIds.Contains(p.ItemId));
+		[System.Serializable]
+		private sealed class InventorySaveData
+		{
+			public List<InventoryItem> Items = new();
 		}
 	}
 }

@@ -11,7 +11,7 @@ namespace Ships
 		public Stat ShieldHP;
 		public Stat ShieldRegen;
 		public Stat RestoreDelay;
-		public Collider2D Collider;
+		public Collider Collider;
 		public bool IsRestoring;
 		public float CurrentRestoreTime;
 		public float DamageResist = 0f;

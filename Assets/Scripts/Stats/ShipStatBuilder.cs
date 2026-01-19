@@ -90,7 +90,9 @@ namespace Ships
 				    string.IsNullOrEmpty(placement.ItemId))
 					continue;
 
-				if (!ModuleBuilder.TryLoadModuleData(placement.ItemId, out var module))
+				var item = InventoryUtils.FindByItemId(state.InventoryModel, placement.ItemId);
+				if ((item == null || !ModuleBuilder.TryLoadModuleData(item, out var module)) &&
+				    !ModuleBuilder.TryLoadModuleData(placement.ItemId, out module))
 					continue;
 
 				StatEffectApplier.ApplyAll(stats, module.ShipStatEffects, StatModifierSource.Module, module);

@@ -4,75 +4,99 @@ namespace Ships
 {
 	public class BattleCamera : MonoBehaviour
 	{
-		[Header("2D Setup")]
-		public bool AutoSetupTopDown2D = true;
+		[Header("Move Settings")]
+		public float MoveSpeed = 12f;
 
-		[Header("Follow Settings")]
-		public float followSmooth = 0.2f;
-		public float moveOffsetStrength = 2f;
-		private Vector3 _velocity;
-		private PlayerShip _player;
+		[Header("Zoom Settings")]
+		public float ZoomSpeed = 2.5f;
+		public float ZoomMin = -8f;
+		public float ZoomMax = 8f;
 
-		private float _fixedY;
-		private float _fixedZ;
-		private Camera _camera;
+		[Header("Camera Setup")]
+		public Transform CameraTransform;
+		public Vector3 CameraOffset;
+
+		private PlayerInputSystem _input;
+		private PlayerControls _controls;
+		private float _zoom;
+		private Vector3 _baseLocalPos;
+		private Quaternion _baseLocalRot;
 
 		private void Awake()
 		{
-			_camera = GetComponent<Camera>();
-			if (AutoSetupTopDown2D && _camera != null && Battle.Instance != null && Battle.Instance.Plane == Battle.WorldPlane.XY)
+			_input = FindAnyObjectByType<PlayerInputSystem>();
+			if (_input == null)
 			{
-				_camera.orthographic = true;
-				transform.rotation = Quaternion.identity;
+				_controls = new PlayerControls();
+				_controls.Enable();
 			}
 
-			_fixedY = transform.position.y;
-			_fixedZ = transform.position.z;
+			if (CameraTransform == null)
+			{
+				var cam = GetComponentInChildren<Camera>();
+				if (cam != null)
+					CameraTransform = cam.transform;
+			}
+
+			if (CameraTransform != null)
+			{
+				_baseLocalPos = CameraTransform.localPosition;
+				_baseLocalRot = CameraTransform.localRotation;
+			}
 		}
 
 		private void LateUpdate()
 		{
-			if (Battle.Instance == null || Battle.Instance.Player == null)
+			if (CameraTransform == null)
 				return;
 
-			if (_player == null)
-				_player = Battle.Instance.Player;
-
-			FollowPlayer();
+			HandleMove();
+			HandleZoom();
 		}
 
-		private void FollowPlayer()
+		private void HandleMove()
 		{
-			var plane = Battle.Instance != null ? Battle.Instance.Plane : Battle.WorldPlane.XY;
-			var playerPos = _player.transform.position;
+			var input = _input != null
+				? _input.CameraMove
+				: (_controls != null ? _controls.Camera.Move.ReadValue<Vector2>() : Vector2.zero);
+			if (input.sqrMagnitude < 0.0001f)
+				return;
 
-			// небольшое смещение в сторону движения (без Y)
-			var vel = plane == Battle.WorldPlane.XY
-				? new Vector3(_player.Velocity.x, _player.Velocity.y, 0f)
-				: new Vector3(_player.Velocity.x, 0f, _player.Velocity.z);
+			var forward = CameraTransform.forward;
+			forward.y = 0f;
+			if (forward.sqrMagnitude < 0.0001f)
+				forward = Vector3.forward;
+			forward.Normalize();
 
-			var offset = vel.sqrMagnitude > 0.01f
-				? vel.normalized * moveOffsetStrength
-				: Vector3.zero;
+			var right = CameraTransform.right;
+			right.y = 0f;
+			if (right.sqrMagnitude < 0.0001f)
+				right = Vector3.right;
+			right.Normalize();
 
-			var targetPos = playerPos + offset;
-
-			// возвращаем фиксированную ось
-			if (plane == Battle.WorldPlane.XY)
-				targetPos.z = _fixedZ;
-			else
-				targetPos.y = _fixedY;
-
-			var smoothed = Vector3.SmoothDamp(
-				transform.position,
-				targetPos,
-				ref _velocity,
-				followSmooth
-			);
-			
-
-			transform.position = smoothed;
+			var delta = (right * input.x + forward * input.y) * MoveSpeed * Time.deltaTime;
+			transform.position += delta;
 		}
-		
+
+		private void HandleZoom()
+		{
+			var scroll = _input != null
+				? _input.CameraZoom
+				: (_controls != null ? _controls.Camera.Zoom.ReadValue<float>() : 0f);
+			if (Mathf.Abs(scroll) > 0.0001f)
+				_zoom = Mathf.Clamp(_zoom + scroll * ZoomSpeed, ZoomMin, ZoomMax);
+
+			var zoomDir = _baseLocalRot * Vector3.forward;
+			CameraTransform.localPosition = _baseLocalPos + CameraOffset + zoomDir * _zoom;
+		}
+
+		private void OnDestroy()
+		{
+			if (_controls != null)
+			{
+				_controls.Dispose();
+				_controls = null;
+			}
+		}
 	}
 }

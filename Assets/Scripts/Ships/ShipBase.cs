@@ -16,17 +16,19 @@ namespace Ships
 		[SerializeField] private TeamMask _team;
 		public TeamMask HitMask;
 		[FormerlySerializedAs("TankStats")] public Stats ShipStats;
-		[SerializeField] private TargetSize size = TargetSize.Medium;
+		[FormerlySerializedAs("size")]
+		[SerializeField] private ShipClass shipClass = ShipClass.Frigate;
 		public List<StatVisual> StatVisuals = new();
 		public HashSet<string> RunningDotEffects = new();
 		public Transform Transform => transform;
-		public TargetSize Size => size;
+		public ShipClass Class => shipClass;
 
 		private Vector3 _lastPos;
 		private Vector3 _velocity;
 		public Vector3 Velocity => _velocity;
 
 		public TeamMask Team => _team;
+		public bool IsSelected { get; set; }
 
 		public bool IsAlive
 		{
@@ -42,6 +44,9 @@ namespace Ships
 		{
 			ShipStats = new Stats();
 			var data = HullLoader.Load(fileName);
+			if (data != null && !string.IsNullOrEmpty(data.shipClass) &&
+			    Enum.TryParse(data.shipClass, true, out ShipClass parsedClass))
+				shipClass = parsedClass;
 			var fields = typeof(StatContainer).GetFields(
 				BindingFlags.Public | BindingFlags.Instance);
 
@@ -129,7 +134,6 @@ namespace Ships
 				_visual = new ShipVisual();
 				_visual.Load();
 			}
-			Battle.Instance.AllShips.Add(this);
 			StartCoroutine(TickEffects());
 			// отправляем визуализаторам данные статов
 			StatVisuals.Clear();
@@ -245,8 +249,8 @@ namespace Ships
 		{
 			if (!IsAlive)
 			{
-				if (SideType == SideType.Enemy)
-					Battle.Instance.AllShips.Remove(this);
+				if (Battle.Instance != null)
+					Battle.Instance.UnregisterShip(this);
 
 				Destroy(gameObject);
 				return;

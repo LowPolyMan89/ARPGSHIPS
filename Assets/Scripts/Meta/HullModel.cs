@@ -14,6 +14,7 @@ namespace Ships
 		public int cost;
 		public string BattlePrefab;
 		public string MetaPrefab;
+		public string shipClass;
 		public int Energy;
 		public StatContainer stats;
 		public List<StatEffectModel> StatEffects;

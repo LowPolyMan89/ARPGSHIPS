@@ -134,7 +134,7 @@ namespace Ships
 			if (!TryLoadWeaponData(item, out var weapon, out _))
 				return;
 
-			_selectedItemPanel.ItemName.text = item.TemplateId;
+			_selectedItemPanel.ItemName.text = InventoryUtils.ResolveItemId(item);
 
 			var baseStatsDict = BuildStatsDictionary(weapon.Stats);
 			var statsDict = baseStatsDict;
@@ -244,13 +244,16 @@ namespace Ships
 			if (stats.Count == 0)
 				return null;
 
+			TryGetStat(stats, "DamagePerTick", out var damagePerTick);
 			TryGetStat(stats, "MinDamage", out var minDmg);
 			TryGetStat(stats, "MaxDamage", out var maxDmg);
 			TryGetStat(stats, "Chance", out var chance);
 			TryGetStat(stats, "Duration", out var duration);
 
 			var parts = new List<string>();
-			if (minDmg > 0f || maxDmg > 0f)
+			if (damagePerTick > 0f)
+				parts.Add($"Damage per tick: <b>{Mathf.RoundToInt(damagePerTick)}</b>");
+			else if (minDmg > 0f || maxDmg > 0f)
 				parts.Add($"Наносит <b>{Mathf.RoundToInt(minDmg)}</b> - <b>{Mathf.RoundToInt(maxDmg)}</b> урона");
 
 			if (chance > 0f)
@@ -262,7 +265,8 @@ namespace Ships
 			// Добавим прочие статы, если есть
 			foreach (var kv in stats)
 			{
-				if (kv.Key.Equals("MinDamage", System.StringComparison.OrdinalIgnoreCase) ||
+				if (kv.Key.Equals("DamagePerTick", System.StringComparison.OrdinalIgnoreCase) ||
+				    kv.Key.Equals("MinDamage", System.StringComparison.OrdinalIgnoreCase) ||
 				    kv.Key.Equals("MaxDamage", System.StringComparison.OrdinalIgnoreCase) ||
 				    kv.Key.Equals("Chance", System.StringComparison.OrdinalIgnoreCase) ||
 				    kv.Key.Equals("Duration", System.StringComparison.OrdinalIgnoreCase))
@@ -293,18 +297,13 @@ namespace Ships
 			if (item == null)
 				return false;
 
-			if (!string.IsNullOrEmpty(item.ItemId))
+			var templateId = InventoryUtils.ResolveItemId(item);
+			if (!string.IsNullOrEmpty(templateId))
 			{
-				var generatedPath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
-				if (ResourceLoader.TryLoadPersistentJson(generatedPath, out GeneratedWeaponItem loadedWeapon))
-				{
-					weapon = loadedWeapon;
-				}
+				templateId = templateId.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase)
+					? templateId
+					: templateId + ".json";
 			}
-
-			var templateId = !string.IsNullOrEmpty(item.TemplateId)
-				? (item.TemplateId.EndsWith(".json", System.StringComparison.OrdinalIgnoreCase) ? item.TemplateId : item.TemplateId + ".json")
-				: weapon?.TemplateId + ".json";
 
 			if (!string.IsNullOrEmpty(templateId))
 			{
@@ -315,24 +314,54 @@ namespace Ships
 				}
 			}
 
-			if (weapon == null && template != null)
+			if (template != null)
 			{
-				var rarity = template.Rarities != null && template.Rarities.Length > 0
-					? template.Rarities[0]
-					: null;
+				var rarityId = !string.IsNullOrEmpty(item.Rarity) ? item.Rarity : DefaultWeaponResolver.DefaultRarity;
+				var rarity = FindRarity(template, rarityId);
+				var resolvedRarity = rarity?.Rarity ?? rarityId ?? DefaultWeaponResolver.DefaultRarity;
 
-				weapon = new GeneratedWeaponItem
-				{
-					DamageType = template.DamageType,
-					Size = template.Size,
-					Tags = EnumParsingHelpers.NormalizeStrings(template.Tags),
-					TagValues = EnumParsingHelpers.ParseTags(template.Tags),
-					Stats = ConvertRangesToValues(rarity?.Stats),
-					Effects = new List<EffectValue>()
-				};
+				weapon = BuildWeaponFromTemplate(template, rarity, resolvedRarity);
 			}
 
 			return weapon != null;
+		}
+
+		private static WeaponTemplate.RarityEntry FindRarity(WeaponTemplate template, string rarityId)
+		{
+			if (template?.Rarities == null || template.Rarities.Length == 0)
+				return null;
+
+			if (!string.IsNullOrEmpty(rarityId))
+			{
+				for (var i = 0; i < template.Rarities.Length; i++)
+				{
+					var entry = template.Rarities[i];
+					if (entry != null && entry.Rarity != null &&
+					    entry.Rarity.Equals(rarityId, System.StringComparison.OrdinalIgnoreCase))
+						return entry;
+				}
+			}
+
+			return template.Rarities[0];
+		}
+
+		private static GeneratedWeaponItem BuildWeaponFromTemplate(
+			WeaponTemplate template,
+			WeaponTemplate.RarityEntry rarity,
+			string rarityId)
+		{
+			return new GeneratedWeaponItem
+			{
+				TemplateId = template?.Id,
+				Name = template?.Name,
+				Rarity = string.IsNullOrEmpty(rarityId) ? DefaultWeaponResolver.DefaultRarity : rarityId,
+				DamageType = template?.DamageType,
+				Size = template?.Size,
+				Tags = EnumParsingHelpers.NormalizeStrings(template?.Tags),
+				TagValues = EnumParsingHelpers.ParseTags(template?.Tags),
+				Stats = rarity?.Stats ?? Array.Empty<StatValue>(),
+				Effects = rarity?.Effects != null ? new List<EffectValue>(rarity.Effects) : new List<EffectValue>()
+			};
 		}
 
 		private static bool TryBuildComposedWeaponStats(
@@ -377,22 +406,6 @@ namespace Ships
 			}
 
 			return model;
-		}
-
-		private static StatValue[] ConvertRangesToValues(StatRangeList ranges)
-		{
-			if (ranges?.Entries == null || ranges.Entries.Length == 0)
-				return System.Array.Empty<StatValue>();
-
-			var result = new StatValue[ranges.Entries.Length];
-			for (var i = 0; i < ranges.Entries.Length; i++)
-			{
-				var entry = ranges.Entries[i];
-				var avg = (entry.Min + entry.Max) * 0.5f;
-				result[i] = new StatValue { Name = entry.Name, Value = avg };
-			}
-
-			return result;
 		}
 
 		private static Dictionary<string, float> BuildStatsDictionary(IEnumerable<StatValue> stats)

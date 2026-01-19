@@ -10,7 +10,7 @@ namespace Ships.Mobs
 		private void Start()
 		{
 			LoadShipFromConfig("pirate_ship_s_1");
-			LoadShipFromPrefab();
+			//LoadShipFromPrefab();
 			Init();
 		}
 	}

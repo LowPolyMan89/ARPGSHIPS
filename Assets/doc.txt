@@ -1,0 +1,185 @@
+Док по статам (StatType)
+========================
+
+Источник: Assets/Scripts/Stats/StatType.cs
+Статы используются в шаблонах оружия (Rarities[].Stats), в данных корабля
+и в эффектах модулей/мета-бонусов. Ниже — практическое описание по коду.
+
+Базовые статы оружия
+--------------------
+- FireRate: выстрелов в секунду. В коде: NextFireTime = Time.time + 1f / FireRate.
+- MinDamage/MaxDamage: диапазон урона за выстрел.
+- CritChance: шанс крита 0..1. Используется в DamageCalculator.
+- CritMultiplier: множитель крита (1.0 = без бонуса, 2.0 = +100%).
+- ProjectileSpeed: скорость полета снаряда.
+- FireRange: дальность стрельбы (метры). Используется в таргетинге и UI.
+- Accuracy: точность 0..1. HitChance = clamp01(Accuracy - Evasion).
+- AmmoCount: размер магазина. Используется для боезапаса и перезарядки.
+- ReloadTime: время перезарядки в секундах.
+- RotationSpeed: скорость разворота турели в град/сек (WeaponTargeting).
+- Penetration: пробитие 0..1, влияет на сопротивления.
+- RocketSpeed: скорость ракеты.
+- ExplosionRadius: радиус взрыва (метры).
+- Spread: максимальный разброс в градусах. Нарастает за ~10 выстрелов,
+  сбрасывается после паузы (WeaponBase.GetSpreadResetDelay).
+
+Базовые статы корабля
+----------------------
+- HitPoint: базовое HP.
+- TurnSpeed: скорость поворота корабля.
+- Shield: базовый щит.
+- ShieldRegen: реген щита.
+- MoveSpeed: скорость вперед.
+- MoveSpeedRear: скорость назад.
+- Acceleration: ускорение.
+- BrakePower: торможение.
+- ShieldRestoreDelay: задержка перед регеном щита.
+- BackSpeed: скорость назад (legacy).
+- Energy: базовая энергия.
+- PowerCell: стата "power cell" (если используется системами).
+- AfterburnerSpeed: скорость при форсаже.
+- AfterburnerTime: длительность форсажа.
+- Evasion: уклонение 0..1 (используется против Accuracy).
+
+Сопротивления
+-------------
+- KineticResist / ThermalResist / EnergyResist: 0..1 снижение урона.
+  Применяется в DamageCalculator с учетом Penetration.
+
+Мета-бонусы (проценты)
+-----------------------
+Значение = доля (например 0.10 = +10%):
+- HitPointBonus, ShieldBonus, ShieldRegenBonus, DamageBonus,
+  MoveSpeedBonus, AccelerationBonus, TurnSpeedBonus, EvasionBonus,
+  AfterburnerSpeedBonus, AfterburnerTimeBonus,
+  KineticDamageBonus, ThermalDamageBonus, EnergyDamageBonus,
+  SmallWeaponDamageBonus, MediumWeaponDamageBonus, LargeWeaponDamageBonus,
+  PenetrationBonus, CritChanceBonus, CritMultiplierBonus,
+  ProjectileSpeedBonus, FireRangeBonus, AccuracyBonus, ReloadTimeBonus,
+  RotationSpeedBonus, FireRateBonus,
+  KineticResistBonus, ThermalResistBonus, EnergyResistBonus,
+  ExplosionRadiusBonus, RocketSpeedBonus, AbilityCooldownBonus, ShieldDamageBonus.
+
+Мета-бонусы (плоские)
+----------------------
+Плоские добавки к значениям:
+- PowerCellBonus
+- ProjectileAmmoBonus
+- EnergyBonus
+- Mechanic, Pilot, Warrior (прогресс/перки)
+
+Статы эффектов
+--------------
+- Duration: длительность в секундах.
+- Value: универсальное числовое значение.
+- Chance: вероятность 0..1.
+
+Пример JSON (статы редкости оружия)
+-----------------------------------
+{
+  "Rarities": [
+    {
+      "Rarity": "Common",
+      "Stats": [
+        { "Name": "FireRate", "Value": 2.5 },
+        { "Name": "MinDamage", "Value": 8 },
+        { "Name": "MaxDamage", "Value": 12 },
+        { "Name": "Spread", "Value": 5 }
+      ]
+    }
+  ]
+}
+
+Поведение турелей в бою
+-----------------------
+Основная логика: Assets/Scripts/Items/Weapons/WeaponTargeting.cs и WeaponBase.cs.
+
+- Поиск цели и стрельба идут через WeaponTargeting и WeaponBase.TryFire().
+- Турель поворачивается к цели со скоростью RotationSpeed (град/сек), если стат задан,
+  иначе используется дефолт RotationSpeedDeg в WeaponTargeting.
+- Дальность стрельбы берется из FireRange (StatType.FireRange).
+- Угол ведения/дуга стрельбы задается FireArcDeg у WeaponBase (по умолчанию 360).
+- Если цели нет или нет LOS, оружие может стрелять "вхолостую" через ShootWithoutTarget()
+  (смотрите конкретный класс оружия, например ProjectileWeapon).
+- Перезарядка и задержка между выстрелами регулируются ReloadTime и FireRate в WeaponBase.
+- Разброс (Spread) добавляет неточность угла выстрела и растет при непрерывной стрельбе.
+
+Выбор целей (максимально подробно)
+-----------------------------------
+Код: Assets/Scripts/Items/Weapons/WeaponTargeting.cs и TargetFinder.cs.
+
+1) Подготовка списка целей
+   - Каждый кадр WeaponTargeting вызывает TargetFinder.UpdateTargets(...).
+   - В список попадают только живые цели (ITargetable.IsAlive == true).
+   - Дополнительно применяется командный фильтр:
+     HitRules.CanHit(owner.HitMask, target.Team).
+   - Все остальные цели отбрасываются.
+
+2) Приоритет предпочтительной цели
+   - Если выставлена _preferredTarget (SetPreferredTarget),
+     она проверяется через IsValidTarget(...).
+   - Если цель валидна (см. ниже), она выбирается сразу.
+
+3) Удержание текущей цели
+   - Если preferred невалидна, проверяется _currentTarget.
+   - Если она валидна — используется без пересчета.
+
+4) Поиск лучшей цели
+   - Если текущая цель невалидна, вызывается FindBestTarget(...).
+   - Внутри:
+     a) Все расчеты происходят в горизонтальной плоскости (y = 0).
+     b) Фильтрация по дальности: дистанция <= maxDistance (FireRange).
+     c) Фильтрация по углу: Vector3.Angle(forward, toTarget) <= maxAngleDeg (FireArcDeg).
+     d) Если задан приоритет классов (см. ниже),
+        пропускаются только классы из списка.
+     e) Сортировка:
+        - сначала по приоритету класса (меньше индекс = выше приоритет),
+        - затем по расстоянию (ближайшая цель).
+   - Первый элемент списка становится целью.
+
+5) Приоритеты классов по размеру оружия
+   - weapon.Size = Small:
+     Rocket -> Frigate -> Destroyer -> Cruiser -> Battleship -> Flagship
+   - weapon.Size = Medium:
+     Destroyer -> Cruiser -> Frigate -> Battleship -> Flagship
+   - weapon.Size = Large:
+     Battleship -> Flagship -> Cruiser -> Destroyer -> Frigate
+   - Если Size не задан/не распознан — приоритеты не применяются
+     (все классы допустимы, сортировка только по расстоянию).
+
+6) Упреждение
+   - После выбора цели позиция упреждения рассчитывается так:
+     time = dist / ProjectileSpeed
+     predictedPos = targetPos + targetVelocity * time
+   - ProjectileSpeed берется из стата, без учета ускорения/гравитации.
+
+7) Наведение и проверка точности
+   - Турель поворачивается по yaw и (при наличии ствола) по pitch.
+   - Огонь разрешается только если:
+     angle(aimForward, toPredictedDir) <= AimTolerance.
+   - AimTolerance задается в WeaponTargeting (в градусах).
+
+Line Of Sight (LOS)
+-------------------
+Код: Assets/Scripts/Core/LineOfSightUtility.cs и WeaponBase.TryFire().
+
+- LOS проверяется непосредственно перед выстрелом в WeaponBase.TryFire():
+  if (target != null && LineOfSightUtility.HasLOS(...)) Shoot(target)
+  else ShootWithoutTarget().
+
+- Метод HasLOS(from, to, obstacleMask, heightOffset):
+  1) Поднимает обе точки на высоту heightOffset (по умолчанию 0.6м).
+  2) Вектор направления проецируется на горизонталь (dir.y = 0).
+  3) Если расстояние почти нулевое — LOS считается истинным.
+  4) Иначе выполняется Physics.Raycast от точки A к точке B:
+     - учитывает только слои obstacleMask,
+     - триггеры игнорируются.
+  5) Если луч НЕ встретил препятствие — LOS истинный.
+
+- obstacleMask в TryFire() передается как default, поэтому:
+  1) Если у оружия/корабля нет кастомного маска,
+     LOS проверяется по LayerMask по умолчанию.
+  2) Любые препятствия на этом слое блокируют выстрел "по цели".
+
+- Важно: LOS не участвует в выборе цели, только в решении "стрелять по цели
+  или стрелять вхолостую" (ShootWithoutTarget).

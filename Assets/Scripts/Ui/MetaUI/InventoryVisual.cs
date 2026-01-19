@@ -31,7 +31,7 @@ namespace Ships
 
 			foreach (var item in inventory.InventoryUniqueItems)
 			{
-				if (item.IsEquipped)
+				if (item == null || item.AvailableCount <= 0)
 					continue;
 
 				var visual = Instantiate(ItemPrefab, ListRoot);

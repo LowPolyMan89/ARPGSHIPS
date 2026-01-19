@@ -4,12 +4,6 @@ namespace Ships
 {
 	public static class WeaponRotator
 	{
-		public enum AimPlane
-		{
-			XZ = 0,
-			XY = 1
-		}
-
 		/// <summary>
 		/// Универсальный 3D ротатор с ограничением сектора относительно baseTransform
 		/// </summary>
@@ -18,25 +12,13 @@ namespace Ships
 			Transform baseTransform,
 			Vector3 worldDirection,
 			float rotationSpeedDeg,
-			float maxAngleDeg,
-			AimPlane aimPlane = AimPlane.XZ)
+			float maxAngleDeg)
 		{
 			if (!rotatingTransform)
 				return;
 
-			// Плоскость наведения
-			switch (aimPlane)
-			{
-				case AimPlane.XZ:
-					worldDirection.y = 0f;
-					break;
-				case AimPlane.XY:
-					worldDirection.z = 0f;
-					break;
-				default:
-					worldDirection.y = 0f;
-					break;
-			}
+			// Наведение в плоскости XZ (Y вверх)
+			worldDirection.y = 0f;
 
 			if (worldDirection.sqrMagnitude < 0.0001f)
 				return;
@@ -44,9 +26,7 @@ namespace Ships
 			worldDirection.Normalize();
 
 			// Куда хотим повернуть
-			Quaternion desiredWorldRot = aimPlane == AimPlane.XY
-				? Quaternion.LookRotation(Vector3.forward, worldDirection)
-				: Quaternion.LookRotation(worldDirection, Vector3.up);
+			Quaternion desiredWorldRot = Quaternion.LookRotation(worldDirection, Vector3.up);
 
 			// База (корпус, башня, что угодно)
 			Quaternion baseRot = baseTransform ? baseTransform.rotation : Quaternion.identity;
@@ -54,11 +34,7 @@ namespace Ships
 			// Переводим desired в ЛОКАЛЬНОЕ пространство базы
 			Quaternion localDesired = Quaternion.Inverse(baseRot) * desiredWorldRot;
 
-			float localYaw;
-			if (aimPlane == AimPlane.XY)
-				localYaw = Mathf.DeltaAngle(0f, localDesired.eulerAngles.z);
-			else
-				localYaw = Mathf.DeltaAngle(0f, localDesired.eulerAngles.y);
+			float localYaw = Mathf.DeltaAngle(0f, localDesired.eulerAngles.y);
 
 			// Если есть сектор — ограничиваем
 			if (maxAngleDeg < 359f)
@@ -68,14 +44,51 @@ namespace Ships
 			}
 
 			// Возвращаем в мир
-			Quaternion finalRot = aimPlane == AimPlane.XY
-				? baseRot * Quaternion.Euler(0f, 0f, localYaw)
-				: baseRot * Quaternion.Euler(0f, localYaw, 0f);
+			Quaternion finalRot = baseRot * Quaternion.Euler(0f, localYaw, 0f);
 
 			// Плавное доворачивание
 			rotatingTransform.rotation = Quaternion.RotateTowards(
 				rotatingTransform.rotation,
 				finalRot,
+				rotationSpeedDeg * Time.deltaTime
+			);
+		}
+
+		public static void RotatePitch(
+			Transform barrelTransform,
+			Transform yawTransform,
+			Vector3 worldDirection,
+			float rotationSpeedDeg,
+			float minPitchDeg,
+			float maxPitchDeg,
+			Quaternion restLocalRotation)
+		{
+			if (!barrelTransform)
+				return;
+
+			if (worldDirection.sqrMagnitude < 0.0001f)
+				return;
+
+			worldDirection.Normalize();
+
+			var yawRotation = yawTransform ? yawTransform.rotation : Quaternion.identity;
+			var localDir = Quaternion.Inverse(yawRotation) * worldDirection;
+
+			if (localDir.sqrMagnitude < 0.0001f)
+				return;
+
+			localDir.Normalize();
+
+			var restForward = restLocalRotation * Vector3.forward;
+			var pitchAxis = restLocalRotation * Vector3.right;
+			var pitch = Vector3.SignedAngle(restForward, localDir, pitchAxis);
+			pitch = Mathf.Clamp(pitch, minPitchDeg, maxPitchDeg);
+
+			var desiredLocal = restLocalRotation * Quaternion.AngleAxis(pitch, Vector3.right);
+
+			barrelTransform.localRotation = Quaternion.RotateTowards(
+				barrelTransform.localRotation,
+				desiredLocal,
 				rotationSpeedDeg * Time.deltaTime
 			);
 		}

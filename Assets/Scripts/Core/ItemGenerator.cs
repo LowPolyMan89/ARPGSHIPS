@@ -102,7 +102,7 @@ namespace Ships
 
 			var item = new ModuleLoadData
 			{
-				ItemId = Services.UniqueIdGenerator.GenerateItemId(),
+				ItemId = template.Id,
 				TemplateId = template.Id,
 				Name = template.Name,
 				Rarity = string.IsNullOrEmpty(rarity) ? "Common" : rarity,
@@ -115,10 +115,9 @@ namespace Ships
 				EnergyCost = template.EnergyCost,
 				ShipStatEffects = BuildModuleShipEffects(template, rarityData),
 				WeaponStatEffects = BuildModuleWeaponEffects(template, rarityData),
-				ActiveEffects = template.ActiveEffects ?? new List<EffectModel>()
+				ActiveEffects = BuildModuleActiveEffects(template, rarityData)
 			};
 
-			SaveItem(item);
 			return item;
 		}
 
@@ -210,7 +209,7 @@ namespace Ships
 
 			var item = new GeneratedWeaponItem
 			{
-				ItemId = Services.UniqueIdGenerator.GenerateItemId(),
+				ItemId = template.Id,
 				TemplateId = template.Id,
 				Name = template.Name,
 				Rarity = rarity,
@@ -227,20 +226,6 @@ namespace Ships
 				EnergyCost = template.EnergyCost
 			};
 
-			var stats = new List<StatValue>();
-			if (rarityData?.Stats?.Entries != null)
-			{
-				foreach (var s in rarityData.Stats.Entries)
-				{
-					var v = Mathf.RoundToInt(Random.Range(s.Min, s.Max));
-					stats.Add(new StatValue { Name = s.Name, Value = v });
-				}
-			}
-
-			item.Stats = stats.ToArray();
-			item.Effects = GenerateEffects(template, rarityData);
-
-			SaveItem(item);
 			return item;
 		}
 
@@ -310,123 +295,178 @@ namespace Ships
 		private static List<StatEffectModel> BuildModuleShipEffects(ModuleTemplate template, ModuleRarityEntry rarity)
 		{
 			if (rarity?.ShipStatEffects != null && rarity.ShipStatEffects.Length > 0)
-			{
-				var effects = new List<StatEffectModel>(rarity.ShipStatEffects.Length);
-				for (var i = 0; i < rarity.ShipStatEffects.Length; i++)
-				{
-					var e = rarity.ShipStatEffects[i];
-					if (e == null || string.IsNullOrEmpty(e.Stat))
-						continue;
+				return CloneStatEffects(rarity.ShipStatEffects);
 
-					effects.Add(new StatEffectModel
-					{
-						Stat = e.Stat,
-						Operation = e.Operation,
-						Target = e.Target,
-						Value = Random.Range(e.Min, e.Max)
-					});
-				}
-				return effects;
-			}
-
-			return template?.ShipStatEffects ?? new List<StatEffectModel>();
+			return CloneStatEffects(template?.ShipStatEffects);
 		}
 
 		private static List<WeaponStatEffectModel> BuildModuleWeaponEffects(ModuleTemplate template, ModuleRarityEntry rarity)
 		{
 			if (rarity?.WeaponStatEffects != null && rarity.WeaponStatEffects.Length > 0)
-			{
-				var effects = new List<WeaponStatEffectModel>(rarity.WeaponStatEffects.Length);
-				for (var i = 0; i < rarity.WeaponStatEffects.Length; i++)
-				{
-					var e = rarity.WeaponStatEffects[i];
-					if (e == null || string.IsNullOrEmpty(e.Stat))
-						continue;
+				return CloneWeaponStatEffects(rarity.WeaponStatEffects);
 
-					if (e.Filter != null && e.Filter.Tags != null && e.Filter.Tags.Length > 0 &&
-					    (e.Filter.TagValues == null || e.Filter.TagValues.Length == 0))
-						e.Filter.OnAfterDeserialize();
-
-					var value = Random.Range(e.Min, e.Max);
-					effects.Add(new WeaponStatEffectModel
-					{
-						Stat = e.Stat,
-						Operation = e.Operation,
-						Value = value,
-						Filter = e.Filter
-					});
-				}
-				return effects;
-			}
-
-			return template?.WeaponStatEffects ?? new List<WeaponStatEffectModel>();
+			return CloneWeaponStatEffects(template?.WeaponStatEffects);
 		}
 
-		private static List<EffectValue> GenerateEffects(
-			WeaponTemplate tpl,
-			WeaponTemplate.RarityEntry rarity)
+		private static List<EffectModel> BuildModuleActiveEffects(ModuleTemplate template, ModuleRarityEntry rarity)
 		{
-			if (rarity == null || rarity.MaxEffectCount <= 0)
-				return null;
+			if (rarity?.ActiveEffects != null && rarity.ActiveEffects.Length > 0)
+				return CloneActiveEffects(rarity.ActiveEffects);
 
-			if (tpl.AvailableEffects == null || tpl.AvailableEffects.Length == 0)
-				return null;
+			return CloneActiveEffects(template?.ActiveEffects);
+		}
 
-			EnsureEffectsLoaded();
+		private static StatValue[] CloneStatValues(StatValue[] source)
+		{
+			if (source == null || source.Length == 0)
+				return Array.Empty<StatValue>();
 
-			var effects = new List<EffectValue>();
-
-			var count = Random.Range(1, rarity.MaxEffectCount + 1);
-			var used = new HashSet<int>();
-
-			while (effects.Count < count && used.Count < tpl.AvailableEffects.Length)
+			var result = new StatValue[source.Length];
+			for (var i = 0; i < source.Length; i++)
 			{
-				var i = Random.Range(0, tpl.AvailableEffects.Length);
-				if (!used.Add(i))
+				var s = source[i];
+				if (s == null)
 					continue;
 
-				var effectRef = tpl.AvailableEffects[i];
-
-				if (!_effectsCache.TryGetValue(effectRef.Name, out var effectTpl))
+				result[i] = new StatValue
 				{
-					Debug.LogWarning($"Effect template not found: {effectRef.Name}");
-					continue;
-				}
-
-				if (effectRef.Stats?.Entries == null || effectRef.Stats.Entries.Length == 0)
-					continue;
-
-				var effect = new EffectValue
-				{
-					Name = effectTpl.Name,
-					Stats = new List<StatValue>()
+					Name = s.Name,
+					Value = s.Value
 				};
-
-				foreach (var s in effectRef.Stats.Entries)
-				{
-					var value = Random.Range(s.Min, s.Max);
-					if (Mathf.Abs(value) > 10f)
-						value = Mathf.Round(value);
-					else
-						value = (float)Math.Round(value, 2);
-
-					effect.Stats.Add(new StatValue
-					{
-						Name = s.Name,
-						Value = value
-					});
-				}
-
-				effects.Add(effect);
 			}
 
-			return effects.Count > 0 ? effects : null;
+			return result;
+		}
+
+		private static List<EffectValue> CloneEffects(EffectValue[] source)
+		{
+			if (source == null || source.Length == 0)
+				return null;
+
+			var list = new List<EffectValue>(source.Length);
+			for (var i = 0; i < source.Length; i++)
+			{
+				var effect = source[i];
+				if (effect == null)
+					continue;
+
+				var copy = new EffectValue
+				{
+					Name = effect.Name,
+					Stats = CloneStatValueList(effect.Stats)
+				};
+				list.Add(copy);
+			}
+
+			return list.Count > 0 ? list : null;
+		}
+
+		private static List<StatValue> CloneStatValueList(List<StatValue> source)
+		{
+			if (source == null || source.Count == 0)
+				return new List<StatValue>();
+
+			var list = new List<StatValue>(source.Count);
+			for (var i = 0; i < source.Count; i++)
+			{
+				var s = source[i];
+				if (s == null)
+					continue;
+
+				list.Add(new StatValue
+				{
+					Name = s.Name,
+					Value = s.Value
+				});
+			}
+
+			return list;
+		}
+
+		private static List<StatEffectModel> CloneStatEffects(IReadOnlyList<StatEffectModel> source)
+		{
+			if (source == null || source.Count == 0)
+				return new List<StatEffectModel>();
+
+			var list = new List<StatEffectModel>(source.Count);
+			for (var i = 0; i < source.Count; i++)
+			{
+				var e = source[i];
+				if (e == null)
+					continue;
+
+				list.Add(new StatEffectModel
+				{
+					Stat = e.Stat,
+					Operation = e.Operation,
+					Target = e.Target,
+					Value = e.Value
+				});
+			}
+
+			return list;
+		}
+
+		private static List<WeaponStatEffectModel> CloneWeaponStatEffects(IReadOnlyList<WeaponStatEffectModel> source)
+		{
+			if (source == null || source.Count == 0)
+				return new List<WeaponStatEffectModel>();
+
+			var list = new List<WeaponStatEffectModel>(source.Count);
+			for (var i = 0; i < source.Count; i++)
+			{
+				var e = source[i];
+				if (e == null || string.IsNullOrEmpty(e.Stat))
+					continue;
+
+				if (e.Filter != null && e.Filter.Tags != null && e.Filter.Tags.Length > 0 &&
+				    (e.Filter.TagValues == null || e.Filter.TagValues.Length == 0))
+					e.Filter.OnAfterDeserialize();
+
+				list.Add(new WeaponStatEffectModel
+				{
+					Stat = e.Stat,
+					Operation = e.Operation,
+					Value = e.Value,
+					Filter = e.Filter
+				});
+			}
+
+			return list;
+		}
+
+		private static List<EffectModel> CloneActiveEffects(IReadOnlyList<EffectModel> source)
+		{
+			if (source == null || source.Count == 0)
+				return new List<EffectModel>();
+
+			var list = new List<EffectModel>(source.Count);
+			for (var i = 0; i < source.Count; i++)
+			{
+				var e = source[i];
+				if (e == null)
+					continue;
+
+				list.Add(new EffectModel
+				{
+					id = e.id,
+					value = e.value
+				});
+			}
+
+			return list;
 		}
 
 		private static void SaveItem(GeneratedWeaponItem item)
 		{
 			var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
-			ResourceLoader.SavePersistentJson(relativePath, item, true);
+			var saveData = new WeaponSaveData
+			{
+				ItemId = item.ItemId,
+				TemplateId = item.TemplateId,
+				Rarity = item.Rarity
+			};
+			ResourceLoader.SavePersistentJson(relativePath, saveData, true);
 			Debug.Log("Saved item at " + ResourceLoader.GetPersistentPath(relativePath));
 		}
 
@@ -435,6 +475,14 @@ namespace Ships
 			var relativePath = Path.Combine(PathConstant.Inventory, item.ItemId + ".json");
 			ResourceLoader.SavePersistentJson(relativePath, item, true);
 			Debug.Log("Saved item at " + ResourceLoader.GetPersistentPath(relativePath));
+		}
+
+		[Serializable]
+		private sealed class WeaponSaveData
+		{
+			public string ItemId;
+			public string TemplateId;
+			public string Rarity;
 		}
 	}
 
@@ -459,7 +507,6 @@ namespace Ships
 		public string Prefab;
 		public string BattlePrefab;
 		public string MetaPrefab;
-		public EffectTemplateRef[] AvailableEffects;
 
 		public RarityEntry[] Rarities;
 
@@ -468,8 +515,8 @@ namespace Ships
 		{
 			public string Rarity;
 			public int DropChance;
-			public int MaxEffectCount;
-			public StatRangeList Stats;
+			public StatValue[] Stats;
+			public EffectValue[] Effects;
 		}
 	}
 
@@ -538,30 +585,9 @@ namespace Ships
 	}
 
 	[Serializable]
-	public sealed class EffectTemplateRef
-	{
-		public string Name;
-		public StatRangeList Stats;
-	}
-
-	[Serializable]
 	public sealed class EffectTemplateCollection
 	{
 		public EffectTemplate[] Effects;
-	}
-
-	[Serializable]
-	public sealed class StatRangeList
-	{
-		public StatRangeEntry[] Entries;
-	}
-
-	[Serializable]
-	public sealed class StatRangeEntry
-	{
-		public string Name;
-		public float Min;
-		public float Max;
 	}
 
 	[Serializable]

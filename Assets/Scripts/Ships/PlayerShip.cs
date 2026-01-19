@@ -7,7 +7,7 @@ namespace Ships
 	{
 		private void Awake()
 		{
-			LoadShipFromConfig("hull_test_frigate");
+			LoadShipFromConfig("hull_flagman_1");
 			Init();
 			Battle.Instance.Player = this;
 		}

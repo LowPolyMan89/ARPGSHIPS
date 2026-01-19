@@ -15,12 +15,14 @@ namespace Ships
 			var spd = Model.Stats.GetStat(StatType.ProjectileSpeed).Current;
 
 			var fp = FirePoint != null ? FirePoint : transform;
-			var plane = Battle.Instance != null ? Battle.Instance.Plane : Battle.WorldPlane.XY;
-			var dir = plane == Battle.WorldPlane.XY ? fp.up : fp.forward;
-			if (plane == Battle.WorldPlane.XY)
-				dir.z = 0f;
-			else
-				dir.y = 0f;
+			var dir = fp.forward;
+			var spreadAngle = GetSpreadAngleForShot();
+			if (spreadAngle > 0f)
+			{
+				var offset = UnityEngine.Random.insideUnitCircle * spreadAngle;
+				var spreadRot = fp.rotation * Quaternion.Euler(offset.y, offset.x, 0f);
+				dir = spreadRot * Vector3.forward;
+			}
 
 			var proj = Instantiate(ProjectilePrefab, fp.position, fp.rotation);
 

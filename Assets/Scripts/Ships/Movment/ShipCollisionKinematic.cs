@@ -138,104 +138,6 @@ namespace Ships
 			return false;
 		}
 
-		/// <summary>
-		/// 2D-версия для TopDown: скольжение и отталкивание в плоскости XY.
-		/// </summary>
-		public bool Resolve2D(Vector2 currentPos, Vector2 desiredPos, out Vector2 resolvedPos)
-		{
-			debugNextPos = new Vector3(desiredPos.x, desiredPos.y, debugNextPos.z);
-
-			var move = desiredPos - currentPos;
-			var distance = move.magnitude;
-
-			if (distance < 0.0001f)
-			{
-				resolvedPos = currentPos;
-				debugHasCollision = false;
-				return false;
-			}
-
-			var dir = move.normalized;
-			var angle = _tr.eulerAngles.z;
-
-			var boxSize = new Vector2(halfSize.x * 2f, halfSize.y * 2f);
-			var mask = staticObstacleMask | shipMask;
-
-			// ==================================================
-			// 1) ОСНОВНОЙ BoxCast
-			// ==================================================
-			var hit = Physics2D.BoxCast(currentPos, boxSize, angle, dir, distance + _castOffset, mask);
-			if (hit.collider != null && !IsSelf(hit.collider))
-			{
-				var hitShip = IsShip(hit.collider.gameObject.layer);
-
-				// ==========================================
-				// ТАНК — ТАНК (мягкое столкновение)
-				// ==========================================
-				if (hitShip)
-				{
-					if (GetInstanceID() < hit.collider.GetInstanceID())
-					{
-						resolvedPos = currentPos;
-						debugHasCollision = true;
-						return true;
-					}
-
-					// Скольжение вдоль поверхности
-					var slideDir = (dir - Vector2.Dot(dir, hit.normal) * hit.normal).normalized;
-					var slidePos = currentPos + slideDir * distance;
-
-					resolvedPos = slidePos;
-					debugHasCollision = true;
-					return true;
-				}
-
-				// ==========================================
-				// СТАТИЧЕСКОЕ ПРЕПЯТСТВИЕ (жёсткое)
-				// ==========================================
-				var hardSlideDir = (dir - Vector2.Dot(dir, hit.normal) * hit.normal).normalized;
-				var hardSlidePos = currentPos + hardSlideDir * distance;
-
-				var slideHit = Physics2D.BoxCast(
-					currentPos,
-					boxSize,
-					angle,
-					hardSlideDir,
-					distance + _castOffset,
-					staticObstacleMask
-				);
-
-				if (slideHit.collider != null && !IsSelf(slideHit.collider))
-				{
-					resolvedPos = currentPos;
-					debugHasCollision = true;
-					return true;
-				}
-
-				resolvedPos = hardSlidePos;
-				debugHasCollision = true;
-				return true;
-			}
-
-			// ==================================================
-			// 2) OverlapBox - ТОЛЬКО статические препятствия
-			// ==================================================
-			var cols = Physics2D.OverlapBoxAll(desiredPos, boxSize, angle, staticObstacleMask);
-			for (var i = 0; i < cols.Length; i++)
-			{
-				if (!IsSelf(cols[i]))
-				{
-					resolvedPos = currentPos;
-					debugHasCollision = true;
-					return true;
-				}
-			}
-
-			resolvedPos = desiredPos;
-			debugHasCollision = false;
-			return false;
-		}
-
 		// ==================================================
 		// ROTATION
 		// ==================================================
@@ -316,43 +218,6 @@ namespace Ships
 			}
 		}
 
-		public void ResolveShipOverlap2D()
-		{
-			var boxSize = new Vector2(halfSize.x * 2f, halfSize.y * 2f);
-			var hits = Physics2D.OverlapBoxAll(
-				new Vector2(transform.position.x, transform.position.y),
-				boxSize,
-				_tr.eulerAngles.z,
-				shipMask
-			);
-
-			foreach (var col in hits)
-			{
-				if (IsSelf(col))
-					continue;
-
-				var otherTr = col.transform;
-				var delta = (Vector2)_tr.position - (Vector2)otherTr.position;
-
-				if (delta.sqrMagnitude < 0.0001f)
-					delta = _tr.right;
-
-				var dir = delta.normalized;
-
-				var otherHalf = otherTr.GetComponent<ShipCollisionKinematic>()?.halfSize ?? halfSize;
-				var minDist = halfSize.y + otherHalf.y;
-				var currentDist = delta.magnitude;
-
-				var push = minDist - currentDist;
-				if (push > 0f)
-				{
-					var offset = dir * (push * 0.5f);
-					_tr.position += new Vector3(offset.x, offset.y, 0f);
-					otherTr.position -= new Vector3(offset.x, offset.y, 0f);
-				}
-			}
-		}
-
 		// ==================================================
 		// HELPERS
 		// ==================================================
@@ -365,17 +230,6 @@ namespace Ships
 		private bool IsShip(Collider col)
 		{
 			return (shipMask.value & (1 << col.gameObject.layer)) != 0;
-		}
-
-		private bool IsSelf(Collider2D col)
-		{
-			var t = col.transform;
-			return t == _tr || t.IsChildOf(_tr);
-		}
-
-		private bool IsShip(int layer)
-		{
-			return (shipMask.value & (1 << layer)) != 0;
 		}
 
 #if UNITY_EDITOR

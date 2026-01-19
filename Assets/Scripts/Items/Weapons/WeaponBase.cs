@@ -8,12 +8,19 @@ namespace Ships
 		private float _nextFireTime;
 		public string WeaponTemplateId;
 		public WeaponModel Model;
+		private const float SpreadBuildUpShots = 10f;
+		private float _currentSpreadDeg;
+		private float _lastShotTime = -999f;
+		private Quaternion _barrelRestLocalRotation = Quaternion.identity;
 
 		[Header("Prefab Parts")]
 		[Tooltip("Неподвижная часть оружия (база). Если не задано, используется root.")]
 		public Transform BaseTransform;
 		[Tooltip("Вращающаяся часть (турель). Если не задано, используется root.")]
 		public Transform TurretTransform;
+		public Transform BarrelTransform;
+		public float BarrelMinPitchDeg = -90f;
+		public float BarrelMaxPitchDeg = 15f;
 
 		public bool IsActive = true;
 		public Transform FirePoint;
@@ -34,6 +41,7 @@ namespace Ships
 		}
 		public bool IsReloading => _isReloading;
 		public int Ammo => _ammo;
+		public Quaternion BarrelRestLocalRotation => _barrelRestLocalRotation;
 
 		protected virtual void Awake()
 		{
@@ -51,6 +59,12 @@ namespace Ships
 
 			if (FirePoint == null)
 				FirePoint = FindDeepChild(transform, "WeaponFirepoint") ?? FindDeepChild(transform, "WeaponFirePoint");
+
+			if (BarrelTransform == null)
+				BarrelTransform = FindDeepChild(transform, "WeaponBarrel") ?? FindDeepChild(transform, "WeaponGun") ?? TurretTransform;
+
+			if (BarrelTransform != null)
+				_barrelRestLocalRotation = BarrelTransform.localRotation;
 		}
 
 		private static Transform FindDeepChild(Transform parent, string name)
@@ -127,6 +141,7 @@ namespace Ships
 		{
 			_ammo--;
 			_nextFireTime = Time.time + 1f / Model.Stats.GetStat(StatType.FireRate).Current;
+			AdvanceSpread();
 
 			if (_ammo <= 0)
 				StartReload();
@@ -162,6 +177,62 @@ namespace Ships
 				Model.Stats.GetStat(StatType.MinDamage).Current,
 				Model.Stats.GetStat(StatType.MaxDamage).Current
 			);
+		}
+
+		protected float GetSpreadAngleForShot()
+		{
+			if (Model?.Stats == null)
+				return 0f;
+
+			if (!Model.Stats.TryGetStat(StatType.Spread, out var stat) || stat == null)
+				return 0f;
+
+			var maxSpread = Mathf.Max(0f, stat.Current);
+			if (maxSpread <= 0f)
+				return 0f;
+
+			if (Time.time - _lastShotTime > GetSpreadResetDelay())
+				_currentSpreadDeg = 0f;
+
+			return _currentSpreadDeg;
+		}
+
+		private void AdvanceSpread()
+		{
+			if (Model?.Stats == null)
+			{
+				_currentSpreadDeg = 0f;
+				return;
+			}
+
+			if (!Model.Stats.TryGetStat(StatType.Spread, out var stat) || stat == null)
+			{
+				_currentSpreadDeg = 0f;
+				return;
+			}
+
+			var maxSpread = Mathf.Max(0f, stat.Current);
+			if (maxSpread <= 0f)
+			{
+				_currentSpreadDeg = 0f;
+				return;
+			}
+
+			if (Time.time - _lastShotTime > GetSpreadResetDelay())
+				_currentSpreadDeg = 0f;
+
+			var perShot = maxSpread / SpreadBuildUpShots;
+			_currentSpreadDeg = Mathf.Min(maxSpread, _currentSpreadDeg + perShot);
+			_lastShotTime = Time.time;
+		}
+
+		private float GetSpreadResetDelay()
+		{
+			var fireRate = Model?.Stats?.GetStat(StatType.FireRate)?.Current ?? 0f;
+			if (fireRate <= 0f)
+				return 0.5f;
+
+			return 1.5f / fireRate;
 		}
 
 		private void TryInitFromTemplate()
@@ -201,7 +272,7 @@ namespace Ships
 				return null;
 
 			var rarity = template.Rarities[0];
-			var statEntries = rarity?.Stats?.Entries;
+			var statEntries = rarity?.Stats;
 			if (statEntries == null || statEntries.Length == 0)
 				return null;
 
@@ -215,13 +286,7 @@ namespace Ships
 				if (!System.Enum.TryParse(entry.Name, true, out StatType statType))
 					continue;
 
-				var value = Random.Range(entry.Min, entry.Max);
-				if (Mathf.Abs(value) > 10f)
-					value = Mathf.Round(value);
-				else
-					value = (float)System.Math.Round(value, 2);
-
-				stats.AddStat(new Stat(statType, value));
+				stats.AddStat(new Stat(statType, entry.Value));
 			}
 
 			return stats;
@@ -243,17 +308,7 @@ namespace Ships
 
 		private static bool ResolveIsAutoFire(WeaponTemplate template)
 		{
-			if (template?.Tags == null || template.Tags.Length == 0)
-				return false;
-
-			var tags = EnumParsingHelpers.ParseTags(template.Tags);
-			for (var i = 0; i < tags.Length; i++)
-			{
-				if (tags[i] == Tags.Automatic)
-					return true;
-			}
-
-			return false;
+			return true;
 		}
 
 		private static bool TryResolveDamageType(WeaponTemplate template, out Tags tag)

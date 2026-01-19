@@ -20,36 +20,27 @@
   "AllowedGridTypes": [
     "WeaponGrid"
   ],
-
-  "AvailableEffects": [
-    
-  ],
-
   "Rarities": [
     {
       "Rarity": "Common",
       "DropChance": 50,
-      "MaxEffectCount": 0,
-      "Stats": {
-        "Entries": [
-          { "Name": "MinDamage",       "Min": 2,  "Max": 5 },
-          { "Name": "MaxDamage",       "Min": 5,  "Max": 7 },
-          { "Name": "FireRange",       "Min": 10,  "Max": 20 },
-          { "Name": "RotationSpeed",   "Min": 10, "Max": 16 },
-          { "Name": "ProjectileSpeed", "Min": 15,  "Max": 20 },
-          { "Name": "Accuracy",        "Min": 1,  "Max": 2 },
-          { "Name": "FireRate",        "Min": 2,  "Max": 3 },
-          { "Name": "CritChance",       "Min": 0.02, "Max": 0.05 },
-          { "Name": "CritMultiplier",   "Min": 1.1, "Max": 1.5 },
-          { "Name": "AmmoCount", "Min": 12, "Max": 20 },
-          { "Name": "ReloadTime",   "Min": 10, "Max": 5 },
-          { "Name": "Penetration",  "Min": 0, "Max": 0 },
-          { "Name": "RocketSpeed",  "Min": 0, "Max": 0 },
-          { "Name": "ExplosionRadius",  "Min": 0, "Max": 0 },
-          { "Name": "Spread",  "Min": 0, "Max": 0 }
-        ]
-      }
+      "Stats": [
+        { "Name": "MinDamage", "Value": 3.5 },
+        { "Name": "MaxDamage", "Value": 6 },
+        { "Name": "FireRange", "Value": 35 },
+        { "Name": "RotationSpeed", "Value": 13 },
+        { "Name": "ProjectileSpeed", "Value": 17.5 },
+        { "Name": "Accuracy", "Value": 1.5 },
+        { "Name": "FireRate", "Value": 2.5 },
+        { "Name": "CritChance", "Value": 0.035 },
+        { "Name": "CritMultiplier", "Value": 1.3 },
+        { "Name": "AmmoCount", "Value": 16 },
+        { "Name": "ReloadTime", "Value": 7.5 },
+        { "Name": "Penetration", "Value": 0 },
+        { "Name": "RocketSpeed", "Value": 0 },
+        { "Name": "ExplosionRadius", "Value": 0 },
+        { "Name": "Spread", "Value": 0 }
+      ]
     }
   ]
 }
-

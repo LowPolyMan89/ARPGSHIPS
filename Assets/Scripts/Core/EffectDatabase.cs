@@ -45,15 +45,22 @@ namespace Ships
 		private static IOnHitEffect CreateDot(EffectValue value)
 		{
 			var chance = EffectStatUtils.GetStat(value, "Chance");
+			var damagePerTick = EffectStatUtils.GetStat(value, "DamagePerTick", float.NaN);
 			var minDmg = EffectStatUtils.GetStat(value, "MinDamage");
-			var maxDmg = EffectStatUtils.GetStat(value, "MaxDamage");
+			var maxDmg = EffectStatUtils.GetStat(value, "MaxDamage", minDmg);
 			var duration = EffectStatUtils.GetStat(value, "Duration");
 			//var stack = EffectStatUtils.GetStat(value, "MaxStacks");
-			var dmgPerTick = Random.Range(minDmg, maxDmg);
+			if (float.IsNaN(damagePerTick) || damagePerTick <= 0f)
+			{
+				if (minDmg > 0f && maxDmg > 0f && !Mathf.Approximately(minDmg, maxDmg))
+					damagePerTick = (minDmg + maxDmg) * 0.5f;
+				else
+					damagePerTick = Mathf.Max(minDmg, maxDmg);
+			}
 
 			return new HitEffect.DamageOverTimeEffect(
 				chance: chance,
-				damagePerTick: dmgPerTick,
+				damagePerTick: damagePerTick,
 				duration: duration,
 				canStack: false,
 				maxStacks: (int)1
