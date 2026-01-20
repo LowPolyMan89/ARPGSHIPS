@@ -17,7 +17,7 @@ namespace Ships
 		public BattleCamera CameraController;
 		[FormerlySerializedAs("AllTanks")] public List<ShipBase> AllShips = new();
 		public List<ShipBase> SelectedShips = new();
-		public Transform PlayerSpawnPosition;
+		public List<Transform> PlayerSpawnPositions;
 
 		private void Awake()
 		{

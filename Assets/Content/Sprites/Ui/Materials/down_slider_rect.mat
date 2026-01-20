@@ -54,7 +54,7 @@ Material:
     - _CenterY: 0.5
     - _CutAxis: 1
     - _EnableExternalAlpha: 0
-    - _Fill: 1
+    - _Fill: 0.11
     - _FillMode: 1
     - _FillMul: 1
     - _GradientDir: 1

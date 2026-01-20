@@ -9,6 +9,7 @@ namespace Ships
 		public string SelectedShipId;
 		public ShipFitModel Fit = new ShipFitModel();
 		public List<ShipFitModel> PlayerShipFits = new ();
+		public List<string> BattleShipSlots = new();
 		public PlayerInventoryModel InventoryModel = new PlayerInventoryModel();
 		public List<StatEffectModel> MainStatEffects = new();
 	}

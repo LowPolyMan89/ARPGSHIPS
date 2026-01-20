@@ -3,7 +3,6 @@
 	using UnityEngine;
 	using UnityEngine.Serialization;
 	using System.Collections.Generic;
-	using System.Linq;
 
 	public class BattleLoader : MonoBehaviour
 	{
@@ -16,33 +15,60 @@
 
 		private void LoadPlayerShipFromFit()
 		{
-			var fit = MetaBattleBridge.LastFit;
-			if (fit == null) return;
+			var state = MetaBattleBridge.LastFit;
+			if (state == null)
+				return;
 
-			var hull = HullLoader.Load(fit.SelectedShipId);
-			var go = Instantiate(PlayerShipPrefab, Vector3.zero, Quaternion.identity);
-			var ship = go.GetComponent<PlayerShip>();
-			Battle.Instance?.RegisterShip(ship);
+			var shipIds = BuildShipIds(state);
+			if (shipIds.Count == 0)
+				return;
 
-			ship.LoadShipFromConfig(fit.SelectedShipId);
-			ship.Init();
-			StatEffectApplier.ApplyAll(ship.ShipStats, fit.MainStatEffects, StatModifierSource.Main, fit);
+			var spawnPositions = Battle.Instance != null ? Battle.Instance.PlayerSpawnPositions : null;
+			for (var i = 0; i < shipIds.Count; i++)
+			{
+				var shipId = shipIds[i];
+				if (string.IsNullOrEmpty(shipId))
+					continue;
 
-			var moduleWeaponEffects = ApplyModuleEffects(ship, fit);
-			ShipStatBonusApplier.Apply(ship.ShipStats);
-			InstallFit(ship, fit, hull, moduleWeaponEffects);
+				var hull = HullLoader.Load(shipId);
+				if (hull == null)
+					continue;
+
+				var position = Vector3.zero;
+				var rotation = Quaternion.identity;
+				if (spawnPositions != null && i < spawnPositions.Count && spawnPositions[i] != null)
+				{
+					position = spawnPositions[i].position;
+					rotation = spawnPositions[i].rotation;
+				}
+
+				var go = Instantiate(PlayerShipPrefab, position, rotation);
+				var ship = go.GetComponent<PlayerShip>();
+				Battle.Instance?.RegisterShip(ship);
+				if (Battle.Instance != null && Battle.Instance.Player == null)
+					Battle.Instance.Player = ship;
+
+				ship.LoadShipFromConfig(shipId);
+				ship.Init();
+				StatEffectApplier.ApplyAll(ship.ShipStats, state.MainStatEffects, StatModifierSource.Main, state);
+
+				var fit = GetFitForShip(state, shipId);
+				var moduleWeaponEffects = ApplyModuleEffects(ship, fit, state.InventoryModel);
+				ShipStatBonusApplier.Apply(ship.ShipStats);
+				InstallFit(ship, fit, hull, moduleWeaponEffects, state.InventoryModel);
+			}
 		}
 
 		private void InstallFit(
 			PlayerShip ship,
-			MetaState state,
+			ShipFitModel fit,
 			HullModel hull,
-			List<WeaponStatEffectModel> moduleWeaponEffects)
+			List<WeaponStatEffectModel> moduleWeaponEffects,
+			PlayerInventoryModel inventory)
 		{
-			if (ship == null || state == null)
+			if (ship == null || fit == null)
 				return;
 
-			var fit = state.Fit;
 			if (fit?.GridPlacements == null || fit.GridPlacements.Count == 0)
 				return;
 
@@ -58,7 +84,7 @@
 
 				if (placement.GridType == ShipGridType.WeaponGrid)
 				{
-					var item = InventoryUtils.FindByItemId(state.InventoryModel, placement.ItemId);
+					var item = InventoryUtils.FindByItemId(inventory, placement.ItemId);
 					var weapon = WeaponBuilder.BuildBattle(placement.ItemId, mount, ship, item);
 					if (weapon != null)
 						ApplyWeaponComposition(weapon, ship, moduleWeaponEffects);
@@ -70,20 +96,59 @@
 			}
 		}
 
-		private static List<WeaponStatEffectModel> ApplyModuleEffects(PlayerShip ship, MetaState state)
+
+		private static List<string> BuildShipIds(MetaState state)
+		{
+			var result = new List<string>();
+			if (state?.BattleShipSlots != null)
+			{
+				for (var i = 0; i < state.BattleShipSlots.Count; i++)
+				{
+					var id = state.BattleShipSlots[i];
+					if (!string.IsNullOrEmpty(id))
+						result.Add(id);
+				}
+			}
+
+			if (result.Count == 0 && !string.IsNullOrEmpty(state?.SelectedShipId))
+				result.Add(state.SelectedShipId);
+
+			return result;
+		}
+
+		private static ShipFitModel GetFitForShip(MetaState state, string shipId)
+		{
+			if (state == null || string.IsNullOrEmpty(shipId))
+				return null;
+
+			if (state.Fit != null && string.Equals(state.Fit.ShipId, shipId, System.StringComparison.OrdinalIgnoreCase))
+				return state.Fit;
+
+			var fit = state.PlayerShipFits?.Find(f =>
+				f != null &&
+				!string.IsNullOrEmpty(f.ShipId) &&
+				string.Equals(f.ShipId, shipId, System.StringComparison.OrdinalIgnoreCase));
+
+			return fit ?? new ShipFitModel { ShipId = shipId };
+		}
+
+		private static List<WeaponStatEffectModel> ApplyModuleEffects(
+			PlayerShip ship,
+			ShipFitModel fit,
+			PlayerInventoryModel inventory)
 		{
 			var weaponEffects = new List<WeaponStatEffectModel>();
-			if (ship == null || state?.Fit?.GridPlacements == null)
+			if (ship == null || fit?.GridPlacements == null)
 				return weaponEffects;
 
-			foreach (var placement in state.Fit.GridPlacements)
+			foreach (var placement in fit.GridPlacements)
 			{
 				if (placement == null ||
 				    placement.GridType != ShipGridType.ModuleGrid ||
 				    string.IsNullOrEmpty(placement.ItemId))
 					continue;
 
-				var item = InventoryUtils.FindByItemId(state.InventoryModel, placement.ItemId);
+				var item = InventoryUtils.FindByItemId(inventory, placement.ItemId);
 				if ((item == null || !ModuleBuilder.TryLoadModuleData(item, out var module)) &&
 				    !ModuleBuilder.TryLoadModuleData(placement.ItemId, out module))
 					continue;

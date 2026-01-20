@@ -31,6 +31,7 @@ namespace Ships
 		private static readonly Dictionary<string, Sprite> IconCache = new(StringComparer.OrdinalIgnoreCase);
 		private static readonly Dictionary<string, GameObject> IconPrefabCache = new(StringComparer.OrdinalIgnoreCase);
 		private static readonly Dictionary<string, GameObject> PrefabCache = new(StringComparer.OrdinalIgnoreCase);
+		private static readonly Dictionary<string, Sprite> ShipIconCache = new(StringComparer.OrdinalIgnoreCase);
 
 		public static string GetStreamingPath(params string[] segments) =>
 			CombinePath(Application.streamingAssetsPath, segments);
@@ -270,6 +271,28 @@ namespace Ships
 			}
 
 			return null;
+		}
+
+		public static Sprite LoadShipIcon(string hullId)
+		{
+			if (string.IsNullOrEmpty(hullId))
+				return null;
+
+			if (ShipIconCache.TryGetValue(hullId, out var cached))
+				return cached;
+
+			var hull = HullLoader.Load(hullId);
+			var iconId = hull != null ? hull.ShipIcon : null;
+			if (string.IsNullOrEmpty(iconId))
+				return null;
+
+			var key = $"Sprites/Ships/{iconId}";
+			var sprite = Resources.Load<Sprite>(key);
+			if (sprite == null)
+				Debug.LogWarning($"[ResourceLoader] Ship icon not found at Resources/{key}");
+
+			ShipIconCache[hullId] = sprite;
+			return sprite;
 		}
 
 		private static BasicItemMeta LoadTemplateMeta(InventoryItem item)

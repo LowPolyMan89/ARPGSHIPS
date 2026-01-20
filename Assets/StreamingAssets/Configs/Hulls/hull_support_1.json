@@ -1,0 +1,49 @@
+{
+  "id": "hull_support_1",
+  "name": "Test Destroyer",
+  "shipClass": "Destroyer",
+  "BattlePrefab": "support_1_prefab",
+  "MetaPrefab": "support_1_prefab_meta",
+  "ShipIcon": "support_1_icon",
+  "cost": 0,
+  "Energy": 100,
+  "stats": {
+    "HitPoint": 550,
+    "Shield": 0,
+    "ShieldRegen": 3,
+    "MoveSpeed": 3,
+    "MoveSpeedRear" : 2,
+    "TurnSpeed": 20,
+    "Acceleration": 1.2,
+    "BrakePower": 5,
+    "AfterburnerSpeed": 0,
+    "AfterburnerTime": 0,
+    "Energy": 0,
+    "PowerCell": 0,
+    "Evasion": 0.01,
+    "KineticDamageBonus": 0.1,
+    "ThermalDamageBonus": 0,
+    "EnergyDamageBonus": 0,
+    "KineticResist": 0.1,
+    "ThermalResist": 0,
+    "EnergyResist": 0
+  },
+  "Shield": {
+    "Hp": 250,
+    "Regen": 5,
+    "RegenDelay": 30
+  },
+  "sockets": [
+  ],
+  "Engine": "",
+  "weaponSlots": [
+    "S",
+    "S",
+    "M"
+  ],
+  "activeSlots": 1,
+  "passiveSlots": 3,
+  "hullSlots": 1,
+  "uniqueEffects": [],
+  "leveling": []
+}
