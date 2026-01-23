@@ -42,7 +42,7 @@
 					rotation = spawnPositions[i].rotation;
 				}
 
-				var go = Instantiate(PlayerShipPrefab, position, rotation);
+				var go = InstantiateShip(hull, position, rotation);
 				var ship = go.GetComponent<PlayerShip>();
 				Battle.Instance?.RegisterShip(ship);
 				if (Battle.Instance != null && Battle.Instance.Player == null)
@@ -57,6 +57,21 @@
 				ShipStatBonusApplier.Apply(ship.ShipStats);
 				InstallFit(ship, fit, hull, moduleWeaponEffects, state.InventoryModel);
 			}
+		}
+
+		private GameObject InstantiateShip(HullModel hull, Vector3 position, Quaternion rotation)
+		{
+			if (hull != null && !string.IsNullOrEmpty(hull.BattlePrefab))
+			{
+				var go = ResourceLoader.InstantiatePrefabById(hull.BattlePrefab, null, false);
+				if (go != null)
+				{
+					go.transform.SetPositionAndRotation(position, rotation);
+					return go;
+				}
+			}
+
+			return Instantiate(PlayerShipPrefab, position, rotation);
 		}
 
 		private void InstallFit(

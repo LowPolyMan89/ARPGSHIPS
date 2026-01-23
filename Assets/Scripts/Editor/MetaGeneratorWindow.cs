@@ -278,6 +278,8 @@ public class MetaGeneratorWindow : EditorWindow
 
 			if (_state.PlayerShipFits.Find(f => f != null && string.Equals(f.ShipId, id, StringComparison.OrdinalIgnoreCase)) == null)
 				_state.PlayerShipFits.Add(new ShipFitModel { ShipId = id });
+			if (!ShipInventoryUtils.ContainsShip(_state, id))
+				ShipInventoryUtils.AddShip(_state, id);
 
 			if (string.IsNullOrEmpty(_state.SelectedShipId))
 				_state.SelectedShipId = id;
@@ -505,6 +507,8 @@ public class MetaGeneratorWindow : EditorWindow
 			_state.Fit.GridPlacements = new List<ShipFitModel.GridPlacement>();
 		if (_state.BattleShipSlots == null)
 			_state.BattleShipSlots = new List<string>();
+		if (_state.ShipInventory == null)
+			_state.ShipInventory = new List<InventoryShip>();
 		if (_state.InventoryModel == null)
 			_state.InventoryModel = new PlayerInventoryModel();
 		if (_state.InventoryModel.InventoryUniqueItems == null)
@@ -528,6 +532,8 @@ public class MetaGeneratorWindow : EditorWindow
 			else
 				_state.Fit = exists;
 		}
+
+		ShipInventoryUtils.EnsureInventory(_state);
 	}
 
 	private void RefreshTemplates()
@@ -616,6 +622,11 @@ public class MetaGeneratorWindow : EditorWindow
 
 		_state.PlayerShipFits.RemoveAll(f => f != null &&
 		                                     string.Equals(f.ShipId, shipId, StringComparison.OrdinalIgnoreCase));
+		if (_state.ShipInventory != null)
+		{
+			_state.ShipInventory.RemoveAll(s =>
+				string.Equals(ShipInventoryUtils.ResolveShipId(s), shipId, StringComparison.OrdinalIgnoreCase));
+		}
 
 		if (_state.BattleShipSlots != null)
 		{

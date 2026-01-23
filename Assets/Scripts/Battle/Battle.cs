@@ -49,6 +49,11 @@ namespace Ships
 
 			if (!AllShips.Contains(ship))
 				AllShips.Add(ship);
+
+			if (ship.SideType != SideType.Player &&
+			    ship.GetComponent<AiShipBrain>() == null &&
+			    ship.GetComponent<EnemyNavAgentDriver>() != null)
+				ship.gameObject.AddComponent<AiShipBrain>();
 		}
 
 		public void UnregisterShip(ShipBase ship)

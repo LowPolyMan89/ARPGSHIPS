@@ -26,6 +26,8 @@ namespace Ships
 		private Vector3 _lastPos;
 		private Vector3 _velocity;
 		public Vector3 Velocity => _velocity;
+		public ShipBase LastAttacker { get; private set; }
+		public float LastAttackerTime { get; private set; }
 
 		public TeamMask Team => _team;
 		public bool IsSelected { get; set; }
@@ -159,6 +161,8 @@ namespace Ships
 					hp.AddToCurrent(-calc.FinalDamage);
 			}
 
+			RegisterAttacker(calc.SourceWeapon?.Owner);
+
 			if (calc.SourceWeapon?.Model?.Effects != null)
 			{
 				foreach (var effect in calc.SourceWeapon.Model.Effects)
@@ -171,6 +175,15 @@ namespace Ships
 				}
 					
 			}
+		}
+
+		public void RegisterAttacker(ShipBase attacker)
+		{
+			if (attacker == null)
+				return;
+
+			LastAttacker = attacker;
+			LastAttackerTime = Time.time;
 		}
 
 

@@ -9,6 +9,9 @@ namespace Ships
 	public class MetaShipMouseRotator : MonoBehaviour
 	{
 		[SerializeField] private Transform _target;
+		[SerializeField] private RectTransform _dragArea;
+		[SerializeField] private Camera _uiCamera;
+		[SerializeField] private bool _requirePointerOverArea;
 		[SerializeField] private float _degreesPerPixel = 0.2f;
 		[SerializeField] private int _mouseButton = 0;
 		[SerializeField] private bool _invert;
@@ -25,18 +28,18 @@ namespace Ships
 
 		private void Update()
 		{
-			if (_ignoreWhenOverUi && EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-			{
-				_dragging = false;
+			if (!CanStartDrag())
 				return;
-			}
 
 			if (WasButtonPressedThisFrame())
 			{
 				if (TryGetMousePosition(out var pos))
 				{
-					_dragging = true;
-					_lastPos = pos;
+					if (IsPointerAllowed(pos))
+					{
+						_dragging = true;
+						_lastPos = pos;
+					}
 				}
 				return;
 			}
@@ -53,6 +56,12 @@ namespace Ships
 			if (!TryGetMousePosition(out var currentPos))
 				return;
 
+			if (!IsPointerAllowed(currentPos))
+			{
+				_dragging = false;
+				return;
+			}
+
 			var delta = currentPos - _lastPos;
 			_lastPos = currentPos;
 
@@ -63,6 +72,46 @@ namespace Ships
 			var yaw = delta.x * _degreesPerPixel * sign;
 			if (_target != null)
 				_target.Rotate(Vector3.up, yaw, Space.World);
+		}
+
+		private bool CanStartDrag()
+		{
+			if (_requirePointerOverArea)
+				return true;
+
+			if (_ignoreWhenOverUi && EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+			{
+				_dragging = false;
+				return false;
+			}
+
+			return true;
+		}
+
+		private bool IsPointerAllowed(Vector2 screenPos)
+		{
+			if (!_requirePointerOverArea)
+				return true;
+
+			if (_dragArea == null)
+				return true;
+
+			return RectTransformUtility.RectangleContainsScreenPoint(_dragArea, screenPos, GetUiCamera());
+		}
+
+		private Camera GetUiCamera()
+		{
+			if (_uiCamera != null)
+				return _uiCamera;
+
+			if (_dragArea == null)
+				return null;
+
+			var canvas = _dragArea.GetComponentInParent<Canvas>();
+			if (canvas == null)
+				return null;
+
+			return canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : canvas.worldCamera;
 		}
 
 		private bool WasButtonPressedThisFrame()

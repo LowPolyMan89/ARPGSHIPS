@@ -13,6 +13,7 @@ namespace Ships
 		{
 			_state = MetaController.Instance != null ? MetaController.Instance.State : null;
 			EnsureSlots();
+			ShipInventoryUtils.EnsureInventory(_state);
 			InitElements();
 		}
 
@@ -50,35 +51,42 @@ namespace Ships
 
 		public bool SetSlotShipId(int slotIndex, string shipId)
 		{
-			if (_state == null || _state.BattleShipSlots == null || string.IsNullOrEmpty(shipId))
-				return false;
-			if (slotIndex < 0 || slotIndex >= _state.BattleShipSlots.Count)
-				return false;
-
-			for (var i = 0; i < _state.BattleShipSlots.Count; i++)
-			{
-				if (i == slotIndex)
-					continue;
-				if (string.Equals(_state.BattleShipSlots[i], shipId, System.StringComparison.OrdinalIgnoreCase))
-					return false;
-			}
-
-			_state.BattleShipSlots[slotIndex] = shipId;
-			MetaSaveSystem.Save(_state);
-			RefreshAll();
-			return true;
+			return TryAssignShipById(slotIndex, shipId, false, false);
 		}
 
 		public void ClearSlot(int slotIndex)
 		{
+			TryClearSlot(slotIndex, false);
+		}
+
+		public bool TryAssignShipFromInventory(int slotIndex, InventoryShip ship, bool isFlagshipSlot)
+		{
+			var shipId = ShipInventoryUtils.ResolveShipId(ship);
+			if (string.IsNullOrEmpty(shipId))
+				return false;
+
+			if (!ShipInventoryUtils.ContainsShip(_state, shipId))
+				return false;
+
+			return TryAssignShipById(slotIndex, shipId, isFlagshipSlot, true);
+		}
+
+		public bool TryClearSlot(int slotIndex, bool isFlagshipSlot)
+		{
 			if (_state == null || _state.BattleShipSlots == null)
-				return;
+				return false;
 			if (slotIndex < 0 || slotIndex >= _state.BattleShipSlots.Count)
-				return;
+				return false;
+			if (isFlagshipSlot)
+				return false;
 
 			var removedId = _state.BattleShipSlots[slotIndex];
+			if (string.IsNullOrEmpty(removedId))
+				return false;
+
 			_state.BattleShipSlots[slotIndex] = string.Empty;
 			UnequipShipFit(removedId);
+			ShipInventoryUtils.AddShip(_state, removedId);
 			MetaSaveSystem.Save(_state);
 
 			if (!string.IsNullOrEmpty(removedId) &&
@@ -86,6 +94,8 @@ namespace Ships
 				SelectFallbackShip();
 
 			RefreshAll();
+			GameEvent.ShipInventoryUpdated(_state.ShipInventory);
+			return true;
 		}
 
 		private void UnequipShipFit(string shipId)
@@ -133,33 +143,19 @@ namespace Ships
 		public List<string> GetAvailableShipIds(int slotIndex, bool flagshipOnly)
 		{
 			var result = new List<string>();
-			if (_state == null || _state.PlayerShipFits == null)
+			if (_state == null || _state.ShipInventory == null)
 				return result;
 
-			var used = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-			for (var i = 0; i < _state.BattleShipSlots.Count; i++)
+			for (var i = 0; i < _state.ShipInventory.Count; i++)
 			{
-				if (i == slotIndex)
+				var ship = _state.ShipInventory[i];
+				var id = ShipInventoryUtils.ResolveShipId(ship);
+				if (string.IsNullOrEmpty(id))
 					continue;
-				var id = _state.BattleShipSlots[i];
-				if (!string.IsNullOrEmpty(id))
-					used.Add(id);
-			}
-
-			var unique = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-			for (var i = 0; i < _state.PlayerShipFits.Count; i++)
-			{
-				var fit = _state.PlayerShipFits[i];
-				if (fit == null || string.IsNullOrEmpty(fit.ShipId))
-					continue;
-				if (!unique.Add(fit.ShipId))
-					continue;
-				if (used.Contains(fit.ShipId))
-					continue;
-				if (flagshipOnly && !IsFlagship(fit.ShipId))
+				if (flagshipOnly && !IsFlagship(id))
 					continue;
 
-				result.Add(fit.ShipId);
+				result.Add(id);
 			}
 
 			return result;
@@ -187,6 +183,51 @@ namespace Ships
 				if (element != null)
 					element.Refresh();
 			}
+		}
+
+		private bool TryAssignShipById(int slotIndex, string shipId, bool isFlagshipSlot, bool removeFromInventory)
+		{
+			if (_state == null || _state.BattleShipSlots == null || string.IsNullOrEmpty(shipId))
+				return false;
+			if (slotIndex < 0 || slotIndex >= _state.BattleShipSlots.Count)
+				return false;
+
+			shipId = ShipInventoryUtils.NormalizeShipId(shipId);
+			if (string.IsNullOrEmpty(shipId))
+				return false;
+
+			if (isFlagshipSlot && !IsFlagship(shipId))
+				return false;
+
+			for (var i = 0; i < _state.BattleShipSlots.Count; i++)
+			{
+				if (i == slotIndex)
+					continue;
+				if (string.Equals(_state.BattleShipSlots[i], shipId, System.StringComparison.OrdinalIgnoreCase))
+					return false;
+			}
+
+			var existingId = _state.BattleShipSlots[slotIndex];
+			if (string.Equals(existingId, shipId, System.StringComparison.OrdinalIgnoreCase))
+				return false;
+
+			if (!string.IsNullOrEmpty(existingId))
+			{
+				UnequipShipFit(existingId);
+				ShipInventoryUtils.AddShip(_state, existingId);
+			}
+
+			if (removeFromInventory && !ShipInventoryUtils.RemoveShip(_state, shipId))
+				return false;
+
+			_state.BattleShipSlots[slotIndex] = shipId;
+
+			MetaController.Instance?.SetActiveShip(shipId);
+
+			MetaSaveSystem.Save(_state);
+			RefreshAll();
+			GameEvent.ShipInventoryUpdated(_state.ShipInventory);
+			return true;
 		}
 	}
 }

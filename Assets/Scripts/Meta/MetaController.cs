@@ -1,6 +1,4 @@
-﻿
-
-namespace Ships
+﻿namespace Ships
 {
 	using UnityEngine;
 	using System.Collections.Generic;
@@ -30,7 +28,7 @@ namespace Ships
 			if (_metaCamera == null)
 				_metaCamera = Camera.main;
 
-		    Localization.LoadLocalizationDataFromConfig();
+			Localization.LoadLocalizationDataFromConfig();
 			State = MetaSaveSystem.Load();
 
 			if (string.IsNullOrEmpty(State.SelectedShipId))
@@ -39,7 +37,8 @@ namespace Ships
 				State.Fit.ShipId = State.SelectedShipId;
 
 			EnsureShipFits();
-			
+			ShipInventoryUtils.EnsureInventory(State);
+
 			if (State.InventoryModel.InventoryUniqueItems.Count == 0)
 				MetaSaveSystem.Save(State);
 
@@ -48,6 +47,8 @@ namespace Ships
 
 			if (_metaVisual != null && _metaVisual.InventoryVisual != null)
 				_metaVisual.InventoryVisual.Init(_inventoryView);
+			if (_metaVisual != null && _metaVisual.ShipInventoryVisual != null)
+				_metaVisual.ShipInventoryVisual.Init(_inventoryView);
 
 			SpawnMetaShip();
 		}
@@ -275,13 +276,20 @@ namespace Ships
 			var camTransform = _metaCamera.transform;
 			var center = bounds.center;
 			var extents = bounds.extents;
+			var radius = extents.magnitude;
 			var aspect = Mathf.Max(0.0001f, _metaCamera.aspect);
+			var targetTexture = _metaCamera.targetTexture;
+			if (targetTexture != null && targetTexture.height > 0)
+			{
+				aspect = (float)targetTexture.width / targetTexture.height;
+				_metaCamera.aspect = aspect;
+			}
 			var distance = _minCameraDistance;
 
 			if (_metaCamera.orthographic)
 			{
-				var sizeByHeight = extents.y;
-				var sizeByWidth = extents.x / aspect;
+				var sizeByHeight = radius;
+				var sizeByWidth = radius / aspect;
 				var size = Mathf.Max(sizeByHeight, sizeByWidth) * _cameraPadding;
 				_metaCamera.orthographicSize = Mathf.Max(_metaCamera.orthographicSize, size);
 			}
@@ -290,10 +298,10 @@ namespace Ships
 				var halfVert = Mathf.Deg2Rad * _metaCamera.fieldOfView * 0.5f;
 				var halfHoriz = Mathf.Atan(Mathf.Tan(halfVert) * aspect);
 
-				var distV = extents.y / Mathf.Tan(halfVert);
-				var distH = extents.x / Mathf.Tan(halfHoriz);
+				var distV = radius / Mathf.Tan(halfVert);
+				var distH = radius / Mathf.Tan(halfHoriz);
 				distance = Mathf.Max(distV, distH);
-				distance = (distance + extents.z) * _cameraPadding;
+				distance = distance * _cameraPadding;
 				distance = Mathf.Clamp(distance, _minCameraDistance, _maxCameraDistance);
 			}
 

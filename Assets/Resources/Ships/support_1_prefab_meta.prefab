@@ -203,7 +203,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SocketId: socket_02
   SocketType: 0
-  SocketSize: 1
+  SocketSize: 0
 --- !u!1 &5702886103331722502
 GameObject:
   m_ObjectHideFlags: 0
@@ -251,7 +251,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   SocketId: socket_01
   SocketType: 0
-  SocketSize: 1
+  SocketSize: 0
 --- !u!1 &6737311571270092201
 GameObject:
   m_ObjectHideFlags: 0

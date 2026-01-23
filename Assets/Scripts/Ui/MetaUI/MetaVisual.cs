@@ -6,6 +6,7 @@ namespace Ships
 	public class MetaVisual : MonoBehaviour
 	{
 		public InventoryVisual InventoryVisual;
+		public InventoryShipListVisual ShipInventoryVisual;
 		[SerializeField] private ShipFitSlotsController _fitSlotsController;
 		[SerializeField] private ItemSelectionVisual _itemSelectionVisual;
 		[SerializeField] private ShipUiMetaStatVisual _uiMetaStatVisualPrefab;

@@ -26,7 +26,7 @@
       "Stats": [
         { "Name": "MinDamage", "Value": 12 },
         { "Name": "MaxDamage", "Value": 26 },
-        { "Name": "FireRange", "Value": 65 },
+        { "Name": "FireRange", "Value": 100 },
         { "Name": "RotationSpeed", "Value": 30 },
         { "Name": "ProjectileSpeed", "Value": 22 },
         { "Name": "Accuracy", "Value": 0.9 },

@@ -30,6 +30,11 @@ namespace Ships
 
 		private void Awake()
 		{
+			if (GetComponent<AiShipBrain>() != null)
+			{
+				enabled = false;
+				return;
+			}
 			_nav = GetComponent<EnemyNavAgentDriver>();
 			_tank = GetComponent<ShipBase>();
 		}

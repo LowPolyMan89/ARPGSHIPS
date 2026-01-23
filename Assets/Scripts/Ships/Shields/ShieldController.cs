@@ -46,6 +46,7 @@ namespace Ships
 			*/
 
 			var dmg = calculatedDamage.FinalDamage;
+			_ship.RegisterAttacker(calculatedDamage.SourceWeapon?.Owner);
 
 			// Уменьшаем HP щита
 			var leftover = ShipShield.Absorb(dmg);

@@ -10,6 +10,8 @@ namespace Ships
 		public static event Action<System.Collections.Generic.List<ShipBase>> OnSelectionChanged;
 		public static event Action<PlayerInventoryModel> OnInventoryUpdated;
 		public static event Action<InventoryItem> OnItemSelected;
+		public static event Action<System.Collections.Generic.List<InventoryShip>> OnShipInventoryUpdated;
+		public static event Action<InventoryShip> OnShipSelected;
 		public static void TakeDamage(CalculatedDamage calculatedDamage)
 		{
 			UiUpdate();
@@ -26,6 +28,16 @@ namespace Ships
 		public static void ItemSelected(InventoryItem item)
 		{
 			OnItemSelected?.Invoke(item);
+		}
+
+		public static void ShipInventoryUpdated(System.Collections.Generic.List<InventoryShip> ships)
+		{
+			OnShipInventoryUpdated?.Invoke(ships);
+		}
+
+		public static void ShipSelected(InventoryShip ship)
+		{
+			OnShipSelected?.Invoke(ship);
 		}
 		public static void ClickItem(InventoryItem item)
 		{

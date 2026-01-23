@@ -10,6 +10,7 @@ namespace Ships
 		public const string LootTables = "Configs/Loot/LootTables";
 		public const string HullsConfigs = "Configs/Hulls";
 		public const string LocalizationConfigs = "Configs/Localization";
+		public const string AiConfigs = "Configs/Ai";
 
 		// Persistent
 		public const string Inventory = "Inventory";
