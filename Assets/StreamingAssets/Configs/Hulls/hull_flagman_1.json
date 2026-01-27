@@ -2,6 +2,7 @@
   "id": "hull_flagman_1",
   "name": "Test Frigate",
   "shipClass": "Flagship",
+  "shipRole": "Bastion",
   "BattlePrefab": "hull_flagman_1_prefab",
   "MetaPrefab": "hull_flagman_1_prefab_meta",
   "ShipIcon": "ship_flagman_1",

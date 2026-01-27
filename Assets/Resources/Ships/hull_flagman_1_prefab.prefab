@@ -59,6 +59,7 @@ MonoBehaviour:
   _team: 1
   HitMask: 2
   shipClass: 5
+  shipRole: 1
   StatVisuals: []
 --- !u!114 &6737269772819137389
 MonoBehaviour:

@@ -1675,6 +1675,7 @@ MonoBehaviour:
   Player: {fileID: 0}
   CameraController: {fileID: 307264473}
   AllShips: []
+  PlayerShips: []
   SelectedShips: []
   PlayerSpawnPositions:
   - {fileID: 1638103010}

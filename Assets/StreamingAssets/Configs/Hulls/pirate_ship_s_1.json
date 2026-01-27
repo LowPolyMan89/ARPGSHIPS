@@ -2,6 +2,7 @@
   "id": "pirate_01",
   "name": "pirate_01",
   "shipClass": "Frigate",
+  "shipRole": "Striker",
   "cost": 0,
   "Energy": 50,
   "stats": {

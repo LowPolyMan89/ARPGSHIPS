@@ -15,7 +15,8 @@ namespace Ships
 		[Header("Runtime")]
 		public PlayerShip Player;
 		public BattleCamera CameraController;
-		[FormerlySerializedAs("AllTanks")] public List<ShipBase> AllShips = new();
+		public List<ShipBase> AllShips = new();
+		public List<ShipBase> PlayerShips = new();
 		public List<ShipBase> SelectedShips = new();
 		public List<Transform> PlayerSpawnPositions;
 
@@ -37,7 +38,7 @@ namespace Ships
 
 		private void RegisterInitialShips()
 		{
-			var ships = FindObjectsOfType<ShipBase>();
+			var ships = FindObjectsByType<ShipBase>(sortMode: FindObjectsSortMode.None);
 			for (var i = 0; i < ships.Length; i++)
 				RegisterShip(ships[i]);
 		}
@@ -54,6 +55,8 @@ namespace Ships
 			    ship.GetComponent<AiShipBrain>() == null &&
 			    ship.GetComponent<EnemyNavAgentDriver>() != null)
 				ship.gameObject.AddComponent<AiShipBrain>();
+			else
+				PlayerShips.Add(ship);
 		}
 
 		public void UnregisterShip(ShipBase ship)

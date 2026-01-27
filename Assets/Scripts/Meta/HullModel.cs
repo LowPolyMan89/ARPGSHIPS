@@ -16,6 +16,7 @@ namespace Ships
 		public string MetaPrefab;
 		public string ShipIcon;
 		public string shipClass;
+		public string shipRole;
 		public int Energy;
 		public StatContainer stats;
 		public List<StatEffectModel> StatEffects;

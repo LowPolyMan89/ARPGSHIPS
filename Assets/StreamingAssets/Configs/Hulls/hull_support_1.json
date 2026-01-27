@@ -2,6 +2,7 @@
   "id": "hull_support_1",
   "name": "Test Destroyer",
   "shipClass": "Destroyer",
+  "shipRole": "Support",
   "BattlePrefab": "support_1_prefab",
   "MetaPrefab": "support_1_prefab_meta",
   "ShipIcon": "support_1_icon",

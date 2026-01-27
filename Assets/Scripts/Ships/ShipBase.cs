@@ -18,10 +18,12 @@ namespace Ships
 		[FormerlySerializedAs("TankStats")] public Stats ShipStats;
 		[FormerlySerializedAs("size")]
 		[SerializeField] private ShipClass shipClass = ShipClass.Frigate;
+		[SerializeField] private ShipRole shipRole = ShipRole.Striker;
 		public List<StatVisual> StatVisuals = new();
 		public HashSet<string> RunningDotEffects = new();
 		public Transform Transform => transform;
 		public ShipClass Class => shipClass;
+		public ShipRole Role => shipRole;
 
 		private Vector3 _lastPos;
 		private Vector3 _velocity;
@@ -49,6 +51,9 @@ namespace Ships
 			if (data != null && !string.IsNullOrEmpty(data.shipClass) &&
 			    Enum.TryParse(data.shipClass, true, out ShipClass parsedClass))
 				shipClass = parsedClass;
+			if (data != null && !string.IsNullOrEmpty(data.shipRole) &&
+			    Enum.TryParse(data.shipRole, true, out ShipRole parsedRole))
+				shipRole = parsedRole;
 			var fields = typeof(StatContainer).GetFields(
 				BindingFlags.Public | BindingFlags.Instance);
 
